@@ -1,0 +1,23 @@
+# dependencias de Node
+node_modules/
+dist/
+dist-tsc/
+build/
+.npm/
+
+# variables de entorno ocultas
+.env
+.env.local
+
+# logs y debug
+*.log
+npm-debug.log*
+
+# bases de datos locales
+*.sqlite
+*.sqlite-journal
+
+# ides
+.vscode/
+.idea/
+.DS_Store
