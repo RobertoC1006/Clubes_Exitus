@@ -45,7 +45,7 @@ async function main() {
   const nombres = ['Mateo', 'Valentina', 'Santiago', 'Camila', 'Luciana', 'Diego', 'Matías', 'Sofía', 'Joaquín', 'Emma'];
   const grados = ['1ro Sec', '2do Sec', '3ro Sec', '4to Sec'];
 
-  const alumnos = [];
+  const alumnos: any[] = [];
   for (let i = 0; i < nombres.length; i++) {
     const alumno = await prisma.alumno.create({
       data: {
