@@ -1,0 +1,237 @@
+﻿<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#eac31c",
+                    "surface-container": "#ebedff",
+                    "surface": "#faf8ff",
+                    "outline": "#76767f",
+                    "on-background": "#0e1a39",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#554500",
+                    "surface-container-low": "#f2f3ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-tint": "#535d80",
+                    "surface-dim": "#cfd9ff",
+                    "error": "#ba1a1a",
+                    "surface-bright": "#faf8ff",
+                    "on-error": "#ffffff",
+                    "inverse-surface": "#242f4f",
+                    "tertiary-fixed": "#ffdeac",
+                    "on-secondary-container": "#725d00",
+                    "on-primary-fixed-variant": "#3b4667",
+                    "primary-fixed-dim": "#bbc5ee",
+                    "on-primary-fixed": "#0e1a39",
+                    "surface-container-high": "#e3e7ff",
+                    "surface-container-highest": "#dbe1ff",
+                    "secondary": "#715d00",
+                    "outline-variant": "#c6c6cf",
+                    "surface-variant": "#dbe1ff",
+                    "on-secondary-fixed": "#231b00",
+                    "on-primary-container": "#858fb5",
+                    "secondary-container": "#ffd735",
+                    "tertiary-fixed-dim": "#e4c18b",
+                    "on-tertiary-container": "#ab8c5a",
+                    "secondary-fixed": "#ffe178",
+                    "inverse-primary": "#bbc5ee",
+                    "primary": "#071332",
+                    "on-secondary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "tertiary-container": "#3a2600",
+                    "on-surface-variant": "#45464e",
+                    "on-tertiary-fixed": "#281900",
+                    "primary-container": "#1d2848",
+                    "inverse-on-surface": "#eef0ff",
+                    "tertiary": "#1f1300",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#5a4318",
+                    "error-container": "#ffdad6",
+                    "on-surface": "#0e1a39",
+                    "primary-fixed": "#dbe1ff",
+                    "background": "#faf8ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .student-card:active { transform: scale(0.98); transition: transform 0.1s; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-background min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="bg-[#faf8ff] dark:bg-slate-950 flex justify-between items-center px-6 py-4 w-full sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-primary-fixed">school</span>
+</div>
+<h1 class="text-xl font-black text-[#071332] dark:text-blue-200 uppercase tracking-tighter">Lyceum Hub</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-200/50 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[#071332] dark:text-blue-400">account_circle</span>
+</button>
+</header>
+<main class="max-w-md mx-auto px-4 pt-4">
+<!-- Summary Dashboard (Editorial Style) -->
+<section class="mb-8 p-6 bg-surface-container-low rounded-xl relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-9xl" style="font-variation-settings: 'FILL' 1;">rule</span>
+</div>
+<div class="relative z-10">
+<p class="text-xs font-bold uppercase tracking-widest text-secondary mb-1">Attendance Report</p>
+<div class="flex items-baseline gap-2">
+<span class="text-5xl font-black tracking-tighter text-primary">15/20</span>
+<span class="text-sm font-medium text-on-surface-variant">Alumnos Marcados</span>
+</div>
+<div class="mt-4 w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary-container h-full w-[75%] rounded-full"></div>
+</div>
+<p class="mt-2 text-xs text-on-surface-variant italic font-medium">Faltan 5 estudiantes por registrar</p>
+</div>
+</section>
+<!-- Search & Filter Area (Tonal Layering) -->
+<div class="mb-6 flex gap-3">
+<div class="flex-1 bg-surface-container-high rounded-xl px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full p-0" placeholder="Buscar estudiante..." type="text"/>
+</div>
+<button class="bg-surface-container-high p-3 rounded-xl hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-primary">filter_list</span>
+</button>
+</div>
+<!-- Student List -->
+<div class="space-y-4">
+<!-- Student 1: Present (Active Selection) -->
+<div class="bg-surface-container-lowest p-4 rounded-2xl shadow-[0_8px_32px_rgba(14,26,57,0.04)] flex flex-col gap-4">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img alt="Student" class="w-14 h-14 rounded-full object-cover" data-alt="close-up portrait of a cheerful young high school student with glasses in a bright school library setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDorJh13nJ_kvoDDPuq7YguAid8Qwmeondr88bccSIgc3W6cNytz3MEAsW6F48Ew-zWlL3clGe3tVstpyr3ugtoxaIDp1pg1SINYRGVyiaOwQ9UAztShWGGCmU0oiy2axO9jkMVckFZUdJzDIoP49YeQJmMBDy0dgRrIII8lAUu3n3gn0fcuF5L55ijlbsi52eB8tSYjWb7zC2sJHMeQTEz5orcOkMV3d8tMeOGElZOv4Pt1sqozenweOteSt3i_8dEE_uKz72nbWWt"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+</div>
+<div>
+<h3 class="font-bold text-primary tracking-tight">Alejandro Benitez</h3>
+<p class="text-xs font-bold uppercase tracking-widest text-outline">#1024 ÔÇó 10┬║ A</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-green-100 text-green-800 border-2 border-green-500 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Presente</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-surface-container-high text-outline hover:bg-red-50 hover:text-red-600 transition-all">
+<span class="material-symbols-outlined">cancel</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Ausente</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-surface-container-high text-outline hover:bg-blue-50 hover:text-blue-600 transition-all">
+<span class="material-symbols-outlined">info</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Justificado</span>
+</button>
+</div>
+</div>
+<!-- Student 2: Absent Selection -->
+<div class="bg-surface-container-lowest p-4 rounded-2xl shadow-[0_8px_32px_rgba(14,26,57,0.04)] flex flex-col gap-4">
+<div class="flex items-center gap-4">
+<img alt="Student" class="w-14 h-14 rounded-full object-cover" data-alt="portrait of a focused young teenage boy athlete wearing a blue jersey in a sports field environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPdO5fNYPxu3MjJJcRgald9oCeA_QyT9HUr8XIfGSEioiDW0pNfadhn4_085WXc-43uCmCGu3H5vL0XzsGkw3sGorT3E0VO_6XAbEpD0xL1__1xVHYLmBjcZAr-MP44hWhD7_gzuPsyVvc82iUDg_LEMxhPAIt0SG9F6cd_y8KMNKGmBvR7uytlGooaiikcEJGGuAvf2MjmZ580tNdEl19rMvwfmREBsiyq7bSpfiJvZot3WVypM2IOpZ2sl5hMmJPNjn3qYMRvtlN"/>
+<div>
+<h3 class="font-bold text-primary tracking-tight">Valentina Morales</h3>
+<p class="text-xs font-bold uppercase tracking-widest text-outline">#1025 ÔÇó 10┬║ A</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-surface-container-high text-outline hover:bg-green-50 transition-all">
+<span class="material-symbols-outlined">check_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Presente</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-red-100 text-red-800 border-2 border-red-500 transition-all">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">cancel</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Ausente</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-surface-container-high text-outline transition-all">
+<span class="material-symbols-outlined">info</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Justificado</span>
+</button>
+</div>
+</div>
+<!-- Student 3: Not Marked Yet -->
+<div class="bg-surface-container-lowest p-4 rounded-2xl shadow-[0_8px_32px_rgba(14,26,57,0.04)] flex flex-col gap-4 opacity-60">
+<div class="flex items-center gap-4">
+<img alt="Student" class="w-14 h-14 rounded-full object-cover grayscale" data-alt="portrait of a young student in a classroom setting with soft morning sunlight streaming through windows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGcexIz9xV4kcs9Dt1mGnKHc4Di1oohqh7-ebAmsS6TFSQdLL9H6CS_9sGfYGfMzSjTpzUrMzlqJ4TVvC7arf2U84mi9NDGwVuiWd3iHl8-RRBsPovsXWLw2haOG_U7hB3HL-kJxnpvfFgFjBh0FL4SMR0qIYH4ismuz20I15ss4bOv1cSf6_Mt6hg_2CONkY0YBPNbdfhOfzjImNzkF5_ts5ZIoLDp9DFRTKMgCApNO9PtCfFwSqMA0kZZuNdLqXTu1nT0h4xRWTn"/>
+<div>
+<h3 class="font-bold text-primary tracking-tight">Gabriel Castillo</h3>
+<p class="text-xs font-bold uppercase tracking-widest text-outline">#1026 ÔÇó 10┬║ A</p>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-2">
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-surface-container-high text-outline active:scale-95 transition-all">
+<span class="material-symbols-outlined">check_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Presente</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-surface-container-high text-outline active:scale-95 transition-all">
+<span class="material-symbols-outlined">cancel</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Ausente</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-surface-container-high text-outline active:scale-95 transition-all">
+<span class="material-symbols-outlined">info</span>
+<span class="text-[10px] font-bold uppercase tracking-wider">Justificado</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Sticky Bottom CTA -->
+<div class="fixed bottom-24 left-0 w-full px-6 z-30 md:hidden">
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary py-4 rounded-xl font-bold flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined">task_alt</span>
+            Finalizar Registro
+        </button>
+</div>
+<!-- BottomNavBar (Shared Component) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#faf8ff]/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_-8px_32px_rgba(14,26,57,0.06)] border-t border-[#c6c6cf]/15">
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1.5 hover:text-[#071332] active:scale-90 transition-all duration-150">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-widest mt-1">Clubs</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-[#dbe1ff] dark:bg-blue-900/40 text-[#0e1a39] dark:text-blue-100 rounded-xl px-4 py-1.5 active:scale-90 transition-all duration-150">
+<span class="material-symbols-outlined" data-icon="rule" style="font-variation-settings: 'FILL' 1;">rule</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-widest mt-1">Attendance</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1.5 hover:text-[#071332] active:scale-90 transition-all duration-150">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-widest mt-1">Payments</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1.5 hover:text-[#071332] active:scale-90 transition-all duration-150">
+<span class="material-symbols-outlined" data-icon="bar_chart">bar_chart</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-widest mt-1">Reports</span>
+</div>
+</nav>
+</body></html>

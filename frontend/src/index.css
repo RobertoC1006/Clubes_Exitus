@@ -1,0 +1,197 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ==========================================================================
+     COLEGIO EXITUS — Paleta Institucional (Vanilla CSS Adaptada)
+     ========================================================================== */
+
+  /* 🔵 Azul Institucional (Primary) */
+  --color-primary: #1D2848;
+  --color-primary-container: #283a63;
+  --color-primary-fixed: #d4daf0;
+  --color-primary-fixed-dim: #8e9bc4;
+
+  /* 🟡 Amarillo Acento (Secondary) */
+  --color-secondary: #EDC620;
+  --color-secondary-container: #FFD600;
+
+  /* Tertiary — Amarillo oscuro para hover */
+  --color-tertiary: #D3B121;
+  --color-tertiary-container: #FECE22;
+
+  /* ⚪ Superficies — Neutros claros */
+  --color-surface: #F9F9F9;
+  --color-surface-dim: #E8E9ED;
+  --color-surface-container: #F0F2F5;
+  --color-surface-container-high: #E8EAF0;
+  --color-surface-container-highest: #DFE1E8;
+  --color-surface-container-low: #F5F6F9;
+  --color-surface-container-lowest: #FFFFFF;
+
+  /* Texto sobre superficies */
+  --color-on-surface: #2D2D2D;
+  --color-on-surface-variant: #555B6E;
+  --color-on-primary: #FFFFFF;
+  --color-on-secondary: #11182B;
+
+  /* Bordes / outlines */
+  --color-outline: #9098A7;
+  --color-outline-variant: #C8CDD8;
+
+  /* Error & Semánticos */
+  --color-error: #D32F2F;
+  --color-error-container: #FDECEA;
+  --color-success: #2E7D32;
+  --color-success-container: #E8F5E9;
+  --color-warning: #E6A817;
+  --color-warning-container: #FFF8E1;
+
+  /* Font & Spacing */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --spacing-18: 4.5rem;
+  --spacing-88: 22rem;
+
+  /* Elevación / Sombras suaves (Premium feel) */
+  --shadow-sm: 0 2px 4px rgba(29, 40, 72, 0.05);
+  --shadow-md: 0 4px 12px rgba(29, 40, 72, 0.08);
+  --shadow-lg: 0 12px 24px rgba(29, 40, 72, 0.12);
+  --shadow-glass: 0 8px 32px 0 rgba(29, 40, 72, 0.08); /* Más suave para el celu */
+  
+  /* Transiciones */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset Profesional */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent; /* Evita cuadros raros click en celular */
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  /* Fondo sutil súper moderno: Neutro con destello amarillo y azul en bordes */
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(40, 58, 99, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(237, 198, 32, 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+button {
+  font-family: var(--font-sans);
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ==========================================================================
+   SISTEMA DE CLASES REUTILIZABLES (VANILLA)
+   ========================================================================== */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: var(--shadow-glass);
+  border-radius: 1.25rem; /* 20px */
+}
+
+/* Botones con estilo moderno PWA */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  font-weight: 600;
+  border-radius: 9999px; /* Pill shape - Estilo Uber/Apple */
+  transition: all var(--transition-normal);
+  font-size: 0.95rem;
+}
+
+/* Micro-animación al clickear desde el celular */
+.btn:active {
+  transform: scale(0.96) translateY(1px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-container));
+  color: var(--color-on-primary);
+  box-shadow: 0 4px 14px rgba(29, 40, 72, 0.25);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(29, 40, 72, 0.35);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  box-shadow: 0 4px 14px rgba(237, 198, 32, 0.35);
+}
+
+.btn-secondary:hover {
+  background: var(--color-tertiary);
+  box-shadow: 0 6px 20px rgba(237, 198, 32, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Flex utilities para maquetar rápido */
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Contenedor principal de la APP móvil */
+.app-container {
+  max-width: 480px; /* Ancho de celular grande */
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 1rem;
+  position: relative;
+}
+
+/* 🌟 Micro Animación fluida de entrada 🌟 */
+@keyframes fadeInSlideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-enter {
+  animation: fadeInSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Header estilizado */
+.header-glass {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-surface-container-highest);
+  padding: 1rem;
+  margin: -1rem -1rem 1rem -1rem; /* Para que ocupe todo el ancho del container mobil */
+}
