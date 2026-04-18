@@ -5,7 +5,8 @@ import {
   PlusCircle, Edit2, Trash2, UserCheck, CheckCircle,
   XCircle, Download, ChevronRight, X, Save,
   BarChart2, BookOpen, CreditCard, RefreshCw, UserPlus,
-  GraduationCap,
+  GraduationCap, Search, ChevronDown, FileText, ExternalLink,
+  Check
 } from 'lucide-react';
 import './index.css';
 
@@ -154,8 +155,14 @@ export default function AdminDashboard() {
   const [modalClub, setModalClub]  = useState<Partial<ClubMetrica> | null | false>(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  // Búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Validando pago
   const [validandoPago, setValidandoPago] = useState<number | null>(null);
+
+  // Reset search when tab changes
+  useEffect(() => setSearchTerm(''), [tab]);
 
   // ── Fetch ────────────────────────────────────────────────────
   const fetchMetricas = useCallback(async () => {
@@ -296,21 +303,27 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const clubesRanking = metricas ? [...metricas.clubes].sort((a, b) => b.asistencia - a.asistencia) : [];
+  const clubesRanking = (metricas?.clubes && Array.isArray(metricas.clubes)) 
+    ? [...metricas.clubes].sort((a, b) => (b.asistencia ?? 0) - (a.asistencia ?? 0)) 
+    : [];
 
   return (
     <div className="app-container animate-enter" style={{ paddingBottom: '7rem' }}>
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <section style={{ padding: '1.25rem 1.25rem 0' }}>
-        <span style={{ color: 'var(--color-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.7rem' }}>
-          Command Center
-        </span>
-        <h2 style={{ fontSize: '2.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em', lineHeight: 1, margin: '0.2rem 0 0.4rem 0' }}>
-          Panel Global
+      <section style={{ padding: '2rem 1.25rem 1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+          <div style={{ padding: '0.4rem 0.8rem', borderRadius: '99px', background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            v2.4 Pro
+          </div>
+          <span style={{ color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: '0.75rem' }}>
+            COMMAND CENTER
+          </span>
+        </div>
+        <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em', lineHeight: 0.95, margin: '0 0 0.6rem 0' }}>
+          Gestión <br/><span style={{ color: 'var(--color-secondary)' }}>Institucional</span>
         </h2>
-        <p style={{ margin: 0, color: 'var(--color-on-surface-variant)', fontSize: '0.85rem', fontWeight: 500 }}>
-          {metricas?.totalAlumnos ?? '…'} atletas · {metricas?.totalClubes ?? '…'} disciplinas
+        <p style={{ margin: 0, color: 'var(--color-on-surface-variant)', fontSize: '0.9rem', fontWeight: 500, opacity: 0.8 }}>
+          Supervisando <strong>{metricas?.totalAlumnos ?? '…'} alumnos</strong> en <strong>{metricas?.totalClubes ?? '…'} disciplinas</strong>.
         </p>
       </section>
 
@@ -321,96 +334,123 @@ export default function AdminDashboard() {
         {tab === 'panel' && metricas && (
           <>
             {/* BENTO MÉTRICAS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
               <div style={{
                 gridColumn: '1 / -1',
-                background: 'var(--color-primary-container)', borderRadius: '1.5rem',
-                padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                boxShadow: '0 8px 32px rgba(29,40,72,0.25)',
+                background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-container))',
+                borderRadius: '2rem',
+                padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                boxShadow: '0 20px 40px rgba(29,40,72,0.25)',
+                position: 'relative', overflow: 'hidden'
               }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-on-primary-container)' }}>Atletas Activos</p>
-                  <p style={{ margin: '0.2rem 0 0', fontSize: '3.25rem', fontWeight: 900, color: 'white', lineHeight: 1, letterSpacing: '-0.04em' }}>{metricas.totalAlumnos}</p>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: 'var(--color-on-primary-container)', fontWeight: 600 }}>En {metricas.totalClubes} disciplinas activas</p>
+                <div style={{ position: 'absolute', top: '-10%', right: '-5%', opacity: 0.1 }}>
+                  <Users size={180} color="white" />
                 </div>
-                <div style={{ width: '3.75rem', height: '3.75rem', borderRadius: '1.25rem', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Users size={28} color="white" />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.7)' }}>Atletas Activos</p>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '4.5rem', fontWeight: 900, color: 'white', lineHeight: 1, letterSpacing: '-0.06em' }}>{metricas.totalAlumnos}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem' }}>
+                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '99px', background: 'rgba(255,255,255,0.15)', color: 'white', fontSize: '0.65rem', fontWeight: 700 }}>{metricas.totalClubes} disciplinas</span>
+                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '99px', background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', fontSize: '0.65rem', fontWeight: 800 }}>Ciclo 2024</span>
+                  </div>
                 </div>
               </div>
 
               <div style={metricaCardStyle}>
-                <p style={metricaLabelStyle}>Asistencia</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                   <div style={{ width: '1.8rem', height: '1.8rem', borderRadius: '0.5rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TrendingUp size={14} color="var(--color-success)" />
+                   </div>
+                   <p style={metricaLabelStyle}>Retención</p>
+                </div>
                 <p style={metricaValueStyle}>{metricas.asistenciaGlobal}%</p>
-                <div style={{ marginTop: '0.6rem', height: '5px', borderRadius: '99px', background: 'var(--color-surface-container-high)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${metricas.asistenciaGlobal}%`, background: 'var(--color-secondary-container)', borderRadius: '99px', transition: 'width 1s ease' }} />
+                <div style={{ marginTop: '1rem', height: '6px', borderRadius: '99px', background: 'var(--color-surface-container-high)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${metricas.asistenciaGlobal}%`, background: 'var(--color-secondary)', borderRadius: '99px', transition: 'width 1s ease' }} />
                 </div>
-                <p style={{ margin: '0.3rem 0 0', fontSize: '0.68rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Promedio global</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Asistencia Global</p>
               </div>
 
               <div style={metricaCardStyle}>
-                <p style={metricaLabelStyle}>Instructores</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                   <div style={{ width: '1.8rem', height: '1.8rem', borderRadius: '0.5rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <GraduationCap size={14} color="var(--color-primary)" />
+                   </div>
+                   <p style={metricaLabelStyle}>Expertos</p>
+                </div>
                 <p style={metricaValueStyle}>{metricas.totalProfesores}</p>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.68rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>activos este ciclo</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Cuerpo docente</p>
               </div>
             </div>
 
             {/* ALERTAS */}
             {metricas.alertas.length > 0 && (
-              <section style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <AlertTriangle size={15} color="var(--color-error)" />
-                  <h3 style={{ margin: 0, fontSize: '0.83rem', fontWeight: 800, color: 'var(--color-primary)' }}>Requieren Atención</h3>
+              <section style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-error)', animation: 'pulse 2s infinite' }}></div>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Atención Prioritaria</h3>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-error)' }}>{metricas.alertas.length} incidencias</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                  {metricas.alertas.map((a, i) => (
-                    <div key={i} style={{
-                      background: 'var(--color-surface-container-lowest)', borderRadius: '1rem',
-                      padding: '0.85rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      borderLeft: '3px solid var(--color-error)',
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {metricas.alertas.slice(0, 5).map((a, i) => (
+                    <div key={i} className="glass-card" style={{
+                      padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(211, 47, 47, 0.1)'
                     }}>
-                      <div>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--color-primary)' }}>{a.alumno}</p>
-                        <p style={{ margin: 0, fontSize: '0.73rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{a.club}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                        <div style={{ width: '2.4rem', height: '2.4rem', borderRadius: '50%', background: 'var(--color-error-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                           <AlertTriangle size={16} color="var(--color-error)" />
+                        </div>
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-primary)' }}>{a.alumno}</p>
+                          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{a.club}</p>
+                        </div>
                       </div>
-                      <span style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.3rem 0.65rem', borderRadius: '99px', fontSize: '0.68rem', fontWeight: 800 }}>
-                        {a.faltas} faltas
-                      </span>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-error)' }}>{a.faltas}</span>
+                        <span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>FALTAS</span>
+                      </div>
                     </div>
                   ))}
+                  <style>{`@keyframes pulse { 0% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.5; transform: scale(1); } }`}</style>
                 </div>
               </section>
             )}
 
             {/* RANKING */}
             <section>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <Award size={15} color="var(--color-secondary)" />
-                <h3 style={{ margin: 0, fontSize: '0.83rem', fontWeight: 800, color: 'var(--color-primary)' }}>Ranking de Clubes</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <Award size={18} color="var(--color-secondary)" />
+                <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ranking de disciplinas</h3>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {clubesRanking.map((club, i) => (
-                  <div key={club.id} style={{
-                    background: 'var(--color-surface-container-lowest)', borderRadius: '1rem',
-                    padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.85rem',
+                  <div key={club.id} className="glass-card" style={{
+                    padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
                   }}>
-                    <span style={{
-                      width: '2rem', height: '2rem', borderRadius: '50%', flexShrink: 0,
-                      background: i === 0 ? 'var(--color-secondary-container)' : 'var(--color-surface-container-high)',
-                      color: i === 0 ? 'var(--color-on-secondary-container)' : 'var(--color-on-surface-variant)',
+                    <div style={{
+                      width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', flexShrink: 0,
+                      background: i === 0 ? 'var(--color-secondary)' : 'var(--color-surface-container-high)',
+                      color: i === 0 ? 'var(--color-on-secondary)' : 'var(--color-on-surface-variant)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 900, fontSize: '0.85rem',
+                      fontWeight: 900, fontSize: '1rem',
                     }}>
                       {i + 1}
-                    </span>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: '0.88rem', color: 'var(--color-primary)' }}>{club.nombre}</p>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                        {club.profesor} · {club.inscritos} alumnos
-                      </p>
                     </div>
-                    <span style={{ fontWeight: 900, fontSize: '1.1rem', color: club.asistencia >= 85 ? 'var(--color-success, #16a34a)' : 'var(--color-error)' }}>
-                      {club.asistencia}%
-                    </span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{club.nombre}</p>
+                      <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>• {club.inscritos} alumnos</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                       <span style={{ display: 'block', fontWeight: 900, fontSize: '1.25rem', color: club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)', lineHeight: 1 }}>
+                        {club.asistencia}%
+                      </span>
+                      <span style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--color-outline)' }}>ASISTENCIA</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -421,48 +461,57 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: CLUBES ═══════════════════════════ */}
         {tab === 'clubes' && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                Gestión de Clubes ({metricas?.clubes.length ?? 0})
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                Disciplinas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', verticalAlign: 'middle', marginLeft: '0.5rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px' }}>{metricas?.clubes.length ?? 0}</span>
               </h3>
-              <button onClick={() => setModalClub({})} style={{
-                display: 'flex', alignItems: 'center', gap: '0.4rem',
-                background: 'var(--color-primary)', color: 'white', border: 'none',
-                borderRadius: '99px', padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
-              }}>
-                <PlusCircle size={15} /> Nuevo Club
+              <button onClick={() => setModalClub({})} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+                <PlusCircle size={15} /> Nuevo
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {(metricas?.clubes ?? []).map(club => (
-                <div key={club.id} style={{
-                  background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem',
-                  padding: '1.1rem 1.1rem 1.1rem 1.25rem',
-                  borderLeft: '4px solid var(--color-secondary-container)',
+            {/* SEARCH BAR */}
+            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+              <input 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Buscar disciplina o profesor..." 
+                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }} 
+              />
+              <BarChart2 size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {(metricas?.clubes ?? [])
+                .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
+                .map(club => (
+                <div key={club.id} className="glass-card" style={{
+                  padding: '1.25rem',
+                  borderLeft: '5px solid var(--color-primary)',
+                  background: 'white'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{club.nombre}</p>
+                      <p style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{club.nombre}</p>
                       {club.descripcion && (
-                        <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)' }}>{club.descripcion}</p>
+                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.4, fontWeight: 500 }}>{club.descripcion}</p>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.4rem', marginLeft: '0.5rem' }}>
-                      <button onClick={() => setModalClub(club)} style={iconBtnStyle('#EEF2FF', 'var(--color-primary)')}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
+                      <button onClick={() => setModalClub(club)} style={iconBtnStyle('var(--color-surface-container-lowest)', 'var(--color-primary)')}>
                         <Edit2 size={15} />
                       </button>
-                      <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id} style={iconBtnStyle('#FEE2E2', 'var(--color-error)')}>
+                      <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
                         <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                    <Pill icon={<UserCheck size={12}/>} label={club.profesor} />
+                  <div style={{ display: 'flex', gap: '0.6rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                    <Pill icon={<UserCheck size={12}/>} label={club.profesor} bg="var(--color-primary-fixed)" color="var(--color-primary)" />
                     <Pill icon={<Users size={12}/>} label={`${club.inscritos} alumnos`} />
                     <Pill icon={<TrendingUp size={12}/>} label={`${club.asistencia}% asist.`}
-                      color={club.asistencia >= 85 ? '#065F46' : 'var(--color-error)'}
-                      bg={club.asistencia >= 85 ? '#D1FAE5' : 'var(--color-error-container)'} />
+                      color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
+                      bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
                   </div>
                 </div>
               ))}
@@ -474,18 +523,32 @@ export default function AdminDashboard() {
         {tab === 'personas' && (
           <>
             {/* Sub-tabs Profesores / Alumnos */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', background: 'var(--color-surface-container-low)', padding: '0.4rem', borderRadius: '1.25rem' }}>
               {(['profesores', 'alumnos'] as const).map(st => (
                 <button key={st} onClick={() => setPersonasTab(st)} style={{
-                  flex: 1, padding: '0.6rem', borderRadius: '0.85rem', border: 'none', cursor: 'pointer',
-                  fontWeight: 700, fontSize: '0.82rem',
-                  background: personasTab === st ? 'var(--color-primary)' : 'var(--color-surface-container-low)',
-                  color: personasTab === st ? 'white' : 'var(--color-on-surface-variant)',
-                  transition: 'all 0.2s',
+                  flex: 1, padding: '0.75rem', borderRadius: '0.9rem', border: 'none', cursor: 'pointer',
+                  fontWeight: 800, fontSize: '0.85rem',
+                  background: personasTab === st ? 'white' : 'transparent',
+                  color: personasTab === st ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
+                  boxShadow: personasTab === st ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                 }}>
-                  {st === 'profesores' ? '🎓 Profesores' : '🏃 Alumnos'}
+                  {st === 'profesores' ? <GraduationCap size={18}/> : <Users size={18}/>}
+                  {st === 'profesores' ? 'Profesores' : 'Alumnos'}
                 </button>
               ))}
+            </div>
+
+            {/* SEARCH BAR PERSONAS */}
+            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+              <input 
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder={personasTab === 'profesores' ? "Buscar por nombre, email o DNI..." : "Buscar por nombre o club..."} 
+                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }} 
+              />
+              <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
             {/* ─── Sub-tab: PROFESORES ─── */}
@@ -505,42 +568,41 @@ export default function AdminDashboard() {
                 </div>
 
                 {(['ADMINISTRADOR', 'PROFESOR', 'PADRE'] as const).map(rol => {
-                  const grupo = usuarios.filter(u => u.rol === rol);
+                  const grupo = usuarios.filter(u => u.rol === rol)
+                    .filter(u => (`${u.nombre ?? ''} ${u.apellido ?? ''} ${u.email ?? ''} ${u.dni ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()));
                   if (grupo.length === 0) return null;
-                  const rolLabel = { ADMINISTRADOR: '👑 Administradores', PROFESOR: '🎓 Profesores', PADRE: '👨‍👩‍👦 Padres' }[rol];
-                  const rolColor = { ADMINISTRADOR: 'var(--color-primary)', PROFESOR: 'var(--color-secondary)', PADRE: 'var(--color-on-surface-variant)' }[rol];
+                  const rolLabel = { ADMINISTRADOR: 'Administradores', PROFESOR: 'Docentes', PADRE: 'Padres de Familia' }[rol];
+                  const rolColor = { ADMINISTRADOR: 'var(--color-primary)', PROFESOR: 'var(--color-secondary)', PADRE: 'var(--color-outline)' }[rol];
                   return (
-                    <div key={rol} style={{ marginBottom: '1.25rem' }}>
-                      <p style={{ margin: '0 0 0.5rem', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: rolColor }}>
-                        {rolLabel} ({grupo.length})
+                    <div key={rol} style={{ marginBottom: '1.5rem' }}>
+                      <p style={{ margin: '0 0 0.75rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: rolColor, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: 12, height: 2, background: rolColor, borderRadius: 2 }}></div>
+                        {rolLabel}
                       </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {grupo.map(u => (
-                          <div key={u.id} style={{
-                            background: 'var(--color-surface-container-lowest)', borderRadius: '1rem',
-                            padding: '0.9rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                          <div key={u.id} className="glass-card" style={{
+                            padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'white'
                           }}>
                             <div style={{
-                              width: '2.5rem', height: '2.5rem', borderRadius: '0.65rem', flexShrink: 0,
-                              background: 'var(--color-primary-container)', display: 'flex', alignItems: 'center',
-                              justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', color: 'var(--color-primary)',
+                              width: '2.8rem', height: '2.8rem', borderRadius: '1rem', flexShrink: 0,
+                              background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)',
+                              border: '2px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
                             }}>
                               {(u.nombre[0] + (u.apellido[0] ?? '')).toUpperCase()}
                             </div>
                             <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-primary)' }}>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
                                 {u.nombre} {u.apellido}
                               </p>
-                              <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-on-surface-variant)' }}>
-                                {u.email ?? (u.dni ? `DNI: ${u.dni}` : 'Sin contacto')}
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>
+                                {u.email ?? (u.dni ? `ID: ${u.dni}` : 'Sin contacto')}
                               </p>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.35rem' }}>
-                              <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('#EEF2FF', 'var(--color-primary)')}>
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
                                 <Edit2 size={14} />
-                              </button>
-                              <button onClick={() => handleDeleteUsuario(u.id)} style={iconBtnStyle('#FEE2E2', 'var(--color-error)')}>
-                                <Trash2 size={14} />
                               </button>
                             </div>
                           </div>
@@ -568,41 +630,46 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                   {alumnos.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--color-on-surface-variant)' }}>
-                      <GraduationCap size={40} strokeWidth={1.5} />
-                      <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>No hay alumnos registrados</p>
+                    <div style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--color-on-surface-variant)' }}>
+                      <Users size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
+                      <p style={{ marginTop: '1rem', fontWeight: 600 }}>No hay alumnos registrados</p>
                     </div>
-                  ) : alumnos.map(alumno => (
-                    <div key={alumno.id} style={{
-                      background: 'var(--color-surface-container-lowest)', borderRadius: '1rem',
-                      padding: '0.9rem 1rem 0.9rem 1.1rem',
-                      borderLeft: '3px solid var(--color-secondary-container)',
+                  ) : alumnos
+                    .filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map(alumno => (
+                    <div key={alumno.id} className="glass-card" style={{
+                      padding: '1rem 1.15rem',
+                      borderLeft: '4px solid var(--color-secondary)',
+                      background: 'white'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{
-                          width: '2.5rem', height: '2.5rem', borderRadius: '0.65rem', flexShrink: 0,
+                          width: '3rem', height: '3rem', borderRadius: '1.2rem', flexShrink: 0,
                           background: 'var(--color-secondary-container)', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', color: 'var(--color-secondary)',
+                          justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-secondary)',
+                          boxShadow: '0 6px 15px rgba(237, 198, 32, 0.2)'
                         }}>
                           {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
                         </div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-primary)' }}>
+                          <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                             {alumno.nombre} {alumno.apellido}
                           </p>
-                          <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-on-surface-variant)' }}>
-                            {alumno.grado}
-                            {alumno.inscripciones.length > 0 && ` · ${alumno.inscripciones.map(i => i.club.nombre).join(', ')}`}
-                          </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{alumno.grado}</span>
+                            {alumno.inscripciones.length > 0 && (
+                              <>
+                                <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 800 }}>{alumno.inscripciones.length} clubes</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.35rem' }}>
-                          <button onClick={() => setModalAlumno(alumno)} style={iconBtnStyle('#EEF2FF', 'var(--color-primary)')}>
-                            <Edit2 size={14} />
-                          </button>
-                          <button onClick={() => handleDeleteAlumno(alumno.id)} style={iconBtnStyle('#FEE2E2', 'var(--color-error)')}>
-                            <Trash2 size={14} />
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button onClick={() => setModalAlumno(alumno)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
+                            <Edit2 size={15} />
                           </button>
                         </div>
                       </div>
@@ -617,18 +684,23 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: PAGOS ════════════════════════════ */}
         {tab === 'pagos' && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                Comprobantes de Pago
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                Finanzas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', verticalAlign: 'middle', marginLeft: '0.5rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px' }}>{pagos.length}</span>
               </h3>
-              <select value={pagoFiltro} onChange={e => setPagoFiltro(e.target.value)} style={{
-                ...inputStyle, width: 'auto', padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: 600,
-              }}>
-                <option value="">Todos</option>
-                <option value="PENDIENTE">⏳ Pendientes</option>
-                <option value="PAGADO">✅ Pagados</option>
-                <option value="RECHAZADO">❌ Rechazados</option>
-              </select>
+              <div style={{ position: 'relative' }}>
+                <select value={pagoFiltro} onChange={e => setPagoFiltro(e.target.value)} style={{
+                  ...inputStyle, width: 'auto', padding: '0.5rem 2rem 0.5rem 1rem', fontSize: '0.8rem', fontWeight: 700,
+                  borderRadius: '1rem', background: 'white', border: '1.5px solid var(--color-surface-container-high)',
+                  appearance: 'none'
+                }}>
+                  <option value="">Filtrar: Todos</option>
+                  <option value="PENDIENTE">⏳ Pendientes</option>
+                  <option value="PAGADO">✅ Pagados</option>
+                  <option value="RECHAZADO">❌ Rechazados</option>
+                </select>
+                <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
             </div>
 
             {pagos.length === 0 ? (
@@ -641,62 +713,72 @@ export default function AdminDashboard() {
                 {pagos.map(pago => {
                   const colors = estadoColor[pago.estado];
                   return (
-                    <div key={pago.id} style={{
-                      background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem', padding: '1.1rem',
+                    <div key={pago.id} className="glass-card" style={{
+                      padding: '1.25rem', background: 'white'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>
-                            {pago.alumno.nombre} {pago.alumno.apellido}
-                          </p>
-                          <p style={{ margin: '0.15rem 0 0', fontSize: '0.73rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                            {pago.club.nombre} · {pago.mes}
-                          </p>
-                          {pago.monto && (
-                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                              S/ {pago.monto.toFixed(2)}
-                            </p>
-                          )}
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                           <div style={{ width: '3rem', height: '3rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <CreditCard size={20} color="var(--color-primary)" />
+                           </div>
+                           <div>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
+                                {pago.alumno.nombre} {pago.alumno.apellido}
+                              </p>
+                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
+                                {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
+                              </p>
+                           </div>
                         </div>
                         <span style={{
                           background: colors.bg, color: colors.fg,
-                          padding: '0.3rem 0.75rem', borderRadius: '99px', fontSize: '0.68rem', fontWeight: 800,
+                          padding: '0.4rem 0.8rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
+                          textTransform: 'uppercase', letterSpacing: '0.05em'
                         }}>
-                          {pago.estado === 'PENDIENTE' ? '⏳' : pago.estado === 'PAGADO' ? '✅' : '❌'} {pago.estado}
+                          {pago.estado}
                         </span>
                       </div>
 
-                      {pago.urlComprobante && (
-                        <a href={pago.urlComprobante} target="_blank" rel="noreferrer"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.65rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)', textDecoration: 'none' }}>
-                          <ChevronRight size={13} /> Ver comprobante
-                        </a>
-                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
+                         <div>
+                            {pago.monto && (
+                               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                                 S/ {pago.monto.toFixed(2)}
+                               </p>
+                            )}
+                            {pago.urlComprobante && (
+                              <a href={pago.urlComprobante} target="_blank" rel="noreferrer"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-secondary)', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                <ExternalLink size={12} /> Comprobante
+                              </a>
+                            )}
+                         </div>
+
+                         {pago.estado === 'PENDIENTE' && (
+                           <div style={{ display: 'flex', gap: '0.5rem' }}>
+                             <button
+                               disabled={validandoPago === pago.id}
+                               onClick={() => handleValidarPago(pago.id, 'PAGADO')}
+                               style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                               <Check size={18} strokeWidth={3} />
+                             </button>
+                             <button
+                               disabled={validandoPago === pago.id}
+                               onClick={() => {
+                                 const obs = prompt('Motivo del rechazo (opcional):') ?? '';
+                                 handleValidarPago(pago.id, 'RECHAZADO', obs);
+                               }}
+                               style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                               <X size={18} strokeWidth={3} />
+                             </button>
+                           </div>
+                         )}
+                      </div>
 
                       {pago.observacion && (
-                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.5rem 0.75rem', borderRadius: '0.65rem' }}>
-                          💬 {pago.observacion}
+                        <p style={{ margin: '0.75rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem 0.85rem', borderRadius: '0.85rem', fontWeight: 500 }}>
+                          “{pago.observacion}”
                         </p>
-                      )}
-
-                      {pago.estado === 'PENDIENTE' && (
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.85rem' }}>
-                          <button
-                            disabled={validandoPago === pago.id}
-                            onClick={() => handleValidarPago(pago.id, 'PAGADO')}
-                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', background: '#D1FAE5', color: '#065F46', border: 'none', borderRadius: '0.75rem', padding: '0.6rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
-                            <CheckCircle size={14} /> Aprobar
-                          </button>
-                          <button
-                            disabled={validandoPago === pago.id}
-                            onClick={() => {
-                              const obs = prompt('Motivo del rechazo (opcional):') ?? '';
-                              handleValidarPago(pago.id, 'RECHAZADO', obs);
-                            }}
-                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', background: 'var(--color-error-container)', color: 'var(--color-error)', border: 'none', borderRadius: '0.75rem', padding: '0.6rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
-                            <XCircle size={14} /> Rechazar
-                          </button>
-                        </div>
                       )}
                     </div>
                   );
@@ -709,27 +791,31 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: REPORTE ══════════════════════════ */}
         {tab === 'reporte' && (
           <div style={{ textAlign: 'center', paddingTop: '1rem' }}>
-            <div style={{
-              background: 'var(--color-primary-container)', borderRadius: '1.5rem',
-              padding: '2rem 1.5rem', marginBottom: '1.5rem',
+            <div className="glass-card" style={{
+              background: 'linear-gradient(135deg, var(--color-primary), #2a3c74)', borderRadius: '2rem',
+              padding: '2.5rem 2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden'
             }}>
-              <Download size={48} color="white" strokeWidth={1.5} />
-              <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.3rem', margin: '0.75rem 0 0.4rem' }}>
-                Exportar Reporte
-              </h3>
-              <p style={{ color: 'var(--color-on-primary-container)', fontSize: '0.85rem', margin: 0 }}>
-                Descarga el historial completo de asistencias como CSV compatible con Excel.
-              </p>
+              <div style={{ position: 'absolute', bottom: '-15%', right: '-5%', opacity: 0.1 }}>
+                 <FileText size={160} color="white" />
+              </div>
+              <div style={{ position: 'relative', zIndex: 1, textAlign: 'left' }}>
+                <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
+                  Inteligencia de Datos
+                </h3>
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.88rem', margin: '0 0 1.5rem', lineHeight: 1.5, fontWeight: 500 }}>
+                  Genera reportes detallados de asistencia y rendimiento por disciplina.
+                </p>
+                <button onClick={handleExportarCSV} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem' }}>
+                  <Download size={16} /> Exportar Consolidado (.csv)
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <button onClick={handleExportarCSV} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
-                background: 'var(--color-primary)', color: 'white', border: 'none',
-                borderRadius: '1rem', padding: '1rem', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer',
-              }}>
-                <Download size={18} /> Descargar Todos los Clubes
-              </button>
+               <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 12, height: 2, background: 'var(--color-primary)', borderRadius: 2 }}></div>
+                  Reportes Individuales
+               </p>
 
               {(metricas?.clubes ?? []).map(club => (
                 <button key={club.id}
@@ -814,16 +900,19 @@ function iconBtnStyle(bg: string, color: string): React.CSSProperties {
 
 const metricaCardStyle: React.CSSProperties = {
   background: 'var(--color-surface-container-lowest)',
-  borderRadius: '1.25rem', padding: '1.1rem',
-  boxShadow: '0 4px 16px rgba(14,26,57,0.04)',
+  borderRadius: '1.5rem', padding: '1.25rem',
+  boxShadow: '0 8px 24px rgba(14,26,57,0.06)',
+  border: '1px solid var(--color-surface-container-high)',
+  display: 'flex', flexDirection: 'column', justifyContent: 'center',
+  transition: 'transform 0.2s ease',
 };
 const metricaLabelStyle: React.CSSProperties = {
-  margin: 0, fontSize: '0.6rem', fontWeight: 800,
-  textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-secondary)',
+  margin: 0, fontSize: '0.65rem', fontWeight: 800,
+  textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-on-surface-variant)',
 };
 const metricaValueStyle: React.CSSProperties = {
-  margin: '0.25rem 0 0', fontSize: '2.35rem', fontWeight: 900,
-  color: 'var(--color-primary)', lineHeight: 1, letterSpacing: '-0.04em',
+  margin: '0.2rem 0 0', fontSize: '2.5rem', fontWeight: 900,
+  color: 'var(--color-primary)', lineHeight: 1, letterSpacing: '-0.05em',
 };
 
 // ── Modal Usuario ──────────────────────────────────────────────
