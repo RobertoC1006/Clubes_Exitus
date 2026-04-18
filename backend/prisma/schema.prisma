@@ -60,6 +60,7 @@ model Club {
 
   inscripciones Inscripcion[]
   sesiones      Sesion[]
+  pagos         Pago[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -77,6 +78,7 @@ model Alumno {
 
   inscripciones Inscripcion[]
   asistencias   Asistencia[]
+  pagos         Pago[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -131,4 +133,28 @@ model Asistencia {
 
   // Validacion: Un alumno solo debe tener un registro de asistencia por sesión
   @@unique([sesionId, alumnoId]) 
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  RECHAZADO
+}
+
+model Pago {
+  id            Int          @id @default(autoincrement())
+  mes           String       // Ej: "Abril 2025"
+  monto         Float?
+  estado        EstadoPago   @default(PENDIENTE)
+  urlComprobante String?     // URL o path de la imagen subida
+  observacion   String?      // Nota del admin al rechazar/aprobar
+
+  alumnoId      Int
+  alumno        Alumno       @relation(fields: [alumnoId], references: [id])
+
+  clubId        Int
+  club          Club         @relation(fields: [clubId], references: [id])
+
+  creadoEn      DateTime     @default(now())
+  actualizadoEn DateTime     @updatedAt
 }
