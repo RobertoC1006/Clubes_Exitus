@@ -1,17 +1,40 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, MapPin, Activity, Calendar as CalendarIcon, Users } from 'lucide-react';
+import { CheckCircle2, MapPin, Activity, Calendar as CalendarIcon, Users, Loader2 } from 'lucide-react';
+import { useUser } from './UserContext';
 import './index.css';
-
-// ==========================================
-// MOCK DATA (Inspirado en la semilla backend)
-// ==========================================
-export const MOCK_CLUBS = [
-  { id: 1, nombre: 'Fútbol Selección', ubicacion: 'Campo Principal', estado: 'En Curso', count: 24, fecha: 'Hoy, 16:30', icon: Activity },
-  { id: 2, nombre: 'Taller de Ajedrez', ubicacion: 'Biblioteca Central', estado: 'Programado', count: 12, fecha: 'Jueves, 15:00', icon: Users }
-];
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { usuario } = useUser();
+  const [clubes, setClubes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!usuario) return;
+    
+    // 🔹 Profesor ve SOLO sus clubes. Admin ve todos.
+    const url = usuario.rol === 'ADMINISTRADOR'
+      ? 'http://localhost:3000/clubes'
+      : `http://localhost:3000/clubes/mis-clubes/${usuario.id}`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        // Ambos endpoints devuelven arrays compatibles
+        setClubes(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [usuario]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+        <Loader2 className="animate-spin" size={48} strokeWidth={2} />
+      </div>
+    );
+  }
 
   return (
     <div className="app-container animate-enter" style={{ padding: '1.25rem' }}>
@@ -34,7 +57,8 @@ export default function Dashboard() {
         <button 
           className="btn btn-primary" 
           style={{ padding: '1.25rem', width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem', fontWeight: 800, borderRadius: '1rem', boxShadow: '0 8px 32px rgba(29, 40, 72, 0.3)', marginTop: '0.5rem' }} 
-          onClick={() => navigate(`/clubes/${MOCK_CLUBS[0].id}/asistencia`)}
+          disabled={clubes.length === 0}
+          onClick={() => clubes.length > 0 && navigate(`/clubes/${clubes[0].id}/asistencia`)}
         >
           <CheckCircle2 size={22} strokeWidth={2.5} /> Tomar Asistencia Rápida
         </button>
@@ -42,9 +66,15 @@ export default function Dashboard() {
 
       {/* 🔹 SECTION: BENTO GRID DE CLUBES */}
       <div className="flex-column" style={{ gap: '1.5rem' }}>
-        {MOCK_CLUBS.map((club) => {
-          const isEnCurso = club.estado === 'En Curso';
-          const IconLogo = club.icon;
+        {clubes.map((club, index) => {
+          // Iconos rotativos para los 4 clubes
+          const icons = [Activity, Users, CalendarIcon, CheckCircle2];
+          const isEnCurso = index === 0;
+          const estadoBadge = index === 0 ? 'En Curso' : 'Programado';
+          const fetchFecha = index === 0 ? 'Hoy, 16:30' : 'Prox. Sesión';
+          const IconLogo = icons[index % icons.length];
+          const totalInscritos = club._count?.inscripciones || 0;
+          const profNombre = club.profesor ? `${club.profesor.nombre} ${club.profesor.apellido}` : 'Sin asignar';
 
           return (
             <div key={club.id} style={{ 
@@ -83,15 +113,15 @@ export default function Dashboard() {
                     color: isEnCurso ? 'var(--color-on-primary-fixed)' : 'var(--color-on-surface-variant)',
                     padding: '0.35rem 0.85rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em'
                   }}>
-                    {club.estado}
+                    {estadoBadge}
                   </span>
                 </div>
 
-                {/* Título y Ubicación */}
+                {/* Título y Profesor */}
                 <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em', margin: '0 0 0.5rem 0' }}>{club.nombre}</h3>
                 <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', color: 'var(--color-on-surface-variant)' }}>
                   <MapPin size={16} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{club.ubicacion}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{profNombre}</span>
                 </div>
               </div>
 
@@ -102,12 +132,12 @@ export default function Dashboard() {
                  <div className="flex-between" style={{ background: 'var(--color-surface-container-low)', padding: '1rem', borderRadius: '1rem' }}>
                     <div>
                       <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Inscritos</p>
-                      <p style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1, marginTop: '0.2rem' }}>{club.count}</p>
+                      <p style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1, marginTop: '0.2rem' }}>{totalInscritos}</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prox. Sesión</p>
                       <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)', display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '0.25rem', marginTop: '0.5rem' }}>
-                         {club.fecha}
+                         {fetchFecha}
                       </p>
                     </div>
                  </div>

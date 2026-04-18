@@ -1,28 +1,102 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Filter, Check, X, Info, ArrowLeft, Send } from 'lucide-react';
+import { Search, Filter, Check, X, Info, ArrowLeft, Send, UserPlus, Loader2 } from 'lucide-react';
 import './index.css';
-
-// Mock Alumnos
-const ALUMNOS_MOCKS = [
-  { id: 1024, nombre: 'Alejandro Benitez', grado: '10º A', estado: 'PRESENTE' },
-  { id: 1025, nombre: 'Valentina Morales', grado: '10º A', estado: 'AUSENTE' },
-  { id: 1026, nombre: 'Gabriel Castillo', grado: '10º A', estado: null },
-  { id: 1027, nombre: 'Diego Fernandez', grado: '10º B', estado: null },
-  { id: 1028, nombre: 'Sofía Castro', grado: '10º A', estado: 'JUSTIFICADO' },
-  { id: 1029, nombre: 'Mateo Rodríguez', grado: '10º A', estado: 'PRESENTE' }
-];
 
 export default function PaseLista() {
   const navigate = useNavigate();
   const { clubId } = useParams();
+  const [alumnos, setAlumnos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   
-  const [alumnos, setAlumnos] = useState(ALUMNOS_MOCKS);
+  // Modal Estados
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [nuevoAlumno, setNuevoAlumno] = useState({ nombre: '', apellido: '', grado: '10º A' });
+
+  // 🔹 Traer Alumnos Reales del Club
+  useEffect(() => {
+    fetch(`http://localhost:3000/clubes/${clubId}/alumnos`)
+      .then(res => res.json())
+      .then(data => {
+        // Inicializa el estado para el UI
+        const asignados = data.map((a: any) => ({ ...a, estado: null }));
+        setAlumnos(asignados);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [clubId]);
+
   const marcados = alumnos.filter(a => a.estado !== null).length;
   const faltan = alumnos.length - marcados;
 
   const handleMarcar = (id: number, estado: string) => {
     setAlumnos(prev => prev.map(a => a.id === id ? { ...a, estado } : a));
+  };
+
+  const guardarAsistencia = async () => {
+    if (faltan > 0) {
+      alert(`Aún faltan ${faltan} alumnos por marcar.`);
+      return;
+    }
+    
+    setSaving(true);
+    try {
+        // 1. Crear Nueva Sesión hoy
+        const reqSesion = await fetch(`http://localhost:3000/sesiones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clubId: Number(clubId), fecha: new Date().toISOString() })
+        });
+        const sesion = await reqSesion.json();
+        
+        // 2. Preparar el formato que espera el Backend
+        const payloadAsistencias = alumnos.map(a => ({
+            alumnoId: a.id,
+            estado: a.estado // Mapea PRESENTE, AUSENTE, JUSTIFICADO
+        }));
+
+        // 3. Guardar las asistencias en lote
+        await fetch(`http://localhost:3000/sesiones/${sesion.id}/asistencia`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ asistencias: payloadAsistencias })
+        });
+        
+        alert("✔️ Asistencia guardada correctamente en la Base de Datos!");
+        navigate(-1); // Regresamos al maestro al inicio
+    } catch(err) {
+        alert("Ocurrió un error guardando la sesión.");
+        setSaving(false);
+    }
+  };
+
+  // 🔹 Enviar nuevo Alumno y matricularlo en la Base de Datos
+  const handleAddAlumno = async () => {
+    setAdding(true);
+    try {
+      const res = await fetch(`http://localhost:3000/clubes/${clubId}/alumnos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nuevoAlumno)
+      });
+      const newAlumnoRecibido = await res.json();
+      
+      // Lo inyectamos silenciosamente a la lista que estamos viendo para evitar recargar
+      setAlumnos(prev => [...prev, { ...newAlumnoRecibido, estado: null }]);
+      
+      // Reseteamos y Cerramos Modal
+      setNuevoAlumno({ nombre: '', apellido: '', grado: '10º A' });
+      setShowAddModal(false);
+    } catch(err) {
+      alert("Error al intentar matricular alumno");
+    } finally {
+      setAdding(false);
+    }
   };
 
   const getStatusColor = (estado: string | null) => {
@@ -36,6 +110,14 @@ export default function PaseLista() {
     const parts = nombre.split(' ');
     return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+        <Loader2 className="animate-spin" size={48} strokeWidth={2} />
+      </div>
+    );
+  }
 
   return (
     <div className="app-container animate-enter" style={{ paddingBottom: '10rem' }}>
@@ -82,14 +164,19 @@ export default function PaseLista() {
         </div>
       </section>
 
-      {/* SECCIÓN DE LISTA */}
+      {/* SECCIÓN DE BUSCADOR Y AGREGAR */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
         <div style={{ flex: 1, background: 'var(--color-surface-container-lowest)', borderRadius: '0.75rem', padding: '0.6rem 1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
           <Search size={18} color="var(--color-outline-variant)" />
-          <input type="text" placeholder="Buscar por apellido o ID..." style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: 'var(--color-on-surface)' }} />
+          <input type="text" placeholder="Buscar alumno..." style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: 'var(--color-on-surface)' }} />
         </div>
-        <button style={{ background: 'var(--color-surface-container-lowest)', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <Filter size={18} color="var(--color-primary)" />
+        
+        {/* Botón Mágico: Agregar Nuevo Alumno */}
+        <button 
+          onClick={() => setShowAddModal(true)} 
+          style={{ background: 'var(--color-primary)', border: 'none', padding: '0.6rem 0.85rem', borderRadius: '0.75rem', boxShadow: '0 4px 12px rgba(29, 40, 72, 0.2)', color: 'white', display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
+          <UserPlus size={18} strokeWidth={2.5}/>
+          <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>Nuevo</span>
         </button>
       </div>
 
@@ -121,8 +208,8 @@ export default function PaseLista() {
                    {getInitials(alumno.nombre)}
                 </div>
                 <div>
-                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-primary)' }}>{alumno.nombre}</h3>
-                   <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-outline)' }}>#{alumno.id} • {alumno.grado}</p>
+                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-primary)' }}>{alumno.nombre} {alumno.apellido}</h3>
+                   <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-outline)' }}>#{alumno.id} • Grado {alumno.grado}</p>
                 </div>
              </div>
 
@@ -172,15 +259,58 @@ export default function PaseLista() {
              width: '100%', maxWidth: '448px', padding: '0.9rem', fontSize: '0.95rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', 
              boxShadow: '0 8px 24px rgba(29, 40, 72, 0.4)',
              background: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
-             color: 'white', border: 'none', borderRadius: '1rem'
-          }} onClick={() => {
-           if (faltan > 0) alert(`Aún faltan ${faltan} alumnos por marcar.`);
-           else alert('¡Asistencia Guardada (Imagina esto sincronizándose en offline mode)!');
-        }}>
-           {faltan === 0 ? <Check size={18} /> : <Send size={18} />} 
-           {faltan === 0 ? 'Guardar Asistencia' : `Finalizar Registro`}
+             color: 'white', border: 'none', borderRadius: '1rem',
+             opacity: saving ? 0.7 : 1
+          }} 
+          disabled={saving}
+          onClick={guardarAsistencia}>
+           
+           {saving ? <Loader2 className="animate-spin" size={18} /> : (faltan === 0 ? <Check size={18} /> : <Send size={18} />)} 
+           {saving ? 'Guardando en BD...' : (faltan === 0 ? 'Guardar Asistencia en BD' : `Finalizar Registro`)}
         </button>  
       </div>
+
+      {/* MODAL: REGISTRAR Y MATRICULAR NUEVO ALUMNO */}
+      {showAddModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 100, 
+          background: 'rgba(14,26,57,0.4)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem'
+        }}>
+           <div className="glass-card animate-enter" style={{ width: '100%', maxWidth: '400px', padding: '1.5rem', borderRadius: '1.5rem', boxShadow: '0 16px 40px rgba(0,0,0,0.15)' }}>
+              <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
+                 <h3 style={{ margin: 0, color: 'var(--color-primary)', fontWeight: 800 }}>Inscribir Alumno</h3>
+                 <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-outline)' }}><X size={20}/></button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                 <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>NOMBRES</label>
+                    <input type="text" value={nuevoAlumno.nombre} onChange={e => setNuevoAlumno({...nuevoAlumno, nombre: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-highest)', marginTop: '0.3rem', background: 'var(--color-surface-container-lowest)', color: 'var(--color-on-surface)' }} placeholder="Ej: Juan Carlos" />
+                 </div>
+                 <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>APELLIDOS</label>
+                    <input type="text" value={nuevoAlumno.apellido} onChange={e => setNuevoAlumno({...nuevoAlumno, apellido: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-highest)', marginTop: '0.3rem', background: 'var(--color-surface-container-lowest)', color: 'var(--color-on-surface)' }} placeholder="Ej: Perez Gómez" />
+                 </div>
+                 <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>GRADO ESCOLAR</label>
+                    <select value={nuevoAlumno.grado} onChange={e => setNuevoAlumno({...nuevoAlumno, grado: e.target.value})} style={{ width: '100%', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-highest)', marginTop: '0.3rem', background: 'var(--color-surface-container-lowest)', color: 'var(--color-on-surface)', fontWeight: 600 }}>
+                      <option value="1ro Secundaria">1ro Secundaria</option>
+                      <option value="2do Secundaria">2do Secundaria</option>
+                      <option value="3ro Secundaria">3ro Secundaria</option>
+                      <option value="10º A">10º A</option>
+                      <option value="10º B">10º B</option>
+                      <option value="11º A">11º A</option>
+                    </select>
+                 </div>
+                 
+                 <button className="btn btn-primary" onClick={handleAddAlumno} disabled={adding || !nuevoAlumno.nombre || !nuevoAlumno.apellido} style={{ width: '100%', padding: '0.9rem', borderRadius: '1rem', marginTop: '0.5rem', opacity: (adding || (!nuevoAlumno.nombre || !nuevoAlumno.apellido)) ? 0.6 : 1, fontWeight: 800, border: 'none' }}>
+                    {adding ? <><Loader2 size={18} className="animate-spin" /> Matriculando...</> : 'Matricular y Añadir a la Lista'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
 
     </div>
   );
