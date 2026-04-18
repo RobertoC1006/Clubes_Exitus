@@ -82,7 +82,7 @@ function AppRoutes() {
 
       {/* 💳 PAGOS */}
       <Route path="/pagos" element={
-        <RequireAuth>
+        <RequireAuth roles={['PADRE', 'ADMINISTRADOR']}>
           <Layout><Pagos /></Layout>
         </RequireAuth>
       } />

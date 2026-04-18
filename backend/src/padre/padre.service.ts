@@ -92,6 +92,35 @@ export class PadreService {
         logros.push({ titulo: 'Socio de Oro', desc: 'Pagos al día', icon: '💎' });
     }
 
+    // 4. Calendario (Sesiones de este mes para todos sus clubes)
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0,0,0,0);
+
+    const todasSesiones = await this.prisma.sesion.findMany({
+      where: {
+        clubId: { in: alumno.inscripciones.map(i => i.clubId) },
+        fecha: { gte: inicioMes }
+      },
+      include: { club: { select: { nombre: true } }, asistencias: { where: { alumnoId } } },
+      orderBy: { fecha: 'asc' }
+    });
+
+    const calendario = todasSesiones.map(s => ({
+      id: s.id,
+      fecha: s.fecha,
+      club: s.club.nombre,
+      tema: s.tema || 'Sesión Programada',
+      asistio: s.asistencias[0]?.estado === 'PRESENTE',
+      estado: s.asistencias[0]?.estado || 'PENDIENTE'
+    }));
+
+    // 5. Avisos Dinámicos
+    const avisos = [
+      { id: 1, titulo: 'Inscripciones Abiertas', desc: 'Nuevos clubes de Robótica y Ajedrez disponibles.', icono: '📣', tipo: 'info' },
+      { id: 2, titulo: 'Cierre de Mes', desc: 'Recuerda subir tus comprobantes antes del 30.', icono: '⏰', tipo: 'alert' }
+    ];
+
     return {
       alumno: {
         id: alumno.id,
@@ -101,7 +130,14 @@ export class PadreService {
       },
       clubes: clubesResumen,
       pago: pagoSummary,
-      logros: logros.slice(0, 3) // Solo top 3
+      logros: logros.slice(0, 3),
+      calendario,
+      avisos,
+      performance: {
+         totalAsistencias,
+         puntuacion: Math.min(100, (totalAsistencias * 10) + (ultimoPago?.estado === 'PAGADO' ? 20 : 0)),
+         nivel: totalAsistencias > 8 ? 'Excelente' : 'Promedio'
+      }
     };
   }
 

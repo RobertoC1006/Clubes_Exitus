@@ -30,6 +30,13 @@ interface Resumen {
     clubes: any[];
     pago: any;
     logros: any[];
+    calendario: any[];
+    avisos: any[];
+    performance: {
+        totalAsistencias: number;
+        puntuacion: number;
+        nivel: string;
+    };
 }
 
 export default function PortalFamiliar() {
@@ -43,6 +50,7 @@ export default function PortalFamiliar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchingResumen, setFetchingResumen] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // 1. Cargar Lista de Hijos
   useEffect(() => {
@@ -134,16 +142,9 @@ export default function PortalFamiliar() {
   return (
     <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
 
-      {/* KID SELECTOR (Style Netflix/Profiles) */}
-      <section style={{ marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <span style={{ color: 'var(--color-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.7rem' }}>
-                Mis Hijos
-            </span>
-            {fetchingResumen && <RefreshCw size={14} color="var(--color-secondary)" className="spin" style={{ animation: 'spin 1s linear infinite' }} />}
-        </div>
-        
-        <div style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', padding: '0.5rem 0.25rem' }}>
+      {/* KID SELECTOR (Premium Chips) */}
+      <section style={{ marginBottom: '2rem', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.85rem' }}>
             {hijos.map(h => {
                 const isSelected = selectedId === h.id;
                 const initials = (h.nombre?.[0] || '') + (h.apellido?.[0] || '');
@@ -151,26 +152,17 @@ export default function PortalFamiliar() {
                     <button 
                         key={h.id} 
                         onClick={() => setSelectedId(h.id)}
-                        style={{ 
-                            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem',
-                            opacity: isSelected ? 1 : 0.5,
-                            transform: isSelected ? 'scale(1.1)' : 'scale(1)',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }}
+                        className={`profile-chip ${isSelected ? 'active' : ''}`}
                     >
                         <div style={{ 
-                            width: '4rem', height: '4rem', borderRadius: '1.5rem', 
-                            background: isSelected ? 'var(--color-primary)' : 'var(--color-surface-container-high)',
-                            color: isSelected ? 'white' : 'var(--color-on-surface-variant)',
+                            width: '2.2rem', height: '2.2rem', borderRadius: '50%', 
+                            background: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--color-surface-dim)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '1.5rem', fontWeight: 900,
-                            boxShadow: isSelected ? '0 12px 24px rgba(29,40,72,0.3)' : 'none',
-                            border: isSelected ? '3px solid white' : '2px solid transparent'
+                            fontSize: '0.85rem', fontWeight: 900
                         }}>
-                            {initials || '?'}
+                            {initials}
                         </div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isSelected ? 'var(--color-primary)' : 'var(--color-outline)' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                             {h.nombre}
                         </span>
                     </button>
@@ -194,95 +186,217 @@ export default function PortalFamiliar() {
 
       {resumen && (
         <div className={fetchingResumen ? 'fetching-fade' : ''}>
-          {/* HERO */}
-          <section style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          
+          {/* MODAL CALENDARIO */}
+          {showCalendar && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+                <div style={{ background: 'var(--grad-primary)', padding: '2rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.04em' }}>Mi Calendario</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8, fontWeight: 700 }}>{resumen.alumno.nombre} • Abril 2025</p>
+                  </div>
+                  <button onClick={() => setShowCalendar(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <XCircle size={24} />
+                  </button>
+                </div>
+                <div style={{ padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
+                  {resumen.calendario.length === 0 ? (
+                    <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
+                        <Calendar size={48} color="var(--color-outline-variant)" style={{ marginBottom: '1rem', opacity: 0.3 }} />
+                        <p style={{ fontWeight: 600, color: 'var(--color-outline)' }}>Sin sesiones programadas para este mes.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {resumen.calendario.map(s => (
+                        <div key={s.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-dim)', borderRadius: '1.25rem' }}>
+                           <div style={{ width: '3.5rem', textAlign: 'center', borderRight: '1px solid var(--color-surface-container-high)', paddingRight: '1rem' }}>
+                              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>{new Date(s.fecha).getDate()}</p>
+                              <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>Abril</p>
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{s.club}</p>
+                              <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>{s.tema}</p>
+                           </div>
+                           <div style={{ 
+                             padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.65rem', fontWeight: 900,
+                             background: s.asistio ? 'var(--color-success-container)' : (s.estado === 'PENDIENTE' ? 'var(--color-surface-container-high)' : 'var(--color-error-container)'),
+                             color: s.asistio ? 'var(--color-success)' : (s.estado === 'PENDIENTE' ? 'var(--color-primary)' : 'var(--color-error)')
+                           }}>
+                             {s.asistio ? 'ASISTIÓ' : s.estado}
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: '1.5rem', borderTop: '1px solid var(--color-surface-container-high)', textAlign: 'center' }}>
+                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Los horarios específicos se coordinan con el docente del club.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* HERO (Premium) */}
+          <section style={{ marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>
+                <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.06em', lineHeight: 1.1, margin: 0 }}>
                   {resumen.alumno.nombre}
                 </h2>
-                <p style={{ margin: '0.4rem 0 0 0', color: 'var(--color-on-surface-variant)', fontWeight: 600, fontSize: '0.95rem' }}>
-                  {resumen.alumno.grado} · <span style={{ color: 'var(--color-secondary)' }}>ID: #{resumen.alumno.id}</span>
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.6rem' }}>
+                    <span style={{ background: 'var(--color-primary-container)', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800 }}>
+                        {resumen.alumno.grado}
+                    </span>
+                    <button 
+                      onClick={() => setShowCalendar(true)}
+                      style={{ background: 'white', border: '1px solid var(--color-surface-container-high)', padding: '0.3rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)', boxShadow: 'var(--shadow-sm)', cursor: 'pointer' }}>
+                        <Calendar size={12} /> VER CALENDARIO
+                    </button>
+                </div>
               </div>
-              <div style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.4rem 0.75rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase' }}>
-                Estudiante Activo
+              <div style={{ position: 'relative' }}>
+                <div style={{ width: '4rem', height: '4rem', borderRadius: '1.2rem', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--color-surface-container-high)', boxShadow: 'var(--shadow-md)' }}>
+                    <Users size={24} color="var(--color-primary)" />
+                </div>
+                <div style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--color-success)', border: '2.5px solid white' }}></div>
               </div>
             </div>
           </section>
 
-          {/* LOGROS */}
-          <section style={{ marginBottom: '2rem' }}>
-            <h3 style={{ margin: '0 0 0.85rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-on-surface-variant)' }}>
-              Logros de {resumen.alumno.nombre}
+          {/* AVISOS Y NOVEDADES (Premium News) */}
+          <section style={{ marginBottom: '2.5rem' }}>
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
+              Noticias e Institucional
             </h3>
-            <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-              {resumen.logros.map((logro, i) => (
-                <div key={i} style={{ 
-                    background: 'var(--color-secondary-container)', borderRadius: '1.25rem', padding: '1rem 1.25rem', 
-                    minWidth: '150px', flexShrink: 0, boxShadow: '0 4px 16px rgba(237,198,32,0.15)',
-                    border: '1px solid rgba(237,198,32,0.2)'
-                }}>
-                  <span style={{ fontSize: '1.75rem' }}>{logro.icon}</span>
-                  <p style={{ margin: '0.4rem 0 0 0', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-on-secondary-container)' }}>{logro.titulo}</p>
-                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 600 }}>{logro.desc}</p>
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+               {resumen.avisos.map(aviso => (
+                 <div key={aviso.id} className="bento-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${aviso.tipo === 'alert' ? 'var(--color-error)' : 'var(--color-secondary)'}`, display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', background: 'var(--color-surface-dim)', width: '3rem', height: '3rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{aviso.icono}</div>
+                    <div style={{ flex: 1 }}>
+                       <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{aviso.titulo}</p>
+                       <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{aviso.desc}</p>
+                    </div>
+                    <ChevronRight size={20} color="var(--color-outline-variant)" />
+                 </div>
+               ))}
+            </div>
+          </section>
+
+          {/* LOGROS (Premium Badges) */}
+          <section style={{ marginBottom: '2.5rem' }}>
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
+              Evolución y Logros
+            </h3>
+            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
+              {resumen.logros.map((logro, i) => {
+                const colors = ['gold', 'silver', 'bronze'];
+                const badgeClass = `badge-${colors[i % 3]}`;
+                return (
+                    <div key={i} className="bento-card animate-enter" style={{ minWidth: '180px', animationDelay: `${i * 0.1}s`, padding: '1.5rem' }}>
+                      <div className={`badge-premium ${badgeClass}`} style={{ marginBottom: '1.25rem' }}>
+                        <span style={{ fontSize: '1.5rem' }}>{logro.icon}</span>
+                      </div>
+                      <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{logro.titulo}</p>
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600, lineHeight: 1.3 }}>{logro.desc}</p>
+                    </div>
+                );
+              })}
               {resumen.logros.length === 0 && (
-                  <div style={{ background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem', padding: '1rem 1.25rem', minWidth: '150px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', border: '2px dashed var(--color-surface-container-high)' }}>
-                    <Trophy size={28} color="var(--color-outline-variant)" />
-                    <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', textAlign: 'center' }}>Pronto nuevos logros</p>
+                  <div className="bento-card" style={{ minWidth: '180px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--color-outline-variant)', background: 'none' }}>
+                    <Trophy size={32} color="var(--color-outline-variant)" style={{ marginBottom: '0.75rem', opacity: 0.3 }} />
+                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textAlign: 'center' }}>Nuevos desafíos próximamente</p>
                   </div>
               )}
             </div>
+          {/* ESTATUS DE DESEMPEÑO (Premium Stats) */}
+          <section style={{ marginBottom: '2.5rem' }}>
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
+              Estatus de Desempeño
+            </h3>
+            <div className="bento-card" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', background: 'var(--grad-primary)', color: 'white' }}>
+               <div style={{ position: 'relative', width: '6rem', height: '6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg style={{ position: 'absolute', transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
+                     <circle cx="3rem" cy="3rem" r="2.5rem" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
+                     <circle cx="3rem" cy="3rem" r="2.5rem" fill="none" stroke="white" strokeWidth="8" strokeDasharray="157" strokeDashoffset={157 - (157 * resumen.performance.puntuacion / 100)} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1.5s ease-out' }} />
+                  </svg>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 900 }}>{resumen.performance.puntuacion}%</span>
+               </div>
+               <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>Nivel de Disciplina</p>
+                  <h4 style={{ margin: '0.2rem 0 0.5rem', fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.04em' }}>{resumen.performance.nivel}</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, opacity: 0.9, lineHeight: 1.4 }}>
+                     {resumen.alumno.nombre} ha completado {resumen.performance.totalAsistencias} sesiones con éxito este ciclo.
+                  </p>
+               </div>
+            </div>
           </section>
 
-          {/* CLUBES CON HEATMAP SEMANAL */}
+          {/* ASISTENCIA (Track Lineal) */}
           <section style={{ marginBottom: '2rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-on-surface-variant)' }}>
-              Seguimiento de Asistencia
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
+              Asistencia por Club
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {resumen.clubes.map((club: any) => (
-                <div key={club.id} style={{ background: 'white', borderRadius: '1.5rem', padding: '1.25rem', boxShadow: '0 8px 24px rgba(14,26,57,0.05)', border: '1px solid var(--color-surface-container-high)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                <div key={club.id} className="bento-card" style={{ padding: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
                     <div>
-                      <p style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{club.nombre}</p>
-                      <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{club.profesor}</p>
+                      <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{club.nombre}</h4>
+                      <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Prof. {club.profesor}</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <span style={{ display: 'block', fontWeight: 900, fontSize: '1.4rem', color: club.asistenciaPct >= 85 ? 'var(--color-success)' : 'var(--color-error)' }}>
-                          {club.asistenciaPct}%
-                        </span>
-                        <span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>Rendimiento</span>
+                        <div style={{ 
+                            fontSize: '1.6rem', fontWeight: 900, 
+                            color: club.asistenciaPct >= 85 ? 'var(--color-success)' : 'var(--color-error)',
+                            lineHeight: 1
+                        }}>
+                          {club.asistenciaPct}<span style={{ fontSize: '0.8rem' }}>%</span>
+                        </div>
                     </div>
                   </div>
 
-                  {/* Heatmap semanal (Ultimas 5 sesiones registradas) */}
-                  <div style={{ background: 'var(--color-surface-container-lowest)', padding: '0.85rem', borderRadius: '1rem', border: '1px solid var(--color-surface-container)' }}>
-                    <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-secondary)' }}>
-                        Estado de últimas clases
-                    </p>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {/* Track Moderno */}
+                  <div style={{ background: 'var(--color-surface-container-low)', padding: '1rem', borderRadius: '1.2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Historial Reciente</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {club.asistencias.map((_: any, idx: number) => (
+                                <div key={idx} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-outline-variant)' }}></div>
+                            ))}
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
                         {club.asistencias.map((asistio: boolean, i: number) => (
-                            <div key={i} style={{ flex: 1, height: '1.5rem', borderRadius: '0.4rem', background: asistio ? 'var(--color-success)' : 'var(--color-error)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.85 }}>
-                                {asistio ? <CheckCircle2 size={12} color="white" strokeWidth={3} /> : <XCircle size={12} color="white" strokeWidth={3} />}
+                            <div key={i} style={{ 
+                                flex: 1, height: '1.75rem', borderRadius: '0.6rem', 
+                                background: asistio ? 'var(--color-success)' : 'var(--color-error)', 
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: asistio ? '0 4px 10px rgba(46,125,50,0.2)' : 'none',
+                                opacity: 0.95
+                            }}>
+                                {asistio ? <CheckCircle2 size={14} color="white" /> : <XCircle size={14} color="white" />}
                             </div>
                         ))}
                         {[...Array(5 - club.asistencias.length)].map((_, i) => (
-                            <div key={i + 10} style={{ flex: 1, height: '1.5rem', borderRadius: '0.4rem', background: 'var(--color-surface-container-high)', opacity: 0.3 }} />
+                            <div key={i + 10} style={{ flex: 1, height: '1.75rem', borderRadius: '0.6rem', background: 'var(--color-surface-dim)', opacity: 0.3 }} />
                         ))}
                     </div>
                   </div>
                 </div>
               ))}
               {resumen.clubes.length === 0 && (
-                  <div style={{ padding: '2rem', textAlign: 'center', background: 'var(--color-surface-container-lowest)', borderRadius: '1.5rem' }}>
-                      <p style={{ fontWeight: 600, color: 'var(--color-outline)' }}>Sin clubes inscritos todavía.</p>
+                  <div style={{ padding: '2.5rem', textAlign: 'center', background: 'var(--color-surface-container-low)', borderRadius: '1.5rem', border: '1px dashed var(--color-outline-variant)' }}>
+                      <p style={{ fontWeight: 600, color: 'var(--color-outline)', fontSize: '0.85rem' }}>Sin clubes inscritos todavía.</p>
                   </div>
               )}
             </div>
           </section>
+  </section>
         </div>
       )}
 

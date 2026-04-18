@@ -56,52 +56,51 @@ export default function Login() {
       display: 'flex', 
       flexDirection: 'column',
       justifyContent: 'center',
-      padding: '1.5rem',
+      padding: '2rem 1.5rem',
       position: 'relative',
       overflow: 'hidden'
     }}>
-      {/* BACKGROUND DECORATION */}
+      {/* PREMIUM DECORATION */}
       <div style={{
-        position: 'absolute', top: '-10%', right: '-10%', width: '400px', height: '400px',
-        background: 'radial-gradient(circle, var(--color-secondary-container) 0%, transparent 70%)',
-        opacity: 0.1, zIndex: 0, filter: 'blur(60px)'
+        position: 'absolute', top: '-5%', right: '-5%', width: '500px', height: '500px',
+        background: 'radial-gradient(circle, var(--color-secondary-container) 0%, transparent 80%)',
+        opacity: 0.15, zIndex: 0, filter: 'blur(100px)'
       }} />
       <div style={{
-        position: 'absolute', bottom: '-15%', left: '-15%', width: '500px', height: '500px',
-        background: 'radial-gradient(circle, var(--color-primary-container) 0%, transparent 70%)',
-        opacity: 0.08, zIndex: 0, filter: 'blur(80px)'
+        position: 'absolute', bottom: '-10%', left: '-10%', width: '600px', height: '600px',
+        background: 'radial-gradient(circle, var(--color-primary-container) 0%, transparent 80%)',
+        opacity: 0.12, zIndex: 0, filter: 'blur(120px)'
       }} />
 
-      {/* HEADER HERO */}
-      <div className="animate-enter" style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: '2.5rem' }}>
+      {/* HERO SECTION */}
+      <div className="animate-enter" style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: '3.5rem' }}>
         <div style={{ 
-          display: 'inline-flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1rem',
-          background: 'rgba(255,255,255,0.4)', padding: '0.6rem 1.25rem', borderRadius: '100px',
-          backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.5)',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
+          display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem',
+          background: 'white', padding: '0.75rem 1.5rem', borderRadius: '1.25rem',
+          boxShadow: '0 8px 24px rgba(29,40,72,0.06)', border: '1px solid var(--color-surface-container-high)'
         }}>
           <div style={{ 
-            background: 'var(--color-primary)', width: '2.5rem', height: '2.5rem', 
-            borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(29,40,72,0.2)'
+            background: 'var(--grad-primary)', width: '2.75rem', height: '2.75rem', 
+            borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 6px 16px rgba(29,40,72,0.2)'
           }}>
-            <GraduationCap size={22} color="var(--color-secondary-container)" strokeWidth={2.5} />
+            <GraduationCap size={24} color="white" strokeWidth={2.5} />
           </div>
-          <span style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>EXITUS</span>
+          <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.06em' }}>EXITUS</span>
         </div>
         
         <h1 style={{ 
-          margin: 0, fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', 
-          letterSpacing: '-0.05em', lineHeight: 1 
+          margin: 0, fontSize: '2.8rem', fontWeight: 900, color: 'var(--color-primary)', 
+          letterSpacing: '-0.07em', lineHeight: 0.9 
         }}>
-          Bienvenido <br/>
-          <span style={{ color: 'var(--color-secondary)' }}>al Campus Digital</span>
+          Acceso <br/>
+          <span style={{ color: 'var(--color-secondary)' }}>Institucional</span>
         </h1>
         <p style={{ 
-          margin: '0.75rem auto 0', color: 'var(--color-on-surface-variant)', 
-          fontSize: '0.92rem', fontWeight: 500, maxWidth: '280px', lineHeight: 1.4
+          margin: '1.25rem auto 0', color: 'var(--color-on-surface-variant)', 
+          fontSize: '1rem', fontWeight: 600, maxWidth: '300px', lineHeight: 1.4, opacity: 0.8
         }}>
-          Selecciona tu cuenta institucional para comenzar tu jornada.
+          Bienvenido al hub educativo de alto impacto. Selecciona tu perfil.
         </p>
       </div>
 
@@ -158,33 +157,33 @@ export default function Login() {
                         disabled={loading !== null}
                         className="login-item"
                         style={{
-                          display: 'flex', alignItems: 'center', gap: '1rem',
-                          background: 'white', border: '1.5px solid var(--color-surface-container-high)', 
-                          borderRadius: '1.25rem', padding: '0.85rem 1rem', cursor: 'pointer', 
+                          display: 'flex', alignItems: 'center', gap: '1.25rem',
+                          background: 'white', border: '1.5px solid var(--color-surface-dim)', 
+                          borderRadius: '1.5rem', padding: '1rem', cursor: 'pointer', 
                           width: '100%', textAlign: 'left', position: 'relative',
-                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                           opacity: loading !== null && loading !== u.id ? 0.4 : 1,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
                         }}
                       >
                         <div style={{
-                          width: '2.8rem', height: '2.8rem', borderRadius: '1rem',
-                          background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)',
-                          border: '2px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+                          width: '3.2rem', height: '3.2rem', borderRadius: '1.1rem',
+                          background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)',
+                          boxShadow: 'var(--shadow-sm)'
                         }}>
                           {(u.nombre[0] + (u.apellido?.[0] ?? '')).toUpperCase()}
                         </div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontWeight: 900, fontSize: '0.98rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                          <p style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                             {u.nombre} {u.apellido}
                           </p>
-                          <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                            {u.email ?? (u.dni ? `ID: ${u.dni}` : 'Acceso Estándar')}
+                          <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                            {u.email ?? (u.dni ? `DNI: ${u.dni}` : 'Campus Enterprise')}
                           </p>
                         </div>
                         {loading === u.id
-                          ? <Loader2 size={20} color="var(--color-primary)" className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                          ? <Loader2 size={24} color="var(--color-primary)" className="spin" style={{ animation: 'spin 1s linear infinite' }} />
                           : null
                         }
                       </button>

@@ -56,7 +56,6 @@ export default function PaseLista() {
   const faltan = alumnos.length - marcados;
 
   const handleMarcar = (id: number, estado: string) => {
-    // Si cambiamos de estado y no es JUSTIFICADO, cerramos el input de nota si estaba abierto para ese alumno
     if (estado !== 'JUSTIFICADO' && noteAlumnoId === id) {
       setNoteAlumnoId(null);
     }
@@ -81,7 +80,6 @@ export default function PaseLista() {
       observacion: a.observacion
     }));
 
-    // 🌐 FLUJO ONLINE
     if (navigator.onLine) {
       try {
         const reqSesion = await fetch(`http://localhost:3000/sesiones`, {
@@ -97,14 +95,13 @@ export default function PaseLista() {
           body: JSON.stringify({ asistencias: payloadAsistencias })
         });
         
-        alert("✔️ Asistencia guardada y notificaciones enviadas (Opción A).");
+        alert("✔️ Asistencia guardada y notificaciones enviadas.");
         navigate(-1);
       } catch(err) {
         alert("Error de red. Guardando copia local...");
         saveOffline(payloadAsistencias);
       }
     } else {
-      // 📡 FLUJO OFFLINE
       saveOffline(payloadAsistencias);
     }
   };
@@ -117,7 +114,7 @@ export default function PaseLista() {
         asistencias: payload,
         syncStatus: 'pending'
       });
-      alert("📡 MODO OFFLINE: El pase de lista se guardó localmente. Se sincronizará cuando vuelvas a tener conexión.");
+      alert("📡 MODO OFFLINE: El pase de lista se guardó localmente.");
       navigate(-1);
     } catch (e) {
       alert("Error crítico al guardar localmente.");
@@ -129,7 +126,7 @@ export default function PaseLista() {
   const getStatusColor = (estado: string | null) => {
     if(estado === 'PRESENTE') return 'var(--color-success)';
     if(estado === 'AUSENTE') return 'var(--color-error)';
-    if(estado === 'JUSTIFICADO') return 'var(--color-primary-fixed-dim)';
+    if(estado === 'JUSTIFICADO') return 'var(--color-secondary)';
     return 'transparent';
   };
 
@@ -157,43 +154,49 @@ export default function PaseLista() {
   return (
     <div className="app-container animate-enter" style={{ paddingBottom: '11rem' }}>
       
-      {/* HEADER */}
-      <div className="flex-between" style={{ padding: '0.5rem 0 1rem 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button onClick={() => navigate(-1)} style={{ background: 'transparent', padding: '0.2rem', marginLeft: '-0.3rem' }}>
+      {/* HEADER PREMIUM */}
+      <section style={{ padding: '1.5rem 1rem 1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+          <button onClick={() => navigate(-1)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
              <ArrowLeft size={24} color="var(--color-primary)" />
           </button>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>Pase de Lista</h2>
+          <div>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em', lineHeight: 1 }}>Control de <br/> <span style={{ color: 'var(--color-secondary)' }}>Asistencia</span></h2>
             {isOffline && (
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-error)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                <WifiOff size={10} /> MODO OFFLINE ACTIVADO
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-error)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.3rem' }}>
+                <WifiOff size={12} /> SINCRONIZACIÓN LOCAL ACTIVA
               </span>
             )}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* DASHBOARD SUMARIO */}
-      <section className="glass-card" style={{ padding: '1.25rem', marginBottom: '1.25rem', border: '1px solid var(--color-surface-container-high)', borderRadius: '1.5rem' }}>
-        <div className="flex-between" style={{ alignItems: 'flex-end', marginBottom: '0.75rem' }}>
-          <div>
-            <p style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-secondary)', margin: 0 }}>Reporte Hoy</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-              <span style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>{marcados}/{alumnos.length}</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>listos</span>
+      {/* DASHBOARD SUMARIO (BENTO) */}
+      <section className="bento-card" style={{ padding: '1.75rem', marginBottom: '1.5rem', background: 'white' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--color-outline)', margin: '0 0 0.5rem 0' }}>Sincronización Total</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <span style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 0.9, letterSpacing: '-0.06em' }}>{marcados}</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-outline-variant)' }}>/ {alumnos.length}</span>
             </div>
           </div>
-          <span style={{ 
-              background: faltan === 0 ? 'var(--color-success-container)' : 'var(--color-surface-container-highest)',
+          <div style={{ 
+              background: faltan === 0 ? 'var(--color-success-container)' : 'var(--color-surface-dim)',
               color: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
-              padding: '0.4rem 0.75rem', borderRadius: '0.75rem', fontSize: '0.75rem', fontWeight: 800
+              padding: '0.6rem 1rem', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 900,
+              boxShadow: 'var(--shadow-sm)'
           }}>
-              {faltan > 0 ? `Faltan ${faltan}` : '✓ Completado'}
-          </span>
+              {faltan > 0 ? `Quedan ${faltan}` : '✓ Completado'}
+          </div>
         </div>
-        <div style={{ width: '100%', background: 'var(--color-surface-container-high)', height: '6px', borderRadius: '99px', overflow: 'hidden' }}>
-            <div style={{ background: faltan === 0 ? 'var(--color-success)' : 'var(--color-secondary)', height: '100%', width: `${(marcados / alumnos.length) * 100}%`, transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+        <div style={{ marginTop: '1.75rem' }}>
+            <div style={{ width: '100%', background: 'var(--color-surface-dim)', height: '10px', borderRadius: '99px', overflow: 'hidden' }}>
+                <div style={{ background: faltan === 0 ? 'var(--color-success)' : 'var(--grad-primary)', height: '100%', width: `${(marcados / alumnos.length) * 100}%`, transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)' }}></div>
+            </div>
+            <p style={{ margin: '0.75rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700, textAlign: 'right' }}>
+                {Math.round((marcados / alumnos.length) * 100)}% Progreso Diario
+            </p>
         </div>
       </section>
 
@@ -216,102 +219,88 @@ export default function PaseLista() {
       <div className="flex-column" style={{ gap: '0.75rem', paddingBottom: '2rem' }}>
         {alumnosFiltrados.map((alumno) => {
           const isActive = alumno.estado !== null;
-          const isWritingNote = noteAlumnoId === alumno.id;
           const canWriteNote = alumno.estado === 'JUSTIFICADO';
           
           return (
-          <div key={alumno.id} style={{ 
-            background: 'white', borderRadius: '1.25rem', padding: '1rem', 
-            border: `1px solid ${isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-container-high)'}`,
-            display: 'flex', flexDirection: 'column', gap: '0.85rem',
-            boxShadow: isActive ? 'var(--shadow-md)' : 'var(--shadow-sm)',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-          }}>
-             
-             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                <div style={{ 
-                  width: '2.75rem', height: '2.75rem', borderRadius: '50%', 
-                  background: isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-container-low)',
-                  color: isActive ? 'white' : 'var(--color-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 900, fontSize: '0.95rem'
-                }}>
-                   {getInitials(alumno.nombre)}
-                </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <div>
-                     <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>{alumno.nombre} {alumno.apellido}</h3>
-                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)' }}>ID #{alumno.id}</span>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-secondary)' }}>• {alumno.grado}</span>
+            <div key={alumno.id} className="bento-card animate-enter" style={{ 
+              padding: '1.25rem',
+              borderLeft: `6px solid ${isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-dim)'}`,
+              display: 'flex', flexDirection: 'column', gap: '1rem',
+              background: 'white',
+              transform: isActive ? 'scale(1.01)' : 'scale(1)',
+            }}>
+               
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <div style={{ 
+                    width: '3.5rem', height: '3.5rem', borderRadius: '1.2rem', 
+                    background: isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-dim)',
+                    color: isActive ? 'white' : 'var(--color-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 900, fontSize: '1.2rem', boxShadow: 'var(--shadow-sm)'
+                  }}>
+                     {getInitials(alumno.nombre)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                     <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{alumno.nombre} {alumno.apellido}</h3>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>#{alumno.id}</span>
+                        <span style={{ height: '4px', width: '4px', borderRadius: '50%', background: 'var(--color-outline-variant)' }} />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)' }}>{alumno.grado}</span>
                      </div>
-                   </div>
+                  </div>
 
-                   {/* Alerta de Deuda */}
-                   {alumno.estadoPago !== 'PAGADO' && (
-                     <div title="Pago Pendiente" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', width: '1.5rem', height: '1.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                       <AlertCircle size={12} strokeWidth={3} />
-                     </div>
-                   )}
-                </div>
-
-                {/* Botón de Observación - Solo habilitado si está JUSTIFICADO */}
-                <button 
-                  disabled={!canWriteNote}
-                  onClick={() => setNoteAlumnoId(isWritingNote ? null : alumno.id)}
-                  style={{
-                    background: alumno.observacion ? 'var(--color-secondary-container)' : 'transparent',
-                    border: 'none', padding: '0.5rem', borderRadius: '0.65rem',
-                    color: canWriteNote ? (alumno.observacion ? 'var(--color-primary)' : 'var(--color-outline-variant)') : 'rgba(0,0,0,0.05)',
-                    cursor: canWriteNote ? 'pointer' : 'not-allowed',
-                    opacity: canWriteNote ? 1 : 0.2,
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <StickyNote size={20} fill={(canWriteNote && alumno.observacion) ? "var(--color-secondary)" : "none"} />
-                </button>
-             </div>
-
-             {/* Input de Nota (se activa solo si está justificado) */}
-             {isWritingNote && canWriteNote && (
-               <div style={{ animation: 'enter 0.2s ease-out' }}>
-                 <input 
-                   autoFocus
-                   type="text"
-                   placeholder="Escribir justificante u observación..."
-                   value={alumno.observacion}
-                   onChange={(e) => updateObservacion(alumno.id, e.target.value)}
-                   onBlur={() => setNoteAlumnoId(null)}
-                   style={{ 
-                     width: '100%', padding: '0.65rem', borderRadius: '0.75rem', 
-                     border: '1px solid var(--color-outline-variant)', 
-                     fontSize: '0.8rem', background: 'var(--color-surface-cyan)',
-                     color: 'var(--color-on-surface)', fontWeight: 600
-                   }}
-                 />
+                  {alumno.estadoPago !== 'PAGADO' && (
+                    <div title="Pago Pendiente" style={{ background: 'rgba(211, 47, 47, 0.1)', color: 'var(--color-error)', width: '2rem', height: '2rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <AlertCircle size={14} strokeWidth={3} />
+                    </div>
+                  )}
                </div>
-             )}
 
-             {/* Controles Segmentados */}
-             <div style={{ display: 'flex', background: 'var(--color-surface-container-low)', borderRadius: '0.75rem', padding: '0.25rem', gap: '0.25rem' }}>
-                {['PRESENTE', 'AUSENTE', 'JUSTIFICADO'].map(label => (
-                  <button 
-                    key={label}
-                    onClick={() => handleMarcar(alumno.id, label)} 
-                    style={{
-                      flex: 1, padding: '0.6rem 0', borderRadius: '0.6rem', border: 'none',
-                      background: alumno.estado === label ? getStatusColor(label) : 'transparent',
-                      color: alumno.estado === label ? 'white' : 'var(--color-outline)',
-                      fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', transition: 'all 0.2s'
-                    }}>
-                    {label === 'PRESENTE' && 'Pres'}
-                    {label === 'AUSENTE' && 'Aus'}
-                    {label === 'JUSTIFICADO' && 'Just'}
-                  </button>
-                ))}
-             </div>
-          </div>
-        )})}
+               {/* Controles de Estado Premium */}
+               <div style={{ display: 'flex', background: 'var(--color-surface-dim)', borderRadius: '1rem', padding: '0.4rem', gap: '0.4rem' }}>
+                  {['PRESENTE', 'AUSENTE', 'JUSTIFICADO'].map(label => {
+                    const isS = alumno.estado === label;
+                    return (
+                      <button 
+                        key={label}
+                        onClick={() => handleMarcar(alumno.id, label)} 
+                        style={{
+                          flex: 1, padding: '0.75rem 0', borderRadius: '0.75rem', border: 'none',
+                          background: isS ? getStatusColor(label) : 'transparent',
+                          color: isS ? 'white' : 'var(--color-primary)',
+                          fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', 
+                          letterSpacing: '0.05em', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                        }}>
+                        {label === 'PRESENTE' && (isS ? <Check size={14} strokeWidth={4} /> : 'Pres.')}
+                        {label === 'AUSENTE' && (isS ? <X size={14} strokeWidth={4} /> : 'Aus.')}
+                        {label === 'JUSTIFICADO' && (isS ? <StickyNote size={14} /> : 'Just.')}
+                      </button>
+                    );
+                  })}
+               </div>
+
+               {/* NOTAS DINÁMICAS */}
+               {isActive && (
+                 <div style={{ animation: 'enter 0.3s ease-out' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--color-surface-dim)', padding: '0.75rem 1rem', borderRadius: '1rem', border: '1px solid var(--color-surface-container-highest)' }}>
+                      <StickyNote size={16} color="var(--color-secondary)" />
+                      <input 
+                        type="text"
+                        placeholder="Observación o nota (opcional)..."
+                        value={alumno.observacion}
+                        onChange={(e) => updateObservacion(alumno.id, e.target.value)}
+                        style={{ 
+                          flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                          fontSize: '0.85rem', color: 'var(--color-on-surface)', fontWeight: 600
+                        }}
+                      />
+                   </div>
+                 </div>
+               )}
+            </div>
+          );
+        })}
         
         {alumnosFiltrados.length === 0 && (
           <div style={{ 
@@ -341,7 +330,8 @@ export default function PaseLista() {
              boxShadow: '0 12px 32px rgba(29, 40, 72, 0.4)',
              background: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
              color: 'white', border: 'none', borderRadius: '1.25rem',
-             opacity: saving ? 0.7 : 1, transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+             opacity: saving ? 0.7 : 1, transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+             cursor: 'pointer'
           }} 
           disabled={saving}
           onClick={guardarAsistencia}>

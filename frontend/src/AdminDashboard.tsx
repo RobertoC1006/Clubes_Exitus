@@ -29,8 +29,9 @@ interface Profesor { id: number; nombre: string; apellido: string; email: string
 interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string }
 interface Alumno {
   id: number; nombre: string; apellido: string; grado: string;
+  padreId?: number | null;
   padre?: { nombre: string; apellido: string } | null;
-  inscripciones: { club: { nombre: string } }[];
+  inscripciones: { clubId: number; club: { nombre: string } }[];
   _count: { asistencias: number };
 }
 interface Pago {
@@ -316,20 +317,18 @@ export default function AdminDashboard() {
   return (
     <div className="app-container animate-enter" style={{ paddingBottom: '7rem' }}>
 
-      <section style={{ padding: '2rem 1.25rem 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-          <div style={{ padding: '0.4rem 0.8rem', borderRadius: '99px', background: 'var(--color-secondary-container)', color: 'var(--color-on-secondary-container)', fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            v2.4 Pro
+      <section style={{ padding: '2.5rem 1.5rem 1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
+          <div style={{ background: 'var(--color-primary-container)', color: 'white', padding: '0.4rem 1rem', borderRadius: '0.9rem', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            v2.5 Enterprise
           </div>
-          <span style={{ color: 'var(--color-on-surface-variant)', fontWeight: 700, fontSize: '0.75rem' }}>
-            COMMAND CENTER
-          </span>
+          <span style={{ height: 2, width: 24, background: 'var(--color-secondary)' }}></span>
         </div>
-        <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em', lineHeight: 0.95, margin: '0 0 0.6rem 0' }}>
-          Gestión <br/><span style={{ color: 'var(--color-secondary)' }}>Institucional</span>
+        <h2 style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.07em', lineHeight: 0.9, margin: 0 }}>
+          Central de <br/><span style={{ color: 'var(--color-secondary)' }}>Comando</span>
         </h2>
-        <p style={{ margin: 0, color: 'var(--color-on-surface-variant)', fontSize: '0.9rem', fontWeight: 500, opacity: 0.8 }}>
-          Supervisando <strong>{metricas?.totalAlumnos ?? '…'} alumnos</strong> en <strong>{metricas?.totalClubes ?? '…'} disciplinas</strong>.
+        <p style={{ margin: '1rem 0 0', color: 'var(--color-on-surface-variant)', fontSize: '1rem', fontWeight: 600, opacity: 0.8, maxWidth: '300px', lineHeight: 1.4 }}>
+            Control global de <strong>{metricas?.totalAlumnos ?? '…'} alumnos</strong> en <strong>{metricas?.totalClubes ?? '…'} clubes</strong> activos.
         </p>
       </section>
 
@@ -339,52 +338,50 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: PANEL ════════════════════════════ */}
         {tab === 'panel' && metricas && (
           <>
-            {/* BENTO MÉTRICAS */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-              <div style={{
+            {/* BENTO MÉTRICAS (Premium) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2.5rem' }}>
+              <div className="bento-card" style={{
                 gridColumn: '1 / -1',
-                background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-container))',
-                borderRadius: '2rem',
-                padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                boxShadow: '0 20px 40px rgba(29,40,72,0.25)',
-                position: 'relative', overflow: 'hidden'
+                background: 'var(--grad-primary)',
+                padding: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                boxShadow: '0 24px 48px rgba(29,40,72,0.3)',
+                border: 'none'
               }}>
-                <div style={{ position: 'absolute', top: '-10%', right: '-5%', opacity: 0.1 }}>
-                  <Users size={180} color="white" />
-                </div>
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.7)' }}>Atletas Activos</p>
-                  <p style={{ margin: '0.2rem 0 0', fontSize: '4.5rem', fontWeight: 900, color: 'white', lineHeight: 1, letterSpacing: '-0.06em' }}>{metricas.totalAlumnos}</p>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.8rem' }}>
-                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '99px', background: 'rgba(255,255,255,0.15)', color: 'white', fontSize: '0.65rem', fontWeight: 700 }}>{metricas.totalClubes} disciplinas</span>
-                    <span style={{ padding: '0.3rem 0.6rem', borderRadius: '99px', background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', fontSize: '0.65rem', fontWeight: 800 }}>Ciclo 2024</span>
+                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.6)' }}>Impacto Total</p>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '5.5rem', fontWeight: 900, color: 'white', lineHeight: 0.9, letterSpacing: '-0.08em' }}>{metricas.totalAlumnos}</p>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.75rem', fontWeight: 800, border: '1px solid rgba(255,255,255,0.1)' }}>{metricas.totalClubes} clubes</span>
+                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', fontSize: '0.75rem', fontWeight: 900 }}>Activos v2024</span>
                   </div>
                 </div>
+                <div style={{ opacity: 0.15 }}>
+                  <Users size={140} color="white" />
+                </div>
               </div>
 
-              <div style={metricaCardStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                   <div style={{ width: '1.8rem', height: '1.8rem', borderRadius: '0.5rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <TrendingUp size={14} color="var(--color-success)" />
+              <div className="bento-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                   <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TrendingUp size={16} color="var(--color-success)" />
                    </div>
-                   <p style={metricaLabelStyle}>Retención</p>
+                   <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
                 </div>
-                <p style={metricaValueStyle}>{metricas.asistenciaGlobal}%</p>
-                <div style={{ marginTop: '1rem', height: '6px', borderRadius: '99px', background: 'var(--color-surface-container-high)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${metricas.asistenciaGlobal}%`, background: 'var(--color-secondary)', borderRadius: '99px', transition: 'width 1s ease' }} />
+                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas.asistenciaGlobal}%</p>
+                <div style={{ marginTop: '1rem', height: '8px', borderRadius: '99px', background: 'var(--color-surface-dim)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${metricas.asistenciaGlobal}%`, background: 'var(--color-success)', borderRadius: '99px', transition: 'width 1s ease' }} />
                 </div>
-                <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Asistencia Global</p>
               </div>
 
-              <div style={metricaCardStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                   <div style={{ width: '1.8rem', height: '1.8rem', borderRadius: '0.5rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <GraduationCap size={14} color="var(--color-primary)" />
+              <div className="bento-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                   <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Award size={16} color="var(--color-primary)" />
                    </div>
-                   <p style={metricaLabelStyle}>Expertos</p>
+                   <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Expertos</p>
                 </div>
-                <p style={metricaValueStyle}>{metricas.totalProfesores}</p>
-                <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Cuerpo docente</p>
+                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas.totalProfesores}</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700 }}>Docentes Exitus</p>
               </div>
             </div>
 
@@ -400,7 +397,7 @@ export default function AdminDashboard() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {metricas.alertas.slice(0, 5).map((a, i) => (
-                    <div key={i} className="glass-card" style={{
+                    <div key={i} className="bento-card" style={{
                       padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(211, 47, 47, 0.1)'
                     }}>
@@ -432,7 +429,7 @@ export default function AdminDashboard() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {clubesRanking.map((club, i) => (
-                  <div key={club.id} className="glass-card" style={{
+                  <div key={club.id} className="bento-card" style={{
                     padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
                   }}>
                     <div style={{
@@ -487,35 +484,38 @@ export default function AdminDashboard() {
               <BarChart2 size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {(metricas?.clubes ?? [])
                 .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
                 .map(club => (
-                <div key={club.id} className="glass-card" style={{
-                  padding: '1.25rem',
-                  borderLeft: '5px solid var(--color-primary)',
-                  background: 'white'
+                <div key={club.id} className="bento-card" style={{
+                  padding: '1.75rem',
+                  borderLeft: '6px solid var(--color-primary)',
+                  background: 'white',
+                  borderRadius: '1.2rem'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{club.nombre}</p>
+                      <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>{club.nombre}</h4>
                       {club.descripcion && (
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.4, fontWeight: 500 }}>{club.descripcion}</p>
+                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.5, fontWeight: 500 }}>{club.descripcion}</p>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
-                      <button onClick={() => setModalClub(club)} style={iconBtnStyle('var(--color-surface-container-lowest)', 'var(--color-primary)')}>
-                        <Edit2 size={15} />
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+                      <button onClick={() => setModalClub(club)} 
+                        style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
+                        <Edit2 size={16} />
                       </button>
-                      <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                        <Trash2 size={15} />
+                      <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id} 
+                        style={{ ...iconBtnStyle('rgba(211, 47, 47, 0.08)', 'var(--color-error)'), width: '2.5rem', height: '2.5rem' }}>
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.6rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
-                    <Pill icon={<UserCheck size={12}/>} label={club.profesor} bg="var(--color-primary-fixed)" color="var(--color-primary)" />
-                    <Pill icon={<Users size={12}/>} label={`${club.inscritos} alumnos`} />
-                    <Pill icon={<TrendingUp size={12}/>} label={`${club.asistencia}% asist.`}
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                    <Pill icon={<UserCheck size={14}/>} label={club.profesor} bg="var(--color-primary-container)" color="white" />
+                    <Pill icon={<Users size={14}/>} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
+                    <Pill icon={<TrendingUp size={14}/>} label={`${club.asistencia}% racha`}
                       color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
                       bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
                   </div>
@@ -585,30 +585,31 @@ export default function AdminDashboard() {
                         <div style={{ width: 12, height: 2, background: rolColor, borderRadius: 2 }}></div>
                         {rolLabel}
                       </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
                         {grupo.map(u => (
-                          <div key={u.id} className="glass-card" style={{
-                            padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'white'
+                          <div key={u.id} className="bento-card animate-enter" style={{
+                            padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem', background: 'white',
+                            borderLeft: `5px solid ${rolColor}`
                           }}>
                             <div style={{
-                              width: '2.8rem', height: '2.8rem', borderRadius: '1rem', flexShrink: 0,
-                              background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center',
-                              justifyContent: 'center', fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)',
-                              border: '2px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+                              width: '3.5rem', height: '3.5rem', borderRadius: '1.25rem', flexShrink: 0,
+                              background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem', color: 'var(--color-primary)',
+                              boxShadow: 'var(--shadow-sm)'
                             }}>
                               {(u.nombre[0] + (u.apellido[0] ?? '')).toUpperCase()}
                             </div>
                             <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                                 {u.nombre} {u.apellido}
                               </p>
-                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>
-                                {u.email ?? (u.dni ? `ID: ${u.dni}` : 'Sin contacto')}
+                              <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                                {u.email ?? (u.dni ? `DNI: ${u.dni}` : 'Sin correo registrado')}
                               </p>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.4rem' }}>
-                              <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
-                                <Edit2 size={14} />
+                            <div style={{ display: 'flex', gap: '0.6rem' }}>
+                              <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)')}>
+                                <Edit2 size={16} />
                               </button>
                             </div>
                           </div>
@@ -645,7 +646,7 @@ export default function AdminDashboard() {
                   ) : alumnos
                     .filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()))
                     .map(alumno => (
-                    <div key={alumno.id} className="glass-card" style={{
+                    <div key={alumno.id} className="bento-card" style={{
                       padding: '1rem 1.15rem',
                       borderLeft: '4px solid var(--color-secondary)',
                       background: 'white'
@@ -730,7 +731,7 @@ export default function AdminDashboard() {
                 {pagos.map(pago => {
                   const colors = estadoColor[pago.estado];
                   return (
-                    <div key={pago.id} className="glass-card" style={{
+                    <div key={pago.id} className="bento-card" style={{
                       padding: '1.25rem', background: 'white'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -808,7 +809,7 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: REPORTE ══════════════════════════ */}
         {tab === 'reporte' && (
           <div style={{ textAlign: 'center', paddingTop: '1rem' }}>
-            <div className="glass-card" style={{
+            <div className="bento-card" style={{
               background: 'linear-gradient(135deg, var(--color-primary), #2a3c74)', borderRadius: '2rem',
               padding: '2.5rem 2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden'
             }}>
@@ -1005,7 +1006,7 @@ function UsuarioModal({
 
 // ── Modal Alumno ───────────────────────────────────────────────
 function AlumnoModal({
-  alumno, saving, clubes, onSave, onClose,
+  alumno, saving, clubes, usuarios, onSave, onClose,
 }: {
   alumno: Partial<Alumno>;
   saving: boolean;
