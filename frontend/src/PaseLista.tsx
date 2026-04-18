@@ -323,6 +323,24 @@ export default function PaseLista() {
         )}
       </div>
 
+      {/* BARRA DE ACCIONES MASIVAS (Móvil UX) */}
+      {faltan > 0 && faltan < alumnos.length && (
+        <div style={{ position: 'fixed', bottom: '11.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 85, animation: 'fadeInSlideUp 0.4s ease-out' }}>
+           <div style={{ 
+              background: 'var(--color-primary-container)', color: 'white', padding: '0.85rem 1.25rem', borderRadius: '1.25rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'var(--shadow-lg)'
+           }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800 }}>¿Faltan {faltan} alumnos?</p>
+              <button 
+                onClick={() => setAlumnos(prev => prev.map(a => a.estado === null ? { ...a, estado: 'PRESENTE' } : a))}
+                style={{ background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase' }}
+              >
+                Marcar resto Presente
+              </button>
+           </div>
+        </div>
+      )}
+
       {/* BOTÓN DE GUARDADO FLOTANTE */}
       <div style={{ position: 'fixed', bottom: '6.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 90, display: 'flex', justifyContent: 'center' }}>
         <button className="btn" style={{ 
@@ -330,14 +348,15 @@ export default function PaseLista() {
              boxShadow: '0 12px 32px rgba(29, 40, 72, 0.4)',
              background: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
              color: 'white', border: 'none', borderRadius: '1.25rem',
-             opacity: saving ? 0.7 : 1, transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-             cursor: 'pointer'
+             opacity: saving ? 0.7 : 1, transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+             cursor: 'pointer',
+             transform: faltan === 0 ? 'scale(1.02)' : 'scale(1)'
           }} 
           disabled={saving}
           onClick={guardarAsistencia}>
            
-           {saving ? <Loader2 className="animate-spin" size={20} /> : (faltan === 0 ? <Check size={20} /> : <Send size={20} />)} 
-           {saving ? 'Procesando...' : (faltan === 0 ? 'Confirmar y Enviar Notificaciones' : `Completar Registro (${marcados}/${alumnos.length})`)}
+           {saving ? <Loader2 className="animate-spin" size={20} /> : (faltan === 0 ? <Check size={20} strokeWidth={3} /> : <Send size={20} />)} 
+           {saving ? 'Procesando...' : (faltan === 0 ? 'Finalizar y Notificar Padres' : `Registrar (${marcados}/${alumnos.length})`)}
         </button>  
       </div>
     </div>

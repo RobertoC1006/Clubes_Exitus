@@ -40,161 +40,160 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem' }}>
+    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
       
       {/* 🔹 SECTION: HERO (MCP Lyceum Hub Design) */}
-      <section style={{ marginBottom: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div>
-          <span style={{ color: 'var(--color-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>
-            Panel de Instructor
-          </span>
-          <h2 style={{ fontSize: '2.75rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em', lineHeight: 1, margin: 0 }}>
-            Mis Clubes
-          </h2>
-          <p style={{ marginTop: '0.85rem', color: 'var(--color-on-surface-variant)', fontWeight: 500, fontSize: '0.95rem', lineHeight: 1.4 }}>
-            Gestiona tus actividades extracurriculares y mantén el control de la asistencia de tus atletas de manera eficiente.
-          </p>
+      <section style={{ marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <span style={{ color: 'var(--color-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', fontSize: '0.65rem', marginBottom: '0.5rem', display: 'block' }}>
+              Instructor Hub
+            </span>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em', lineHeight: 1.1, margin: 0 }}>
+              Hola, <br/><span style={{ background: 'var(--grad-gold)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{(usuario as any).nombre?.split(' ')[0] || 'Profesor'}</span>
+            </h2>
+          </div>
+          <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '50%', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '1.2rem', border: '2px solid white', boxShadow: 'var(--shadow-lg)' }}>
+             {(usuario as any).initials || 'P'}
+          </div>
         </div>
-        
-        {/* Main Header CTA */}
-        <button 
-          className="btn btn-primary" 
-          style={{ padding: '1.25rem', width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem', fontWeight: 800, borderRadius: '1rem', boxShadow: '0 8px 32px rgba(29, 40, 72, 0.3)', marginTop: '0.5rem' }} 
-          disabled={clubes.length === 0}
-          onClick={() => clubes.length > 0 && navigate(`/clubes/${clubes[0].id}/asistencia`)}
-        >
-          <CheckCircle2 size={22} strokeWidth={2.5} /> Tomar Asistencia Rápida
-        </button>
       </section>
 
-      {/* 🔹 SECTION: BENTO GRID DE CLUBES */}
-      <div className="flex-column" style={{ gap: '1.5rem' }}>
-        {clubes.map((club, index) => {
-          // Iconos rotativos para los 4 clubes
-          const icons = [Activity, Users, CalendarIcon, CheckCircle2];
-          const isEnCurso = index === 0;
-          const estadoBadge = index === 0 ? 'En Curso' : 'Programado';
-          const fetchFecha = index === 0 ? 'Hoy, 16:30' : 'Prox. Sesión';
-          const IconLogo = icons[index % icons.length];
-          const totalInscritos = club._count?.inscripciones || 0;
-          const profNombre = club.profesor ? `${club.profesor.nombre} ${club.profesor.apellido}` : 'Sin asignar';
-
-          return (
-            <div key={club.id} style={{ 
-              background: 'var(--color-surface-container-lowest)', 
-              borderRadius: '2rem', 
-              padding: '1.75rem', 
-              position: 'relative', 
-              overflow: 'hidden', 
-              display: 'flex', flexDirection: 'column', minHeight: '320px',
-              border: '1px solid var(--color-surface-container-high)',
-              boxShadow: '0 8px 32px rgba(14,26,57,0.02)'
-            }}>
-              
-              {/* Background Decorative Shape Overlay */}
-              <div style={{
-                position: 'absolute', top: 0, right: 0, width: '10rem', height: '10rem',
-                background: isEnCurso ? 'var(--color-primary-fixed)' : 'var(--color-surface-container)',
-                opacity: isEnCurso ? 0.3 : 1, 
-                borderBottomLeftRadius: '100%', marginRight: '-2rem', marginTop: '-2rem', transition: 'transform 0.3s'
-              }}></div>
-
-              <div style={{ position: 'relative', flex: 1, zIndex: 10 }}>
-                
-                {/* Cabecera de Tarjeta: Logo y Badge */}
-                <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '2rem' }}>
-                  <div style={{ 
-                    width: '3.5rem', height: '3.5rem', borderRadius: '1rem', 
-                    background: isEnCurso ? 'var(--color-secondary-container)' : 'var(--color-primary-container)',
-                    color: isEnCurso ? 'var(--color-secondary)' : 'var(--color-primary-fixed)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}>
-                    <IconLogo size={28} />
-                  </div>
-                  <span style={{ 
-                    background: isEnCurso ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-high)',
-                    color: isEnCurso ? 'var(--color-on-primary-fixed)' : 'var(--color-on-surface-variant)',
-                    padding: '0.35rem 0.85rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em'
-                  }}>
-                    {estadoBadge}
-                  </span>
-                </div>
-
-                {/* Título y Profesor */}
-                <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em', margin: '0 0 0.5rem 0' }}>{club.nombre}</h3>
-                <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', color: 'var(--color-on-surface-variant)' }}>
-                  <MapPin size={16} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{profNombre}</span>
-                </div>
-              </div>
-
-              {/* Botones y Data Card Inferior */}
-              <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative', zIndex: 10 }}>
-                 
-                 {/* Mini Dashboard del Curso */}
-                 <div className="flex-between" style={{ background: 'var(--color-surface-container-low)', padding: '1rem', borderRadius: '1rem' }}>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Inscritos</p>
-                      <p style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1, marginTop: '0.2rem' }}>{totalInscritos}</p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Prox. Sesión</p>
-                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)', display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '0.25rem', marginTop: '0.5rem' }}>
-                         {fetchFecha}
-                      </p>
-                    </div>
-                 </div>
-
-                 <button onClick={() => navigate(`/clubes/${club.id}/asistencia`)} style={{ 
-                    width: '100%', padding: '0.85rem', borderRadius: '0.75rem',
-                    background: 'var(--color-primary)', border: 'none',
-                    color: 'white', fontWeight: 800, fontSize: '0.9rem',
-                    display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(29, 40, 72, 0.2)'
-                 }}>
-                   <CheckCircle2 size={18} strokeWidth={2.5} /> Pasar Asistencia Hoy
-                 </button>
-
-                 <button onClick={() => navigate(`/clubes/${club.id}/historial`)} style={{ 
-                    width: '100%', padding: '0.85rem', borderRadius: '0.75rem',
-                    background: 'white', border: '1px solid var(--color-surface-container-high)',
-                    color: 'var(--color-primary)', fontWeight: 800, fontSize: '0.9rem',
-                    display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center'
-                 }}>
-                   <Activity size={18} /> Ver Historial
-                 </button>
-              </div>
-
+      {/* 🔹 SECTION: BENTO DASHBOARD SUMMARY */}
+      <div className="bento-grid" style={{ marginBottom: '2rem' }}>
+         <div className="bento-card" style={{ gridColumn: 'span 2', background: 'var(--grad-primary)', color: 'white', padding: '1.5rem' }}>
+            <div className="flex-between" style={{ marginBottom: '1rem' }}>
+               <Activity size={24} color="var(--color-secondary)" />
+               <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.8 }}>Sesión Actual</span>
             </div>
-          )
-        })}
+            <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>
+              {clubes.length > 0 ? clubes[0].nombre : 'Sin sesiones activas'}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+               <div style={{ width: '8px', height: '8px', background: 'var(--color-secondary)', borderRadius: '50%', boxShadow: '0 0 10px var(--color-secondary)', animation: 'pulse 1.5s infinite' }}></div>
+               <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{clubes.length > 0 ? 'Esperando pase de lista' : 'Relájate por ahora'}</span>
+            </div>
+            <button 
+              onClick={() => clubes.length > 0 && navigate(`/clubes/${clubes[0].id}/asistencia`)}
+              disabled={clubes.length === 0}
+              style={{ 
+                marginTop: '1.5rem', width: '100%', padding: '0.75rem', borderRadius: '0.85rem', 
+                background: 'white', color: 'var(--color-primary)', fontWeight: 900, fontSize: '0.85rem',
+                opacity: clubes.length === 0 ? 0.5 : 1
+              }}
+            >
+              Comenzar Ahora
+            </button>
+         </div>
+
+         <div className="bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+            <Users size={20} color="var(--color-primary)" />
+            <div>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, lineHeight: 1 }}>{clubes.reduce((acc, c) => acc + (c._count?.inscripciones || 0), 0)}</p>
+              <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Total Atletas</p>
+            </div>
+         </div>
+
+         <div className="bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+            <Activity size={20} color="var(--color-secondary)" />
+            <div>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, lineHeight: 1 }}>{clubes.length}</p>
+              <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Mis Clubes</p>
+            </div>
+         </div>
       </div>
 
-      {/* 🔹 SECTION: RENDIMIENTO SEMANAL (Widget UI) */}
+      {/* 🔹 SECTION: LISTADO DE CLUBES (NUEVO DISEÑO) */}
+      <section style={{ marginBottom: '2.5rem' }}>
+         <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mis Horarios</h3>
+         </div>
+         <div className="flex-column" style={{ gap: '1rem' }}>
+            {clubes.map((club, index) => {
+              const icons = [Activity, Users, CalendarIcon, CheckCircle2];
+              const IconLogo = icons[index % icons.length];
+              const profNombre = club.profesor ? `${club.profesor.nombre} ${club.profesor.apellido}` : 'Sin asignar';
+
+              return (
+                <div key={club.id} className="bento-card" style={{ 
+                  display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem',
+                  border: '1px solid var(--color-surface-container-high)',
+                  background: 'white'
+                }}>
+                  <div style={{ 
+                    width: '3.5rem', height: '3.5rem', borderRadius: '1rem', 
+                    background: index === 0 ? 'var(--color-secondary-container)' : 'var(--color-surface-container-low)',
+                    color: index === 0 ? 'var(--color-on-secondary)' : 'var(--color-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <IconLogo size={24} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>{club.nombre}</h4>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-on-surface-variant)' }}>
+                      {club._count?.inscripciones || 0} Atletas · {profNombre.split(' ')[0]}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
+                      style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: 'var(--color-surface-container-highest)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+                    >
+                      <CheckCircle2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => navigate(`/clubes/${club.id}/historial`)}
+                      style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: 'var(--color-surface-container-highest)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+                    >
+                      <CalendarIcon size={18} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+         </div>
+      </section>
+
+      {/* 🔹 SECTION: WEEKLY COMMAND CENTER */}
       <div style={{ 
-         marginTop: '2rem', background: 'var(--color-primary-container)', 
-         borderRadius: '2rem', padding: '2.5rem 2rem', color: 'var(--color-primary-fixed)',
-         boxShadow: '0 16px 40px rgba(29, 40, 72, 0.5)'
+         background: 'var(--color-primary)', 
+         borderRadius: '2rem', padding: '2rem', color: 'white',
+         position: 'relative', overflow: 'hidden',
+         boxShadow: '0 20px 50px rgba(29, 40, 72, 0.4)'
       }}>
-         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '2rem' }}>
-            <h4 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1.1, letterSpacing: '-0.02em' }}>Rendimiento<br/>Semanal</h4>
-            <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--color-on-primary-container)', fontWeight: 500, lineHeight: 1.4, marginTop: '0.5rem' }}>
-               Has completado el 85% de tus sesiones programadas para esta semana lectiva.
+         <div style={{ position: 'relative', zIndex: 10 }}>
+            <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+               <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'white' }}>Command Center</h4>
+               <span style={{ fontSize: '0.6rem', fontWeight: 900, background: 'rgba(255,255,255,0.2)', padding: '0.4rem 0.8rem', borderRadius: '99px', textTransform: 'uppercase' }}>Semana 12</span>
+            </div>
+
+            <div className="bento-grid">
+               <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.4rem' }}>Asistencia Prom.</p>
+                  <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-secondary)' }}>94.2%</p>
+               </div>
+               <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.4rem' }}>Sesiones</p>
+                  <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900 }}>12 <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>/ 15</span></p>
+               </div>
+            </div>
+
+            <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
+               Tu rendimiento se mantiene en el rango <strong style={{ color: 'white' }}>Sobresaliente</strong> esta semana. ¡Sigue así!
             </p>
          </div>
 
-         <div style={{ display: 'flex', gap: '3rem' }}>
-            <div>
-               <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-on-primary-container)', marginBottom: '0.5rem' }}>Total Horas</p>
-               <p style={{ margin: 0, fontSize: '2.25rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>12.5</p>
-            </div>
-            <div>
-               <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-on-primary-container)', marginBottom: '0.5rem' }}>Asistencia Prom.</p>
-               <p style={{ margin: 0, fontSize: '2.25rem', fontWeight: 900, color: 'var(--color-secondary-container)', lineHeight: 1 }}>94%</p>
-            </div>
-         </div>
+         {/* Background Decoration */}
+         <div style={{ position: 'absolute', bottom: '-2rem', right: '-2rem', width: '10rem', height: '10rem', background: 'var(--color-secondary)', opacity: 0.1, borderRadius: '50%', filter: 'blur(40px)' }}></div>
       </div>
 
+      <style>{`
+        @keyframes pulse {
+           0% { transform: scale(1); opacity: 1; }
+           50% { transform: scale(1.5); opacity: 0.5; }
+           100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
