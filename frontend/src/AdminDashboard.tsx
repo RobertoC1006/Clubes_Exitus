@@ -253,15 +253,33 @@ export default function AdminDashboard() {
     finally { setSavingPersona(false); }
   };
 
-  const handleSaveAlumno = async (data: { nombre: string; apellido: string; grado: string; padreId?: number; clubIds?: number[] }) => {
+  const handleSaveAlumno = async (data: { nombre: string; apellido: string; grado: string; padreId?: number; clubIds?: number[]; nuevoPadre?: any }) => {
     setSavingPersona(true);
     const isEdit = modalAlumno && 'id' in modalAlumno && (modalAlumno as any).id;
     const url    = isEdit ? `${API}/admin/alumnos/${(modalAlumno as any).id}` : `${API}/admin/alumnos`;
     const method = isEdit ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      // Si hay un nuevo padre, lo creamos primero
+      let finalPadreId = data.padreId;
+      if (data.nuevoPadre) {
+        const pRes = await fetch(`${API}/admin/usuarios`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data.nuevoPadre, rol: 'PADRE' })
+        });
+        if (pRes.ok) {
+           const pData = await pRes.json();
+           finalPadreId = pData.id;
+        }
+      }
+
+      const res = await fetch(url, { 
+        method, 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ ...data, padreId: finalPadreId }) 
+      });
       if (!res.ok) { const err = await res.json(); alert(err.message ?? 'Error al guardar'); }
-      else { setModalAlumno(false); fetchAlumnos(); fetchMetricas(); }
+      else { setModalAlumno(false); fetchAlumnos(); fetchMetricas(); fetchProfesores(); }
     } catch { alert('Error de red'); }
     finally { setSavingPersona(false); }
   };
@@ -647,6 +665,17 @@ export default function AdminDashboard() {
                           </p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
                             <span style={{ fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{alumno.grado}</span>
+                            {alumno.padre ? (
+                                <>
+                                    <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-outline)', fontWeight: 700 }}>Padre: {alumno.padre.nombre}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-error)', fontWeight: 800 }}>⚠️ Sin Padre</span>
+                                </>
+                            )}
                             {alumno.inscripciones.length > 0 && (
                               <>
                                 <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
@@ -856,6 +885,7 @@ export default function AdminDashboard() {
           alumno={modalAlumno as Partial<Alumno>}
           saving={savingPersona}
           clubes={metricas?.clubes ?? []}
+          usuarios={usuarios}
           onSave={handleSaveAlumno}
           onClose={() => setModalAlumno(false)}
         />
@@ -980,14 +1010,23 @@ function AlumnoModal({
   alumno: Partial<Alumno>;
   saving: boolean;
   clubes: any[];
+  usuarios?: Usuario[];
   onSave: (data: any) => void;
   onClose: () => void;
 }) {
+  const padres = (usuarios ?? []).filter(u => u.rol === 'PADRE');
   const currentClubIds = (alumno as any).inscripciones?.map((i: any) => i.clubId) ?? [];
   const [nombre,   setNombre]   = useState((alumno as any).nombre   ?? '');
   const [apellido, setApellido] = useState((alumno as any).apellido ?? '');
   const [grado,    setGrado]    = useState((alumno as any).grado    ?? '');
+  const [padreId,  setPadreId]  = useState<number | string>((alumno as any).padreId ?? '');
   const [selectedClubIds, setSelectedClubIds] = useState<number[]>(currentClubIds);
+
+  // Estado para creación rápida de padre
+  const [creandoPadre, setCreandoPadre] = useState(false);
+  const [pNombre, setPNombre] = useState('');
+  const [pApellido, setPApellido] = useState('');
+  const [pDni, setPDni] = useState('');
 
   const toggleClub = (id: number) => {
     setSelectedClubIds(prev => 
@@ -997,7 +1036,19 @@ function AlumnoModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ nombre, apellido, grado, clubIds: selectedClubIds });
+    const payload: any = { 
+        nombre, 
+        apellido, 
+        grado, 
+        clubIds: selectedClubIds,
+        padreId: padreId === '' ? undefined : Number(padreId)
+    };
+    
+    if (creandoPadre && pNombre && pApellido) {
+        payload.nuevoPadre = { nombre: pNombre, apellido: pApellido, dni: pDni };
+    }
+
+    onSave(payload);
   };
 
   const GRADOS = [
@@ -1031,6 +1082,37 @@ function AlumnoModal({
               <option value="">— Selecciona un grado —</option>
               {GRADOS.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
+          </div>
+          
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+              <label style={labelStyle}>Asignar Padre / Tutor</label>
+              <button 
+                type="button"
+                onClick={() => setCreandoPadre(!creandoPadre)}
+                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase' }}
+              >
+                {creandoPadre ? '✕ Cancelar' : '+ Nuevo Padre'}
+              </button>
+            </div>
+
+            {creandoPadre ? (
+                <div style={{ background: 'var(--color-secondary-container)', padding: '0.85rem', borderRadius: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', textTransform: 'uppercase' }}>Registro Rápido de Padre</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombre Padre" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                        <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellido" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                    </div>
+                    <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI / ID" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                </div>
+            ) : (
+                <select value={padreId} onChange={e => setPadreId(e.target.value)} style={inputStyle}>
+                    <option value="">— Sin padre asignado —</option>
+                    {padres.map(p => (
+                        <option key={p.id} value={p.id}>{p.nombre} {p.apellido} ({p.dni || 'Sin DNI'})</option>
+                    ))}
+                </select>
+            )}
           </div>
           
           <div>

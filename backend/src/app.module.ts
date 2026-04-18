@@ -6,9 +6,10 @@ import { ClubesModule } from './clubes/clubes.module';
 import { SesionesModule } from './sesiones/sesiones.module';
 import { AdminModule } from './admin/admin.module';
 import { PagosModule } from './pagos/pagos.module';
+import { PadreModule } from './padre/padre.module';
 
 @Module({
-  imports: [PrismaModule, ClubesModule, SesionesModule, AdminModule, PagosModule],
+  imports: [PrismaModule, ClubesModule, SesionesModule, AdminModule, PagosModule, PadreModule],
   controllers: [AppController],
   providers: [AppService],
 })
