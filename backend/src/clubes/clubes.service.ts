@@ -9,12 +9,23 @@ export class ClubesService {
     const inscripciones = await this.prisma.inscripcion.findMany({
       where: { clubId },
       include: {
-        alumno: true, // Trae todos los datos del alumno matriculado
+        alumno: {
+          include: {
+            pagos: {
+              where: { clubId },
+              orderBy: { creadoEn: 'desc' },
+              take: 1
+            }
+          }
+        },
       },
     });
     
-    // Retorna una lista limpia de alumnos directamente
-    return inscripciones.map((ins) => ins.alumno);
+    // Retorna una lista con la info del último pago inyectada
+    return inscripciones.map((ins) => ({
+      ...ins.alumno,
+      estadoPago: ins.alumno.pagos[0]?.estado || 'PENDIENTE'
+    }));
   }
 
   // 🔹 Obtener TODOS los clubes con inscritos y profesor (para el Dashboard)

@@ -41,4 +41,10 @@ export class PagosController {
   ) {
     return this.pagosService.validarPago(id, body.estado, body.observacion);
   }
+
+  // GET /pagos/monitor/:profesorId (Para vista profesor)
+  @Get('monitor/:profesorId')
+  getPagosPorProfesor(@Param('profesorId', ParseIntPipe) profesorId: number) {
+    return this.pagosService.getPagosPorProfesor(profesorId);
+  }
 }

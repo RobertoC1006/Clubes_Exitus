@@ -21,11 +21,14 @@ export default function Dashboard() {
     fetch(url)
       .then(res => res.json())
       .then(data => {
-        // Ambos endpoints devuelven arrays compatibles
         setClubes(Array.isArray(data) ? data : []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(err => {
+        console.error("Error fetching clubs:", err);
+        setClubes([]);
+        setLoading(false);
+      });
   }, [usuario]);
 
   if (loading) {
@@ -144,11 +147,21 @@ export default function Dashboard() {
 
                  <button onClick={() => navigate(`/clubes/${club.id}/asistencia`)} style={{ 
                     width: '100%', padding: '0.85rem', borderRadius: '0.75rem',
-                    background: 'transparent', border: '1px solid var(--color-surface-container-highest)',
+                    background: 'var(--color-primary)', border: 'none',
+                    color: 'white', fontWeight: 800, fontSize: '0.9rem',
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(29, 40, 72, 0.2)'
+                 }}>
+                   <CheckCircle2 size={18} strokeWidth={2.5} /> Pasar Asistencia Hoy
+                 </button>
+
+                 <button onClick={() => navigate(`/clubes/${club.id}/historial`)} style={{ 
+                    width: '100%', padding: '0.85rem', borderRadius: '0.75rem',
+                    background: 'white', border: '1px solid var(--color-surface-container-high)',
                     color: 'var(--color-primary)', fontWeight: 800, fontSize: '0.9rem',
                     display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center'
                  }}>
-                   Abrir Lista de Asistencia
+                   <Activity size={18} /> Ver Historial
                  </button>
               </div>
 

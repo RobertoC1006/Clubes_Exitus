@@ -8,16 +8,17 @@ import Pagos from './Pagos';
 import Perfil from './Perfil';
 import Login from './Login';
 import Layout from './Layout';
+import HistorialAsistencia from './HistorialAsistencia';
 import './index.css';
 
 // ==========================================
 // Guard de Autenticación
 // ==========================================
-function RequireAuth({ children, roles }: { children: JSX.Element; roles?: string[] }) {
+function RequireAuth({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { usuario } = useUser();
   if (!usuario) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(usuario.rol)) return <Navigate to="/login" replace />;
-  return children;
+  return <>{children}</>;
 }
 
 // ==========================================
@@ -56,6 +57,12 @@ function AppRoutes() {
       <Route path="/clubes/:clubId/asistencia" element={
         <RequireAuth roles={['PROFESOR']}>
           <Layout><PaseLista /></Layout>
+        </RequireAuth>
+      } />
+
+      <Route path="/clubes/:clubId/historial" element={
+        <RequireAuth roles={['PROFESOR']}>
+          <Layout><HistorialAsistencia /></Layout>
         </RequireAuth>
       } />
 

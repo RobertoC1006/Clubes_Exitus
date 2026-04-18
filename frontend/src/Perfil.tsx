@@ -1,17 +1,6 @@
-import { useNavigate } from 'react-router-dom';
-import { LogOut, ChevronRight, Shield, Bell, HelpCircle, User, Mail, BookOpen } from 'lucide-react';
+import { LogOut, ChevronRight, Shield, Bell, Mail, BookOpen } from 'lucide-react';
+import { useUser } from './UserContext';
 import './index.css';
-
-// Simulación del usuario logueado
-const MOCK_USER = {
-  nombre: 'Juan',
-  apellido: 'Perez García',
-  email: 'jperez@exitus.edu',
-  rol: 'PROFESOR',
-  dni: 'PROF-001',
-  initials: 'JP',
-  clubes: ['Fútbol Selección', 'Taller de Ajedrez'],
-};
 
 const rolLabel: Record<string, string> = {
   PROFESOR:      '👨‍🏫 Profesor',
@@ -42,7 +31,15 @@ function MenuItem({ icon: Icon, label, sublabel, danger, onClick }: MenuItemProp
 }
 
 export default function Perfil() {
-  const navigate = useNavigate();
+  const { usuario, logout } = useUser();
+
+  if (!usuario) {
+    return (
+      <div className="app-container flex-center">
+        <p>No has iniciado sesión.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
@@ -56,19 +53,19 @@ export default function Perfil() {
         }}>
           {/* Avatar */}
           <div style={{ width: '5rem', height: '5rem', borderRadius: '1.5rem', background: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 900, fontSize: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
-            {MOCK_USER.initials}
+            {usuario.initials}
           </div>
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'white', letterSpacing: '-0.03em' }}>
-              {MOCK_USER.nombre} {MOCK_USER.apellido}
+              {usuario.nombre} {usuario.apellido}
             </h2>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-on-primary-container)', fontWeight: 600 }}>
-              {rolLabel[MOCK_USER.rol]}
+              {rolLabel[usuario.rol]}
             </p>
           </div>
-          {/* Badge de DNI */}
+          {/* Badge de ID (Simulado si no hay DNI) */}
           <span style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '0.3rem 0.9rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em' }}>
-            ID: {MOCK_USER.dni}
+            USUARIO ID: #{usuario.id}
           </span>
         </div>
       </section>
@@ -83,15 +80,15 @@ export default function Perfil() {
             <Mail size={16} color="var(--color-outline)" />
             <div>
               <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Correo Institucional</p>
-              <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{MOCK_USER.email}</p>
+              <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{usuario.email}</p>
             </div>
           </div>
           <div style={{ height: '1px', background: 'var(--color-surface-container-high)', margin: '0 1rem' }} />
           <div style={{ padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             <BookOpen size={16} color="var(--color-outline)" />
             <div>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Clubes Asignados</p>
-              <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{MOCK_USER.clubes.join(' · ')}</p>
+              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Rol en Plataforma</p>
+              <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{usuario.rol}</p>
             </div>
           </div>
         </div>
@@ -106,8 +103,6 @@ export default function Perfil() {
           <MenuItem icon={Bell}         label="Notificaciones"  sublabel="Gestionar alertas y avisos" />
           <div style={{ height: '1px', background: 'var(--color-surface-container-high)', margin: '0 1rem' }} />
           <MenuItem icon={Shield}       label="Privacidad"      sublabel="Tus datos y permisos"       />
-          <div style={{ height: '1px', background: 'var(--color-surface-container-high)', margin: '0 1rem' }} />
-          <MenuItem icon={HelpCircle}   label="Ayuda y Soporte" sublabel="Centro de asistencia"       />
         </div>
       </section>
 
@@ -117,9 +112,13 @@ export default function Perfil() {
           <MenuItem
             icon={LogOut}
             label="Cerrar Sesión"
-            sublabel="Salir de la cuenta"
+            sublabel="Salir de la cuenta de forma segura"
             danger
-            onClick={() => alert('Cerrando sesión... (Se implementará con JWT)')}
+            onClick={() => {
+              if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
+                logout();
+              }
+            }}
           />
         </div>
       </section>

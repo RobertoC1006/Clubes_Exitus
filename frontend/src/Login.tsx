@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
 import type { UsuarioSesion } from './UserContext';
-import { GraduationCap, Shield, BookOpen, Users, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { GraduationCap, Shield, BookOpen, Users, Loader2, RefreshCw } from 'lucide-react';
 import './index.css';
 
 const API = 'http://localhost:3000';
@@ -185,7 +185,7 @@ export default function Login() {
                         </div>
                         {loading === u.id
                           ? <Loader2 size={20} color="var(--color-primary)" className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                          : <ChevronRight size={18} color="var(--color-outline-variant)" />
+                          : null
                         }
                       </button>
                     ))}

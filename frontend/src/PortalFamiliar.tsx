@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Trophy, CreditCard, Clock } from 'lucide-react';
+import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock } from 'lucide-react';
 import './index.css';
 
 function getSemanaActual() {

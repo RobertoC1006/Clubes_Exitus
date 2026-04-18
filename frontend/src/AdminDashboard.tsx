@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Users, AlertTriangle, Award, TrendingUp,
-  PlusCircle, Edit2, Trash2, UserCheck, CheckCircle,
-  XCircle, Download, ChevronRight, X, Save,
-  BarChart2, BookOpen, CreditCard, RefreshCw, UserPlus,
+  PlusCircle, Edit2, Trash2, UserCheck,
+  Download, ChevronRight, X, Save,
+  BarChart2, BookOpen, CreditCard, RefreshCw,
   GraduationCap, Search, ChevronDown, FileText, ExternalLink,
   Check
 } from 'lucide-react';
@@ -253,12 +253,6 @@ export default function AdminDashboard() {
     finally { setSavingPersona(false); }
   };
 
-  const handleDeleteUsuario = async (id: number) => {
-    if (!window.confirm('¿Eliminar este usuario? Esta acción es permanente.')) return;
-    await fetch(`${API}/admin/usuarios/${id}`, { method: 'DELETE' });
-    fetchProfesores();
-  };
-
   const handleSaveAlumno = async (data: { nombre: string; apellido: string; grado: string; padreId?: number; clubIds?: number[] }) => {
     setSavingPersona(true);
     const isEdit = modalAlumno && 'id' in modalAlumno && (modalAlumno as any).id;
@@ -270,12 +264,6 @@ export default function AdminDashboard() {
       else { setModalAlumno(false); fetchAlumnos(); fetchMetricas(); }
     } catch { alert('Error de red'); }
     finally { setSavingPersona(false); }
-  };
-
-  const handleDeleteAlumno = async (id: number) => {
-    if (!window.confirm('¿Eliminar este alumno? Se eliminarán sus registros de asistencia.')) return;
-    await fetch(`${API}/admin/alumnos/${id}`, { method: 'DELETE' });
-    fetchAlumnos(); fetchMetricas();
   };
 
   // ── Render ────────────────────────────────────────────────────
