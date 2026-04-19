@@ -92,28 +92,68 @@ export class PadreService {
         logros.push({ titulo: 'Socio de Oro', desc: 'Pagos al día', icon: '💎' });
     }
 
-    // 4. Calendario (Sesiones de este mes para todos sus clubes)
-    const inicioMes = new Date();
-    inicioMes.setDate(1);
-    inicioMes.setHours(0,0,0,0);
+    // 4. Calendario (Sesiones de este mes: Reales + Proyectadas)
+    const hoy = new Date();
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
-    const todasSesiones = await this.prisma.sesion.findMany({
+    const sesionesReales = await this.prisma.sesion.findMany({
       where: {
         clubId: { in: alumno.inscripciones.map(i => i.clubId) },
-        fecha: { gte: inicioMes }
+        fecha: { gte: inicioMes, lte: finMes }
       },
-      include: { club: { select: { nombre: true } }, asistencias: { where: { alumnoId } } },
+      include: { club: { select: { nombre: true, horario: true } }, asistencias: { where: { alumnoId } } },
       orderBy: { fecha: 'asc' }
     });
 
-    const calendario = todasSesiones.map(s => ({
+    const calendarioReales = sesionesReales.map(s => ({
       id: s.id,
       fecha: s.fecha,
       club: s.club.nombre,
-      tema: s.tema || 'Sesión Programada',
+      tema: s.tema || 'Sesión Realizada',
       asistio: s.asistencias[0]?.estado === 'PRESENTE',
       estado: s.asistencias[0]?.estado || 'PENDIENTE'
     }));
+
+    // Proyectar sesiones futuras basadas en Horario
+    const calendarioProyectado: any[] = [];
+    const mappingDias: Record<string, number> = { 'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6 };
+
+    alumno.inscripciones.forEach(ins => {
+      const horario = ins.club.horario as any;
+      if (!horario) return;
+
+      Object.keys(horario).forEach(diaNombre => {
+        const diaIndex = mappingDias[diaNombre];
+        if (diaIndex === undefined) return;
+
+        let curr = new Date(hoy);
+        curr.setHours(0,0,0,0);
+        
+        while (curr <= finMes) {
+          if (curr.getDay() === diaIndex) {
+            const existeReal = sesionesReales.find(s => 
+              s.clubId === ins.clubId && 
+              s.fecha.toDateString() === curr.toDateString()
+            );
+
+            if (!existeReal) {
+               calendarioProyectado.push({
+                 id: `proj-${ins.clubId}-${curr.getTime()}`,
+                 fecha: new Date(curr),
+                 club: ins.club.nombre,
+                 tema: 'Clase Programada',
+                 asistio: false,
+                 estado: 'PROGRAMADO'
+               });
+            }
+          }
+          curr.setDate(curr.getDate() + 1);
+        }
+      });
+    });
+
+    const calendario = [...calendarioReales, ...calendarioProyectado].sort((a,b) => a.fecha.getTime() - b.fecha.getTime());
 
     // 5. Avisos Dinámicos
     const avisos = [

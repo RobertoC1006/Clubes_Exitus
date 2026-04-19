@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
-import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock, RefreshCw, ChevronRight } from 'lucide-react';
+import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock, History, RefreshCw, ChevronRight } from 'lucide-react';
 import './index.css';
 
 const API = 'http://localhost:3000';
@@ -51,6 +51,9 @@ export default function PortalFamiliar() {
   const [error, setError] = useState<string | null>(null);
   const [fetchingResumen, setFetchingResumen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [activeCalendarTab, setActiveCalendarTab] = useState<'pasadas' | 'proximas'>('proximas');
+  const [currentPageCalendar, setCurrentPageCalendar] = useState(1);
+  const CALENDAR_ITEMS_PER_PAGE = 5;
 
   // 1. Cargar Lista de Hijos
   useEffect(() => {
@@ -191,44 +194,114 @@ export default function PortalFamiliar() {
           {showCalendar && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
               <div className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-                <div style={{ background: 'var(--grad-primary)', padding: '2rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: 'var(--grad-primary)', padding: '1.5rem 2rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.04em' }}>Mi Calendario</h3>
-                    <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8, fontWeight: 700 }}>{resumen.alumno.nombre} • Abril 2025</p>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>Mi Calendario</h3>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', opacity: 0.8, fontWeight: 700 }}>{resumen.alumno.nombre} • {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
                   </div>
                   <button onClick={() => setShowCalendar(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    <XCircle size={24} />
+                    <XCircle size={22} />
                   </button>
                 </div>
-                <div style={{ padding: '1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
-                  {resumen.calendario.length === 0 ? (
-                    <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-                        <Calendar size={48} color="var(--color-outline-variant)" style={{ marginBottom: '1rem', opacity: 0.3 }} />
-                        <p style={{ fontWeight: 600, color: 'var(--color-outline)' }}>Sin sesiones programadas para este mes.</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {resumen.calendario.map(s => (
-                        <div key={s.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-dim)', borderRadius: '1.25rem' }}>
-                           <div style={{ width: '3.5rem', textAlign: 'center', borderRight: '1px solid var(--color-surface-container-high)', paddingRight: '1rem' }}>
-                              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>{new Date(s.fecha).getDate()}</p>
-                              <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>Abril</p>
-                           </div>
-                           <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{s.club}</p>
-                              <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>{s.tema}</p>
-                           </div>
-                           <div style={{ 
-                             padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.65rem', fontWeight: 900,
-                             background: s.asistio ? 'var(--color-success-container)' : (s.estado === 'PENDIENTE' ? 'var(--color-surface-container-high)' : 'var(--color-error-container)'),
-                             color: s.asistio ? 'var(--color-success)' : (s.estado === 'PENDIENTE' ? 'var(--color-primary)' : 'var(--color-error)')
-                           }}>
-                             {s.asistio ? 'ASISTIÓ' : s.estado}
-                           </div>
+
+                {/* TABS CALENDARIO */}
+                <div style={{ display: 'flex', background: 'var(--color-surface-dim)', padding: '0.5rem', gap: '0.5rem', borderBottom: '1px solid var(--color-surface-container-high)' }}>
+                   {[
+                     { id: 'proximas', label: 'Próximas Clases', icon: <Clock size={16}/> },
+                     { id: 'pasadas', label: 'Historial / Pasadas', icon: <History size={16}/> }
+                   ].map(tab => {
+                     const isA = activeCalendarTab === tab.id;
+                     return (
+                       <button 
+                        key={tab.id}
+                        onClick={() => { setActiveCalendarTab(tab.id as any); setCurrentPageCalendar(1); }}
+                        style={{ 
+                          flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', 
+                          background: isA ? 'white' : 'transparent', 
+                          color: isA ? 'var(--color-primary)' : 'var(--color-outline)',
+                          fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                          boxShadow: isA ? 'var(--shadow-sm)' : 'none',
+                          transition: 'all 0.3s ease'
+                        }}
+                       >
+                         {tab.icon} {tab.label}
+                       </button>
+                     );
+                   })}
+                </div>
+
+                <div style={{ padding: '1.5rem', maxHeight: '55vh', overflowY: 'auto' }}>
+                  {(() => {
+                    const pasadas = resumen.calendario.filter((s: any) => s.estado !== 'PROGRAMADO').reverse();
+                    const proximas = resumen.calendario.filter((s: any) => s.estado === 'PROGRAMADO');
+                    const listaActual = activeCalendarTab === 'pasadas' ? pasadas : proximas;
+                    const totalPaginas = Math.ceil(listaActual.length / CALENDAR_ITEMS_PER_PAGE);
+
+                    if (listaActual.length === 0) {
+                      return (
+                        <div style={{ padding: '4rem 1rem', textAlign: 'center' }}>
+                            <Calendar size={48} color="var(--color-outline-variant)" style={{ marginBottom: '1.25rem', opacity: 0.3 }} />
+                            <p style={{ fontWeight: 700, color: 'var(--color-outline)', fontSize: '0.9rem' }}>
+                              {activeCalendarTab === 'proximas' ? 'No hay más clases programadas este mes.' : 'Aún no se han registrado asistencias.'}
+                            </p>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          {listaActual
+                            .slice((currentPageCalendar - 1) * CALENDAR_ITEMS_PER_PAGE, currentPageCalendar * CALENDAR_ITEMS_PER_PAGE)
+                            .map((s: any) => (
+                            <div key={s.id} className="animate-enter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-dim)', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+                               <div style={{ width: '3.5rem', textAlign: 'center', borderRight: '1.2px solid var(--color-surface-container-high)', paddingRight: '1rem' }}>
+                                  <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
+                                  <p style={{ margin: '0.1rem 0 0', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
+                                    {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
+                                  </p>
+                               </div>
+                               <div style={{ flex: 1 }}>
+                                  <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{s.club}</p>
+                                  <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>{s.tema}</p>
+                               </div>
+                               <div style={{ 
+                                 padding: '0.45rem 0.85rem', borderRadius: '0.8rem', fontSize: '0.65rem', fontWeight: 900,
+                                 background: s.asistio ? 'var(--color-success-container)' : (s.estado === 'PENDIENTE' ? 'var(--color-surface-container-high)' : (s.estado === 'PROGRAMADO' ? 'var(--color-primary-container)' : 'var(--color-error-container)')),
+                                 color: s.asistio ? 'var(--color-success)' : (s.estado === 'PENDIENTE' ? 'var(--color-primary)' : (s.estado === 'PROGRAMADO' ? 'white' : 'var(--color-error)'))
+                               }}>
+                                 {s.asistio ? 'ASISTIÓ' : s.estado}
+                               </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* PAGINACIÓN MODAL */}
+                        {totalPaginas > 1 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', alignItems: 'center' }}>
+                              <button 
+                                disabled={currentPageCalendar === 1}
+                                onClick={() => setCurrentPageCalendar(p => Math.max(1, p - 1))}
+                                style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === 1 ? 0.3 : 1 }}
+                              >
+                                <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
+                              </button>
+                              <div style={{ background: 'var(--color-surface-dim)', borderRadius: '99px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                                {currentPageCalendar} <span style={{ opacity: 0.4 }}>/</span> {totalPaginas}
+                              </div>
+                              <button 
+                                disabled={currentPageCalendar === totalPaginas}
+                                onClick={() => setCurrentPageCalendar(p => Math.min(totalPaginas, p + 1))}
+                                style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === totalPaginas ? 0.3 : 1 }}
+                              >
+                                <ChevronRight size={18} />
+                              </button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div style={{ padding: '1.5rem', borderTop: '1px solid var(--color-surface-container-high)', textAlign: 'center' }}>
                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Los horarios específicos se coordinan con el docente del club.</p>

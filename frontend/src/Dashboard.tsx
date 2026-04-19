@@ -52,6 +52,15 @@ export default function Dashboard() {
   const [clubes, setClubes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Paginación
+  const ITEMS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Datos dinámicos del dashboard
+  const [metricas, setMetricas] = useState<any>(null);
+  const [alertas, setAlertas] = useState<any[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
+
   useEffect(() => {
     if (!usuario) return;
     
@@ -70,6 +79,20 @@ export default function Dashboard() {
         console.error("Error fetching clubs:", err);
         setClubes([]);
         setLoading(false);
+      });
+
+    // 🔹 Cargar métricas del dashboard
+    setLoadingDashboard(true);
+    fetch(`http://localhost:3000/clubes/profesor-dashboard/${usuario.id}`)
+      .then(res => res.json())
+      .then(data => {
+        setMetricas(data.metricas);
+        setAlertas(data.alertas);
+        setLoadingDashboard(false);
+      })
+      .catch(err => {
+        console.error("Error fetching dashboard metrics:", err);
+        setLoadingDashboard(false);
       });
   }, [usuario]);
 
@@ -144,32 +167,38 @@ export default function Dashboard() {
 
           {/* METRICS GRID */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-             <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Desempeño Semanal</h3>
+             <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Desempeño Mensual</h3>
              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-outline)' }}>Abril 2025</span>
           </div>
           <div className="bento-grid" style={{ marginBottom: '2.5rem' }}>
-             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)', background: 'white' }}>
                 <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'var(--color-secondary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
                   <Target size={18} color="var(--color-on-secondary-container)" />
                 </div>
-                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>92%</p>
-                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Presentismo</p>
+                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>
+                  {loadingDashboard ? '...' : `${metricas?.asistenciaPct ?? 0}%`}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia</p>
              </div>
-             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)', background: 'white' }}>
                 <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
                   <TrendingUp size={18} color="#059669" />
                 </div>
-                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>+4</p>
-                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Nuevos Ingresos</p>
+                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>
+                  {loadingDashboard ? '...' : `+${metricas?.nuevosIngresos ?? 0}`}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Nuevos Alumnos</p>
              </div>
-             <div className="bento-card" style={{ gridColumn: 'span 2', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--color-surface-container-high)', position: 'relative', overflow: 'hidden' }}>
+             <div className="bento-card" style={{ gridColumn: 'span 2', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--color-surface-container-high)', position: 'relative', overflow: 'hidden', background: 'white' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 2 }}>
                    <div style={{ background: 'var(--grad-gold)', width: '3.2rem', height: '3.2rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)' }}>
                       <Zap size={24} color="white" />
                    </div>
                    <div>
-                      <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>Racha: 5 Clases</p>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>¡Asistencia perfecta esta semana!</p>
+                      <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                        Racha: {loadingDashboard ? '...' : `${metricas?.racha ?? 0} Sesiones`}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>Con asistencia superior al 70%. ¡Sigue así!</p>
                    </div>
                 </div>
                 <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'var(--color-surface-container-highest)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -179,28 +208,46 @@ export default function Dashboard() {
              </div>
           </div>
 
+          {/* PRÓXIMAS SESIONES TIMELINE */}
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.05em' }}>Cronograma de la Semana</h3>
+          <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '2rem' }}>
+            {clubes.map((club) => {
+               const dias = Object.keys(club.horario || {});
+               return dias.map(dia => (
+                 <div key={`${club.id}-${dia}`} className="bento-card" style={{ minWidth: '160px', padding: '1rem', background: 'white', border: '1px solid var(--color-surface-container-high)' }}>
+                    <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-secondary)', textTransform: 'uppercase' }}>{dia}</p>
+                    <p style={{ margin: '0.2rem 0', fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{club.nombre}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--color-outline)', fontSize: '0.75rem', fontWeight: 600 }}>
+                       <Clock size={12} /> {club.horario[dia].start}
+                    </div>
+                 </div>
+               ));
+            })}
+          </div>
+
           {/* SMART ALERTS */}
           <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.05em' }}>Centro de Notificaciones</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-             <div style={{ background: '#fef2f2', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '1.25rem', borderRadius: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ background: '#ef4444', width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                   <AlertCircle size={20} color="white" strokeWidth={2.5} />
-                </div>
-                <div style={{ flex: 1 }}>
-                   <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#991b1b' }}>Faltas Críticas</p>
-                   <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#b91c1c', opacity: 0.8, fontWeight: 600 }}>Mateo Rodriguez lleva 3 faltas. Reportar a dirección.</p>
-                </div>
-                <button style={{ background: '#fee2e2', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', color: '#991b1b', fontSize: '0.7rem', fontWeight: 800 }}>REVISAR</button>
-             </div>
-             <div style={{ background: '#fffbeb', border: '1px solid rgba(245, 158, 11, 0.1)', padding: '1.25rem', borderRadius: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <div style={{ background: '#f59e0b', width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                   <CalendarIcon size={20} color="white" strokeWidth={2.5} />
-                </div>
-                <div style={{ flex: 1 }}>
-                   <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#92400e' }}>Evento Inminente</p>
-                   <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#b45309', opacity: 0.8, fontWeight: 600 }}>Muestra deportiva del Club de Fútbol: 24 de Abril.</p>
-                </div>
-             </div>
+             {alertas.length > 0 ? alertas.map(alerta => (
+               <div key={alerta.id} style={{ background: '#fef2f2', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '1.25rem', borderRadius: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <div style={{ background: '#ef4444', width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                     <AlertCircle size={20} color="white" strokeWidth={2.5} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                     <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#991b1b' }}>{alerta.titulo}</p>
+                     <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#b91c1c', opacity: 0.8, fontWeight: 600 }}>{alerta.desc}</p>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/clubes?tab=clubes')}
+                    style={{ background: '#fee2e2', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', color: '#991b1b', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}>
+                    REVISAR
+                  </button>
+               </div>
+             )) : (
+               <div style={{ background: 'var(--color-surface-container-low)', padding: '1.5rem', borderRadius: '1.25rem', textAlign: 'center', border: '1px dashed var(--color-outline-variant)' }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>Todo al día. No hay alertas pendientes.</p>
+               </div>
+             )}
           </div>
         </>
       )}
@@ -215,7 +262,9 @@ export default function Dashboard() {
              </span>
           </div>
           <div className="flex-column" style={{ gap: '1.25rem' }}>
-             {clubes.map((club, index) => {
+             {clubes
+               .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+               .map((club, index) => {
                const icons = [Activity, Users, CalendarIcon, BookOpen];
                const IconLogo = icons[index % icons.length];
 
@@ -271,6 +320,12 @@ export default function Dashboard() {
                );
              })}
           </div>
+
+          <Pagination 
+            current={currentPage} 
+            total={Math.ceil(clubes.length / ITEMS_PER_PAGE)} 
+            onChange={setCurrentPage} 
+          />
         </>
       )}
 
@@ -292,6 +347,46 @@ export default function Dashboard() {
            transform: scale(0.9);
         }
       `}</style>
+    </div>
+  );
+}
+
+function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
+  if (total <= 1) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginTop: '1.5rem', padding: '1rem 0' }}>
+      <button 
+        disabled={current === 1}
+        onClick={() => onChange(current - 1)}
+        style={{ 
+          background: current === 1 ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 
+          color: 'var(--color-primary)', border: 'none', borderRadius: '0.6rem',
+          padding: '0.45rem', opacity: current === 1 ? 0.3 : 1, width: '2.2rem', height: '2.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+        }}>
+        <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
+      </button>
+      <div style={{ 
+        background: 'var(--color-surface-container-low)', 
+        padding: '0.44rem 1rem', 
+        borderRadius: '99px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.4rem'
+      }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>{current}</span>
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', opacity: 0.5 }}>/</span>
+        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)' }}>{total}</span>
+      </div>
+      <button 
+        disabled={current === total}
+        onClick={() => onChange(current + 1)}
+        style={{ 
+          background: current === total ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 
+          color: 'var(--color-primary)', border: 'none', borderRadius: '0.6rem',
+          padding: '0.45rem', opacity: current === total ? 0.3 : 1, width: '2.2rem', height: '2.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' 
+        }}>
+        <ChevronRight size={18} />
+      </button>
     </div>
   );
 }

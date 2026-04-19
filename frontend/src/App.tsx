@@ -9,6 +9,7 @@ import Perfil from './Perfil';
 import Login from './Login';
 import Layout from './Layout';
 import HistorialAsistencia from './HistorialAsistencia';
+import DetalleSesion from './DetalleSesion';
 import './index.css';
 
 // ==========================================
@@ -61,8 +62,14 @@ function AppRoutes() {
       } />
 
       <Route path="/clubes/:clubId/historial" element={
-        <RequireAuth roles={['PROFESOR']}>
+        <RequireAuth roles={['PROFESOR', 'ADMINISTRADOR']}>
           <Layout><HistorialAsistencia /></Layout>
+        </RequireAuth>
+      } />
+
+      <Route path="/clubes/:clubId/sesion/:sesionId" element={
+        <RequireAuth roles={['PROFESOR', 'ADMINISTRADOR']}>
+          <Layout><DetalleSesion /></Layout>
         </RequireAuth>
       } />
 

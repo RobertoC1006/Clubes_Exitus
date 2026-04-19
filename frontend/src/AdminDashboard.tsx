@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import {
   Users, AlertTriangle, Award, TrendingUp,
   PlusCircle, Edit2, Trash2, UserCheck,
   Download, ChevronRight, X, Save,
   BarChart2, BookOpen, CreditCard, RefreshCw,
   GraduationCap, Search, ChevronDown, FileText, ExternalLink,
-  Check, Calendar, Clock
+  Check, Calendar, Clock, History
 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import './index.css';
 
 const API = 'http://localhost:3000';
@@ -199,6 +199,7 @@ const inputStyle: React.CSSProperties = {
 // COMPONENTE PRINCIPAL
 // ══════════════════════════════════════════════════════════════
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte';
   const [metricas, setMetricas] = useState<Metricas | null>(null);
@@ -226,8 +227,29 @@ export default function AdminDashboard() {
   // Validando pago
   const [validandoPago, setValidandoPago] = useState<number | null>(null);
 
-  // Reset search when tab changes
-  useEffect(() => setSearchTerm(''), [tab]);
+  // Pagination states
+  const ITEMS_PER_PAGE = 5;
+  const [currentPageClubes, setCurrentPageClubes] = useState(1);
+  const [currentPageAlumnos, setCurrentPageAlumnos] = useState(1);
+  const [currentPagePagos, setCurrentPagePagos] = useState(1);
+  const [currentPageReportes, setCurrentPageReportes] = useState(1);
+  const [currentPageRanking, setCurrentPageRanking] = useState(1);
+  const [pagesUsuarios, setPagesUsuarios] = useState<Record<string, number>>({
+    ADMINISTRADOR: 1,
+    PROFESOR: 1,
+    PADRE: 1
+  });
+
+  // Reset pagination when search or tab changes
+  useEffect(() => {
+    setSearchTerm('');
+    setCurrentPageClubes(1);
+    setCurrentPageAlumnos(1);
+    setCurrentPagePagos(1);
+    setCurrentPageReportes(1);
+    setCurrentPageRanking(1);
+    setPagesUsuarios({ ADMINISTRADOR: 1, PROFESOR: 1, PADRE: 1 });
+  }, [tab, personasTab]);
 
   // ── Fetch ────────────────────────────────────────────────────
   const fetchMetricas = useCallback(async () => {
@@ -491,22 +513,26 @@ export default function AdminDashboard() {
                 <Award size={18} color="var(--color-secondary)" />
                 <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ranking de disciplinas</h3>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {clubesRanking.map((club, i) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {clubesRanking
+                  .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
+                  .map((club, i) => (
                   <div key={club.id} className="bento-card" style={{
                     padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
                   }}>
                     <div style={{
-                      width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', flexShrink: 0,
-                      background: i === 0 ? 'var(--color-secondary)' : 'var(--color-surface-container-high)',
-                      color: i === 0 ? 'var(--color-on-secondary)' : 'var(--color-on-surface-variant)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 900, fontSize: '1rem',
+                      width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem',
+                      background: i === 0 ? 'var(--grad-gold)' : 'var(--color-surface-container-high)',
+                      color: i === 0 ? 'white' : 'var(--color-primary)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
+                      fontSize: '1.1rem', boxShadow: i === 0 ? '0 4px 10px rgba(212, 175, 55, 0.3)' : 'none'
                     }}>
-                      {i + 1}
+                      {(currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{club.nombre}</p>
+                    <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => navigate(`/clubes/${club.id}/historial`)}>
+                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        {club.nombre} <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                      </p>
                       <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
                         <span style={{ fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>• {club.inscritos} alumnos</span>
@@ -556,6 +582,7 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {(metricas?.clubes ?? [])
                 .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
+                .slice((currentPageClubes - 1) * ITEMS_PER_PAGE, currentPageClubes * ITEMS_PER_PAGE)
                 .map(club => (
                 <div key={club.id} className="bento-card" style={{
                   padding: '1.75rem',
@@ -571,6 +598,11 @@ export default function AdminDashboard() {
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
+                      <button onClick={() => navigate(`/clubes/${club.id}/historial`)} 
+                        title="Ver Asistencia"
+                        style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
+                        <History size={16} />
+                      </button>
                       <button onClick={() => setModalClub(club)} 
                         style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
                         <Edit2 size={16} />
@@ -594,6 +626,12 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+
+            <Pagination 
+              current={currentPageClubes} 
+              total={Math.ceil(((metricas?.clubes ?? []).filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())).length) / ITEMS_PER_PAGE)}
+              onChange={setCurrentPageClubes}
+            />
           </>
         )}
 
@@ -629,7 +667,7 @@ export default function AdminDashboard() {
               <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
-            {/* ─── Sub-tab: PROFESORES ─── */}
+            {/* ─── Sub-tab: PROFESOR ─── */}
             {personasTab === 'profesores' && (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -646,19 +684,23 @@ export default function AdminDashboard() {
                 </div>
 
                 {(['ADMINISTRADOR', 'PROFESOR', 'PADRE'] as const).map(rol => {
-                  const grupo = usuarios.filter(u => u.rol === rol)
+                  const itemsFiltered = usuarios.filter(u => u.rol === rol)
                     .filter(u => (`${u.nombre ?? ''} ${u.apellido ?? ''} ${u.email ?? ''} ${u.dni ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()));
-                  if (grupo.length === 0) return null;
+                  
+                  if (itemsFiltered.length === 0) return null;
+                  
+                  const paginatedItems = itemsFiltered.slice((pagesUsuarios[rol] - 1) * ITEMS_PER_PAGE, pagesUsuarios[rol] * ITEMS_PER_PAGE);
                   const rolLabel = { ADMINISTRADOR: 'Administradores', PROFESOR: 'Docentes', PADRE: 'Padres de Familia' }[rol];
                   const rolColor = { ADMINISTRADOR: 'var(--color-primary)', PROFESOR: 'var(--color-secondary)', PADRE: 'var(--color-outline)' }[rol];
+                  
                   return (
-                    <div key={rol} style={{ marginBottom: '1.5rem' }}>
+                    <div key={rol} style={{ marginBottom: '2rem' }}>
                       <p style={{ margin: '0 0 0.75rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: rolColor, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: 12, height: 2, background: rolColor, borderRadius: 2 }}></div>
-                        {rolLabel}
+                        {rolLabel} ({itemsFiltered.length})
                       </p>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                        {grupo.map(u => (
+                        {paginatedItems.map(u => (
                           <div key={u.id} className="bento-card animate-enter" style={{
                             padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem', background: 'white',
                             borderLeft: `5px solid ${rolColor}`
@@ -687,6 +729,11 @@ export default function AdminDashboard() {
                           </div>
                         ))}
                       </div>
+                      <Pagination 
+                        current={pagesUsuarios[rol]} 
+                        total={Math.ceil(itemsFiltered.length / ITEMS_PER_PAGE)} 
+                        onChange={(p) => setPagesUsuarios(prev => ({ ...prev, [rol]: p }))} 
+                      />
                     </div>
                   );
                 })}
@@ -717,6 +764,7 @@ export default function AdminDashboard() {
                     </div>
                   ) : alumnos
                     .filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()))
+                    .slice((currentPageAlumnos - 1) * ITEMS_PER_PAGE, currentPageAlumnos * ITEMS_PER_PAGE)
                     .map(alumno => (
                     <div key={alumno.id} className="bento-card" style={{
                       padding: '1rem 1.15rem',
@@ -766,6 +814,12 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
+                
+                <Pagination 
+                  current={currentPageAlumnos} 
+                  total={Math.ceil(alumnos.filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase())).length / ITEMS_PER_PAGE)} 
+                  onChange={setCurrentPageAlumnos} 
+                />
               </>
             )}
           </>
@@ -800,7 +854,9 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {pagos.map(pago => {
+                {pagos
+                  .slice((currentPagePagos - 1) * ITEMS_PER_PAGE, currentPagePagos * ITEMS_PER_PAGE)
+                  .map(pago => {
                   const colors = estadoColor[pago.estado];
                   return (
                     <div key={pago.id} className="bento-card" style={{
@@ -873,6 +929,11 @@ export default function AdminDashboard() {
                     </div>
                   );
                 })}
+                <Pagination 
+                  current={currentPagePagos} 
+                  total={Math.ceil(pagos.length / ITEMS_PER_PAGE)} 
+                  onChange={setCurrentPagePagos} 
+                />
               </div>
             )}
           </>
@@ -901,28 +962,36 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-               <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: 12, height: 2, background: 'var(--color-primary)', borderRadius: 2 }}></div>
-                  Reportes Individuales
-               </p>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                   <div style={{ width: 12, height: 2, background: 'var(--color-primary)', borderRadius: 2 }}></div>
+                   Reportes Individuales
+                </p>
 
-              {(metricas?.clubes ?? []).map(club => (
-                <button key={club.id}
-                  onClick={() => window.open(`${API}/admin/reporte/asistencia?clubId=${club.id}`, '_blank')}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    background: 'var(--color-surface-container-lowest)', border: 'none',
-                    borderRadius: '1rem', padding: '1rem 1.25rem', fontWeight: 700, fontSize: '0.9rem',
-                    color: 'var(--color-primary)', cursor: 'pointer',
-                  }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <BookOpen size={16} color="var(--color-secondary)" /> {club.nombre}
-                  </span>
-                  <ChevronRight size={16} color="var(--color-on-surface-variant)" />
-                </button>
-              ))}
-            </div>
+               {(metricas?.clubes ?? [])
+                 .slice((currentPageReportes - 1) * ITEMS_PER_PAGE, currentPageReportes * ITEMS_PER_PAGE)
+                 .map(club => (
+                 <button key={club.id}
+                   onClick={() => window.open(`${API}/admin/reporte/asistencia?clubId=${club.id}`, '_blank')}
+                   style={{
+                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                     background: 'var(--color-surface-container-lowest)', border: 'none',
+                     borderRadius: '1rem', padding: '1rem 1.25rem', fontWeight: 700, fontSize: '0.9rem',
+                     color: 'var(--color-primary)', cursor: 'pointer',
+                   }}>
+                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                     <BookOpen size={16} color="var(--color-secondary)" /> {club.nombre}
+                   </span>
+                   <ChevronRight size={16} color="var(--color-on-surface-variant)" />
+                 </button>
+               ))}
+
+               <Pagination 
+                 current={currentPageReportes} 
+                 total={Math.ceil((metricas?.clubes ?? []).length / ITEMS_PER_PAGE)} 
+                 onChange={setCurrentPageReportes} 
+               />
+             </div>
 
             <p style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)' }}>
               Formato CSV con BOM para compatibilidad con Microsoft Excel
@@ -1003,6 +1072,39 @@ function Pill({ icon, label, color, bg }: { icon: React.ReactNode; label: string
     }}>
       {icon} {label}
     </span>
+  );
+}
+
+function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
+  if (total <= 1) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginTop: '1.25rem', padding: '0.5rem 0' }}>
+      <button 
+        disabled={current === 1}
+        onClick={() => onChange(current - 1)}
+        style={{ ...iconBtnStyle(current === 1 ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 'var(--color-primary)'), opacity: current === 1 ? 0.3 : 1, width: '2.2rem', height: '2.2rem', boxShadow: current === 1 ? 'none' : 'var(--shadow-sm)' }}>
+        <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
+      </button>
+      <div style={{ 
+        background: 'var(--color-surface-container-low)', 
+        padding: '0.4rem 1rem', 
+        borderRadius: '99px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
+      }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>{current}</span>
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', opacity: 0.5 }}>/</span>
+        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)' }}>{total}</span>
+      </div>
+      <button 
+        disabled={current === total}
+        onClick={() => onChange(current + 1)}
+        style={{ ...iconBtnStyle(current === total ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 'var(--color-primary)'), opacity: current === total ? 0.3 : 1, width: '2.2rem', height: '2.2rem', boxShadow: current === total ? 'none' : 'var(--shadow-sm)' }}>
+        <ChevronRight size={18} />
+      </button>
+    </div>
   );
 }
 

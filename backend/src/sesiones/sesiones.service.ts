@@ -13,6 +13,20 @@ export class SesionesService {
       });
   }
 
+  async getSesionById(id: number) {
+    return this.prisma.sesion.findUnique({
+      where: { id },
+      include: {
+        asistencias: {
+          include: {
+            alumno: true
+          }
+        },
+        club: true
+      }
+    });
+  }
+
   async createSesion(clubId: number, fecha: string) {
     return this.prisma.sesion.create({
       data: {
