@@ -22,8 +22,16 @@ export class SesionesService {
     });
   }
 
-  // Permite insertar o actualizar en bloque la asistencia (con soporte para observaciones y notificaciones)
-  async updateAsistencias(sesionId: number, asistencias: { alumnoId: number, estado: EstadoAsistencia, observacion?: string }[]) {
+  // Permite insertar o actualizar en bloque la asistencia y el tema de la sesión
+  async updateAsistencias(sesionId: number, asistencias: { alumnoId: number, estado: EstadoAsistencia, observacion?: string }[], tema?: string) {
+     // 1. Actualizar el tema de la sesión si viene
+     if (tema !== undefined) {
+       await this.prisma.sesion.update({
+         where: { id: sesionId },
+         data: { tema }
+       });
+     }
+
      const promises = asistencias.map(async (a) => {
        const res = await this.prisma.asistencia.upsert({
          where: {

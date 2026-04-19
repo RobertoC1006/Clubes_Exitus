@@ -102,14 +102,14 @@ export class AdminService {
     });
   }
 
-  async createClub(data: { nombre: string; descripcion?: string; profesorId: number }) {
+  async createClub(data: { nombre: string; descripcion?: string; profesorId: number; horario?: any }) {
     return this.prisma.club.create({
       data,
       include: { profesor: { select: { nombre: true, apellido: true } } },
     });
   }
 
-  async updateClub(id: number, data: { nombre?: string; descripcion?: string; profesorId?: number }) {
+  async updateClub(id: number, data: { nombre?: string; descripcion?: string; profesorId?: number; horario?: any }) {
     const exists = await this.prisma.club.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException(`Club #${id} no encontrado`);
     return this.prisma.club.update({

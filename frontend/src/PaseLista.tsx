@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle } from 'lucide-react';
+import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle, BookOpen } from 'lucide-react';
 import { db } from './db';
 import './index.css';
 
@@ -248,12 +248,6 @@ export default function PaseLista() {
                         <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)' }}>{alumno.grado}</span>
                      </div>
                   </div>
-
-                  {alumno.estadoPago !== 'PAGADO' && (
-                    <div title="Pago Pendiente" style={{ background: 'rgba(211, 47, 47, 0.1)', color: 'var(--color-error)', width: '2rem', height: '2rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <AlertCircle size={14} strokeWidth={3} />
-                    </div>
-                  )}
                </div>
 
                {/* Controles de Estado Premium */}
@@ -280,24 +274,31 @@ export default function PaseLista() {
                   })}
                </div>
 
-               {/* NOTAS DINÁMICAS */}
-               {isActive && (
-                 <div style={{ animation: 'enter 0.3s ease-out' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--color-surface-dim)', padding: '0.75rem 1rem', borderRadius: '1rem', border: '1px solid var(--color-surface-container-highest)' }}>
-                      <StickyNote size={16} color="var(--color-secondary)" />
-                      <input 
-                        type="text"
-                        placeholder="Observación o nota (opcional)..."
-                        value={alumno.observacion}
-                        onChange={(e) => updateObservacion(alumno.id, e.target.value)}
-                        style={{ 
-                          flex: 1, border: 'none', background: 'transparent', outline: 'none',
-                          fontSize: '0.85rem', color: 'var(--color-on-surface)', fontWeight: 600
-                        }}
-                      />
-                   </div>
-                 </div>
-               )}
+                {/* NOTAS DINÁMICAS (Solo si es Justificado) */}
+                {alumno.estado === 'JUSTIFICADO' && (
+                  <div style={{ animation: 'enter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+                    <div style={{ 
+                      display: 'flex', alignItems: 'center', gap: '0.75rem', 
+                      background: 'var(--color-surface-container-low)', 
+                      padding: '0.85rem 1rem', borderRadius: '1rem', 
+                      border: '1.5px solid var(--color-secondary-container)',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}>
+                       <StickyNote size={16} color="var(--color-secondary)" />
+                       <input 
+                         type="text"
+                         placeholder="Motivo de la justificación..."
+                         value={alumno.observacion}
+                         onChange={(e) => updateObservacion(alumno.id, e.target.value)}
+                         autoFocus
+                         style={{ 
+                           flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                           fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: 700
+                         }}
+                       />
+                    </div>
+                  </div>
+                )}
             </div>
           );
         })}

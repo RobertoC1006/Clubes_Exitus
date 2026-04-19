@@ -25,8 +25,9 @@ export class SesionesController {
   @Put(':id/asistencia')
   updateAsistencias(
     @Param('id', ParseIntPipe) sessionId: number,
-    @Body('asistencias') asistencias: { alumnoId: number, estado: EstadoAsistencia, observacion?: string }[]
+    @Body('asistencias') asistencias: { alumnoId: number, estado: EstadoAsistencia, observacion?: string }[],
+    @Body('tema') tema?: string
   ) {
-     return this.sesionesService.updateAsistencias(sessionId, asistencias);
+     return this.sesionesService.updateAsistencias(sessionId, asistencias, tema);
   }
 }

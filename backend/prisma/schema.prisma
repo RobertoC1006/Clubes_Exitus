@@ -54,6 +54,8 @@ model Club {
   nombre      String
   descripcion String?
   
+  horario     Json?
+  
   // Relación: Todo club tiene un profesor a cargo
   profesorId  Int
   profesor    Usuario  @relation("ProfesorClub", fields: [profesorId], references: [id])

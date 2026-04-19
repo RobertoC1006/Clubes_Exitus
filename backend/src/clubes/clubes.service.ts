@@ -44,8 +44,9 @@ export class ClubesService {
     return this.prisma.club.findMany({
       where: { profesorId },
       include: {
+        profesor: { select: { nombre: true, apellido: true } },
         _count: {
-          select: { inscripciones: true } // Cuenta los alumnos inscritos
+          select: { inscripciones: true }
         }
       }
     });

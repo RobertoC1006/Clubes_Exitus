@@ -1,11 +1,53 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, MapPin, Activity, Calendar as CalendarIcon, Users, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { 
+  CheckCircle2, Activity, Calendar as CalendarIcon, Users, 
+  Loader2, Clock, Zap, Target, TrendingUp, AlertCircle, ChevronRight,
+  BookOpen
+} from 'lucide-react';
 import { useUser } from './UserContext';
 import './index.css';
 
+// ── Helpers ────────────────────────────────────────────────────
+function formatHorarioShort(horario: any): string {
+  if (!horario) return '';
+  const dias = Object.keys(horario);
+  if (dias.length === 0) return '';
+  
+  if (dias.length === 1) {
+    const d = dias[0];
+    return `${d.slice(0, 3)} ${horario[d].start}-${horario[d].end}`;
+  }
+
+  const times = dias.map(d => `${horario[d].start}-${horario[d].end}`);
+  const allSame = times.every(t => t === times[0]);
+  
+  if (allSame) {
+    const diasStr = dias.map(d => d.slice(0, 3)).join(', ');
+    return `${diasStr} ${times[0]}`;
+  }
+
+  return `${dias[0].slice(0, 3)} ${horario[dias[0]].start}+`;
+}
+
+function getActiveClub(clubes: any[]) {
+  const now = new Date();
+  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const currentDay = days[now.getDay()];
+  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+  return clubes.find(club => {
+    if (!club.horario || !club.horario[currentDay]) return false;
+    const { start, end } = club.horario[currentDay];
+    return currentTime >= start && currentTime <= end;
+  });
+}
+
+// ── Dashboard Component ─────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tab = (searchParams.get('tab') || 'inicio') as 'inicio' | 'clubes';
   const { usuario } = useUser();
   const [clubes, setClubes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +73,8 @@ export default function Dashboard() {
       });
   }, [usuario]);
 
+  const activeClub = useMemo(() => getActiveClub(clubes), [clubes]);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
@@ -42,156 +86,210 @@ export default function Dashboard() {
   return (
     <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
       
-      {/* 🔹 SECTION: HERO (MCP Lyceum Hub Design) */}
-      <section style={{ marginBottom: '2.5rem' }}>
+      {/* 🔹 HEADER SECCTION */}
+      <section style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <span style={{ color: 'var(--color-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', fontSize: '0.65rem', marginBottom: '0.5rem', display: 'block' }}>
-              Instructor Hub
+              Instructor Command Center
             </span>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em', lineHeight: 1.1, margin: 0 }}>
+            <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em', lineHeight: 1.1, margin: 0 }}>
               Hola, <br/><span style={{ background: 'var(--grad-gold)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{(usuario as any).nombre?.split(' ')[0] || 'Profesor'}</span>
             </h2>
           </div>
-          <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '50%', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '1.2rem', border: '2px solid white', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', fontWeight: 900, fontSize: '1.2rem', border: '2px solid var(--color-primary-fixed)', boxShadow: 'var(--shadow-lg)' }}>
              {(usuario as any).initials || 'P'}
           </div>
         </div>
       </section>
 
-      {/* 🔹 SECTION: BENTO DASHBOARD SUMMARY */}
-      <div className="bento-grid" style={{ marginBottom: '2rem' }}>
-         <div className="bento-card" style={{ gridColumn: 'span 2', background: 'var(--grad-primary)', color: 'white', padding: '1.5rem' }}>
-            <div className="flex-between" style={{ marginBottom: '1rem' }}>
-               <Activity size={24} color="var(--color-secondary)" />
-               <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.8 }}>Sesión Actual</span>
-            </div>
-            <h3 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>
-              {clubes.length > 0 ? clubes[0].nombre : 'Sin sesiones activas'}
-            </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-               <div style={{ width: '8px', height: '8px', background: 'var(--color-secondary)', borderRadius: '50%', boxShadow: '0 0 10px var(--color-secondary)', animation: 'pulse 1.5s infinite' }}></div>
-               <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{clubes.length > 0 ? 'Esperando pase de lista' : 'Relájate por ahora'}</span>
-            </div>
-            <button 
-              onClick={() => clubes.length > 0 && navigate(`/clubes/${clubes[0].id}/asistencia`)}
-              disabled={clubes.length === 0}
-              style={{ 
-                marginTop: '1.5rem', width: '100%', padding: '0.75rem', borderRadius: '0.85rem', 
-                background: 'white', color: 'var(--color-primary)', fontWeight: 900, fontSize: '0.85rem',
-                opacity: clubes.length === 0 ? 0.5 : 1
-              }}
-            >
-              Comenzar Ahora
-            </button>
-         </div>
-
-         <div className="bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-            <Users size={20} color="var(--color-primary)" />
-            <div>
-              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, lineHeight: 1 }}>{clubes.reduce((acc, c) => acc + (c._count?.inscripciones || 0), 0)}</p>
-              <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Total Atletas</p>
-            </div>
-         </div>
-
-         <div className="bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-            <Activity size={20} color="var(--color-secondary)" />
-            <div>
-              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, lineHeight: 1 }}>{clubes.length}</p>
-              <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Mis Clubes</p>
-            </div>
-         </div>
-      </div>
-
-      {/* 🔹 SECTION: LISTADO DE CLUBES (NUEVO DISEÑO) */}
-      <section style={{ marginBottom: '2.5rem' }}>
-         <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mis Horarios</h3>
-         </div>
-         <div className="flex-column" style={{ gap: '1rem' }}>
-            {clubes.map((club, index) => {
-              const icons = [Activity, Users, CalendarIcon, CheckCircle2];
-              const IconLogo = icons[index % icons.length];
-              const profNombre = club.profesor ? `${club.profesor.nombre} ${club.profesor.apellido}` : 'Sin asignar';
-
-              return (
-                <div key={club.id} className="bento-card" style={{ 
-                  display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.25rem',
-                  border: '1px solid var(--color-surface-container-high)',
-                  background: 'white'
-                }}>
-                  <div style={{ 
-                    width: '3.5rem', height: '3.5rem', borderRadius: '1rem', 
-                    background: index === 0 ? 'var(--color-secondary-container)' : 'var(--color-surface-container-low)',
-                    color: index === 0 ? 'var(--color-on-secondary)' : 'var(--color-primary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}>
-                    <IconLogo size={24} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>{club.nombre}</h4>
-                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-on-surface-variant)' }}>
-                      {club._count?.inscripciones || 0} Atletas · {profNombre.split(' ')[0]}
+      {/* 🔹 TAB CONTENT: INICIO */}
+      {tab === 'inicio' && (
+        <>
+          {/* LIVE STATUS CARD */}
+          <div style={{ marginBottom: '2rem' }}>
+            {activeClub ? (
+              <div className="bento-card" style={{ background: 'var(--grad-primary)', color: 'white', padding: '1.75rem', position: 'relative', overflow: 'hidden' }}>
+                 <div style={{ position: 'relative', zIndex: 2 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                       <div style={{ width: '10px', height: '10px', background: '#4ade80', borderRadius: '50%', boxShadow: '0 0 15px #4ade80', animation: 'pulse 1.5s infinite' }}></div>
+                       <span style={{ fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Clase en Vivo</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.6rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>{activeClub.nombre}</h3>
+                    <p style={{ margin: '0.25rem 0 1.5rem', opacity: 0.8, fontSize: '0.85rem', fontWeight: 600 }}>
+                      {activeClub._count?.inscripciones || 0} Atletas en sala · {formatHorarioShort(activeClub.horario)}
                     </p>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button 
-                      onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
-                      style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: 'var(--color-surface-container-highest)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+                      onClick={() => navigate(`/clubes/${activeClub.id}/asistencia`)}
+                      style={{ 
+                        width: '100%', padding: '0.9rem', borderRadius: '1rem', 
+                        background: 'white', color: 'var(--color-primary)', fontWeight: 900, fontSize: '0.9rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                        boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
+                      }}
                     >
-                      <CheckCircle2 size={18} />
+                      <CheckCircle2 size={18} /> Tomar Lista Ahora
                     </button>
-                    <button 
-                      onClick={() => navigate(`/clubes/${club.id}/historial`)}
-                      style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: 'var(--color-surface-container-highest)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
-                    >
-                      <CalendarIcon size={18} />
-                    </button>
-                  </div>
+                 </div>
+                 <Zap size={120} style={{ position: 'absolute', right: '-20px', bottom: '-20px', color: 'white', opacity: 0.05, transform: 'rotate(15deg)' }} />
+              </div>
+            ) : (
+              <div className="bento-card" style={{ background: 'var(--color-surface-container-low)', padding: '1.5rem', textAlign: 'center', border: '2px dashed var(--color-surface-container-high)' }}>
+                 <Clock size={32} color="var(--color-outline)" style={{ marginBottom: '0.75rem' }} />
+                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary)' }}>Sin clases activas</h3>
+                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 500 }}>Tu próxima clase comienza pronto. ¡Aprovecha para hidratarte!</p>
+              </div>
+            )}
+          </div>
+
+          {/* METRICS GRID */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+             <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Desempeño Semanal</h3>
+             <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-outline)' }}>Abril 2025</span>
+          </div>
+          <div className="bento-grid" style={{ marginBottom: '2.5rem' }}>
+             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+                <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'var(--color-secondary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                  <Target size={18} color="var(--color-on-secondary-container)" />
                 </div>
-              );
-            })}
-         </div>
-      </section>
+                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>92%</p>
+                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Presentismo</p>
+             </div>
+             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+                <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                  <TrendingUp size={18} color="#059669" />
+                </div>
+                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>+4</p>
+                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Nuevos Ingresos</p>
+             </div>
+             <div className="bento-card" style={{ gridColumn: 'span 2', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--color-surface-container-high)', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 2 }}>
+                   <div style={{ background: 'var(--grad-gold)', width: '3.2rem', height: '3.2rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)' }}>
+                      <Zap size={24} color="white" />
+                   </div>
+                   <div>
+                      <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>Racha: 5 Clases</p>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>¡Asistencia perfecta esta semana!</p>
+                   </div>
+                </div>
+                <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '50%', background: 'var(--color-surface-container-highest)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                   <ChevronRight size={18} strokeWidth={3} />
+                </div>
+                <Zap size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.03, transform: 'rotate(15deg)' }} />
+             </div>
+          </div>
 
-      {/* 🔹 SECTION: WEEKLY COMMAND CENTER */}
-      <div style={{ 
-         background: 'var(--color-primary)', 
-         borderRadius: '2rem', padding: '2rem', color: 'white',
-         position: 'relative', overflow: 'hidden',
-         boxShadow: '0 20px 50px rgba(29, 40, 72, 0.4)'
-      }}>
-         <div style={{ position: 'relative', zIndex: 10 }}>
-            <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-               <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'white' }}>Command Center</h4>
-               <span style={{ fontSize: '0.6rem', fontWeight: 900, background: 'rgba(255,255,255,0.2)', padding: '0.4rem 0.8rem', borderRadius: '99px', textTransform: 'uppercase' }}>Semana 12</span>
-            </div>
+          {/* SMART ALERTS */}
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.05em' }}>Centro de Notificaciones</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+             <div style={{ background: '#fef2f2', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '1.25rem', borderRadius: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ background: '#ef4444', width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                   <AlertCircle size={20} color="white" strokeWidth={2.5} />
+                </div>
+                <div style={{ flex: 1 }}>
+                   <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#991b1b' }}>Faltas Críticas</p>
+                   <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#b91c1c', opacity: 0.8, fontWeight: 600 }}>Mateo Rodriguez lleva 3 faltas. Reportar a dirección.</p>
+                </div>
+                <button style={{ background: '#fee2e2', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', color: '#991b1b', fontSize: '0.7rem', fontWeight: 800 }}>REVISAR</button>
+             </div>
+             <div style={{ background: '#fffbeb', border: '1px solid rgba(245, 158, 11, 0.1)', padding: '1.25rem', borderRadius: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ background: '#f59e0b', width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                   <CalendarIcon size={20} color="white" strokeWidth={2.5} />
+                </div>
+                <div style={{ flex: 1 }}>
+                   <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#92400e' }}>Evento Inminente</p>
+                   <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#b45309', opacity: 0.8, fontWeight: 600 }}>Muestra deportiva del Club de Fútbol: 24 de Abril.</p>
+                </div>
+             </div>
+          </div>
+        </>
+      )}
 
-            <div className="bento-grid">
-               <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.4rem' }}>Asistencia Prom.</p>
-                  <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-secondary)' }}>94.2%</p>
-               </div>
-               <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.4rem' }}>Sesiones</p>
-                  <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900 }}>12 <span style={{ fontSize: '0.8rem', opacity: 0.4 }}>/ 15</span></p>
-               </div>
-            </div>
+      {/* 🔹 TAB CONTENT: CLUBES */}
+      {tab === 'clubes' && (
+        <>
+          <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+             <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mis Disciplinas</h3>
+             <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'var(--color-secondary-container)', padding: '0.4rem 1rem', borderRadius: '99px', color: 'var(--color-on-secondary)' }}>
+                {clubes.length} Activos
+             </span>
+          </div>
+          <div className="flex-column" style={{ gap: '1.25rem' }}>
+             {clubes.map((club, index) => {
+               const icons = [Activity, Users, CalendarIcon, BookOpen];
+               const IconLogo = icons[index % icons.length];
 
-            <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', fontWeight: 500, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
-               Tu rendimiento se mantiene en el rango <strong style={{ color: 'white' }}>Sobresaliente</strong> esta semana. ¡Sigue así!
-            </p>
-         </div>
-
-         {/* Background Decoration */}
-         <div style={{ position: 'absolute', bottom: '-2rem', right: '-2rem', width: '10rem', height: '10rem', background: 'var(--color-secondary)', opacity: 0.1, borderRadius: '50%', filter: 'blur(40px)' }}></div>
-      </div>
+               return (
+                 <div key={club.id} className="bento-card card-premium" style={{ 
+                   display: 'flex', alignItems: 'center', gap: '1.25rem', padding: '1.5rem',
+                   border: '1px solid var(--color-surface-container-high)',
+                   background: 'white',
+                   transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                 }}>
+                   <div style={{ 
+                     width: '4rem', height: '4rem', borderRadius: '1.25rem', 
+                     background: 'var(--color-surface-container-low)',
+                     color: 'var(--color-primary)',
+                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                     boxShadow: 'var(--shadow-sm)'
+                   }}>
+                     <IconLogo size={28} />
+                   </div>
+                   <div style={{ flex: 1 }}>
+                     <h4 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{club.nombre}</h4>
+                     <p style={{ margin: '0.3rem 0 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-on-surface-variant)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}><Users size={14} /> {club._count?.inscripciones || 0} Atletas</span>
+                       {club.horario && Object.keys(club.horario).length > 0 && (
+                         <>
+                           <span style={{ opacity: 0.3 }}>•</span>
+                           <span style={{ color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                             <Clock size={14} /> {formatHorarioShort(club.horario)}
+                           </span>
+                         </>
+                       )}
+                     </p>
+                   </div>
+                   <div style={{ display: 'flex', gap: '0.75rem' }}>
+                     <button 
+                       onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
+                       className="btn-icon-premium"
+                       title="Pasar Lista"
+                       style={{ width: '3rem', height: '3rem', borderRadius: '1rem', background: 'var(--color-primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', border: 'none', cursor: 'pointer' }}
+                     >
+                       <CheckCircle2 size={20} strokeWidth={2.5} />
+                     </button>
+                     <button 
+                       onClick={() => navigate(`/clubes/${club.id}/historial`)}
+                       className="btn-icon-premium"
+                       title="Ver Historial"
+                       style={{ width: '3rem', height: '3rem', borderRadius: '1rem', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', border: 'none', cursor: 'pointer' }}
+                     >
+                       <CalendarIcon size={20} />
+                     </button>
+                   </div>
+                 </div>
+               );
+             })}
+          </div>
+        </>
+      )}
 
       <style>{`
         @keyframes pulse {
            0% { transform: scale(1); opacity: 1; }
            50% { transform: scale(1.5); opacity: 0.5; }
            100% { transform: scale(1); opacity: 1; }
+        }
+        .card-premium:hover {
+           transform: translateY(-4px);
+           box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+           border-color: var(--color-primary-fixed) !important;
+        }
+        .btn-icon-premium {
+           transition: all 0.2s;
+        }
+        .btn-icon-premium:active {
+           transform: scale(0.9);
         }
       `}</style>
     </div>

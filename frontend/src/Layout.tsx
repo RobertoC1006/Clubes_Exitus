@@ -107,20 +107,27 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           // ── GLOBAL NAVIGATION ──
           <>
             {/* Inicio */}
-            <button onClick={() => navigate(homeRoute)} style={{ background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', color: homeActive ? 'var(--color-primary)' : 'var(--color-outline)' }}>
-              <div style={{ background: homeActive ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
+            <button onClick={() => navigate(homeRoute)} style={{ background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', color: location.pathname === '/' && (!new URLSearchParams(location.search).get('tab') || new URLSearchParams(location.search).get('tab') === 'inicio') ? 'var(--color-primary)' : 'var(--color-outline)' }}>
+              <div style={{ background: (location.pathname === '/' && (!new URLSearchParams(location.search).get('tab') || new URLSearchParams(location.search).get('tab') === 'inicio')) ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
                 <LayoutDashboard size={22} strokeWidth={homeActive ? 2.5 : 2} />
               </div>
               <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Inicio</span>
             </button>
 
-            {/* Asistencia — solo Profesores */}
+            {/* Clubes — solo Profesores */}
             {isProfesor && (
-              <button onClick={() => location.pathname !== '/' && navigate(-1)} style={{ background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', color: location.pathname.includes('/asistencia') ? 'var(--color-primary)' : 'var(--color-outline)' }}>
-                <div style={{ background: location.pathname.includes('/asistencia') ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
-                  <CheckSquare size={22} strokeWidth={location.pathname.includes('/asistencia') ? 2.5 : 2} />
+              <button 
+                onClick={() => navigate('/?tab=clubes')} 
+                style={{ 
+                  background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', 
+                  alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', 
+                  color: new URLSearchParams(location.search).get('tab') === 'clubes' ? 'var(--color-primary)' : 'var(--color-outline)' 
+                }}
+              >
+                <div style={{ background: new URLSearchParams(location.search).get('tab') === 'clubes' ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
+                  <BookOpen size={22} strokeWidth={new URLSearchParams(location.search).get('tab') === 'clubes' ? 2.5 : 2} />
                 </div>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Asistencia</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Clubes</span>
               </button>
             )}
 

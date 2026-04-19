@@ -22,14 +22,14 @@ export class AdminController {
   }
 
   @Post('clubes')
-  createClub(@Body() body: { nombre: string; descripcion?: string; profesorId: number }) {
+  createClub(@Body() body: { nombre: string; descripcion?: string; profesorId: number; horario?: any }) {
     return this.adminService.createClub(body);
   }
 
   @Put('clubes/:id')
   updateClub(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { nombre?: string; descripcion?: string; profesorId?: number },
+    @Body() body: { nombre?: string; descripcion?: string; profesorId?: number; horario?: any },
   ) {
     return this.adminService.updateClub(id, body);
   }

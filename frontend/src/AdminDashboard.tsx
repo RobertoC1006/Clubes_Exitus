@@ -6,7 +6,7 @@ import {
   Download, ChevronRight, X, Save,
   BarChart2, BookOpen, CreditCard, RefreshCw,
   GraduationCap, Search, ChevronDown, FileText, ExternalLink,
-  Check
+  Check, Calendar, Clock
 } from 'lucide-react';
 import './index.css';
 
@@ -24,6 +24,7 @@ interface Metricas {
 interface ClubMetrica {
   id: number; nombre: string; descripcion: string | null;
   profesorId: number; profesor: string; inscritos: number; asistencia: number;
+  horario: any | null;
 }
 interface Profesor { id: number; nombre: string; apellido: string; email: string }
 interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string }
@@ -54,17 +55,40 @@ function ClubModal({
 }: {
   club: Partial<ClubMetrica> | null;
   profesores: Profesor[];
-  onSave: (data: { nombre: string; descripcion: string; profesorId: number }) => void;
+  onSave: (data: { nombre: string; descripcion: string; profesorId: number; horario: any }) => void;
   onClose: () => void;
 }) {
   const [nombre, setNombre]       = useState(club?.nombre ?? '');
   const [desc, setDesc]           = useState(club?.descripcion ?? '');
   const [profId, setProfId]       = useState<number>(club?.profesorId ?? (profesores[0]?.id ?? 0));
+  
+  // Horario inicial: Lunes a Sábado desactivado por defecto
+  const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const [horario, setHorario]     = useState<any>(club?.horario ?? {});
+
+  const toggleDia = (dia: string) => {
+    setHorario((prev: any) => {
+      const newHorario = { ...prev };
+      if (newHorario[dia]) {
+        delete newHorario[dia];
+      } else {
+        newHorario[dia] = { start: '16:00', end: '17:30' };
+      }
+      return newHorario;
+    });
+  };
+
+  const updateTime = (dia: string, key: 'start' | 'end', val: string) => {
+    setHorario((prev: any) => ({
+      ...prev,
+      [dia]: { ...prev[dia], [key]: val }
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim() || !profId) return;
-    onSave({ nombre, descripcion: desc, profesorId: profId });
+    onSave({ nombre, descripcion: desc, profesorId: profId, horario });
   };
 
   return (
@@ -104,10 +128,44 @@ function ClubModal({
               ))}
             </select>
           </div>
+
+          <div>
+            <label style={labelStyle}>Horario Semanal</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {DIAS.map(dia => {
+                const activo = !!horario[dia];
+                return (
+                  <div key={dia} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.6rem 0.85rem', borderRadius: '0.75rem',
+                    background: activo ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-low)',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <input type="checkbox" checked={activo} onChange={() => toggleDia(dia)}
+                        style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer', accentColor: 'var(--color-primary)' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: activo ? 'var(--color-primary)' : 'var(--color-outline)' }}>{dia}</span>
+                    </div>
+                    {activo && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <input type="time" value={horario[dia].start} onChange={e => updateTime(dia, 'start', e.target.value)}
+                          style={timeInputStyle} />
+                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-primary)' }}>—</span>
+                        <input type="time" value={horario[dia].end} onChange={e => updateTime(dia, 'end', e.target.value)}
+                          style={timeInputStyle} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           <button type="submit" style={{
             background: 'var(--color-primary)', color: 'white', border: 'none',
             borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+            marginTop: '0.5rem'
           }}>
             <Save size={16} /> Guardar Club
           </button>
@@ -116,6 +174,12 @@ function ClubModal({
     </div>
   );
 }
+
+const timeInputStyle: React.CSSProperties = {
+  background: 'white', border: '1px solid var(--color-primary-container)',
+  borderRadius: '0.4rem', padding: '0.15rem 0.35rem', fontSize: '0.75rem',
+  fontWeight: 800, color: 'var(--color-primary)', outline: 'none'
+};
 
 // ── Estilos inline reutilizables ──────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -207,7 +271,7 @@ export default function AdminDashboard() {
   useEffect(() => { if (tab === 'personas') { fetchAlumnos(); fetchProfesores(); } }, [tab]);
 
   // ── CRUD Clubes ──────────────────────────────────────────────
-  const handleSaveClub = async (data: { nombre: string; descripcion: string; profesorId: number }) => {
+  const handleSaveClub = async (data: { nombre: string; descripcion: string; profesorId: number; horario: any }) => {
     const isEdit = modalClub && 'id' in modalClub && modalClub.id;
     const url    = isEdit ? `${API}/admin/clubes/${modalClub.id}` : `${API}/admin/clubes`;
     const method = isEdit ? 'PUT' : 'POST';
@@ -443,9 +507,14 @@ export default function AdminDashboard() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{club.nombre}</p>
-                      <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem' }}>
+                      <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
                         <span style={{ fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>• {club.inscritos} alumnos</span>
+                        {club.horario && Object.keys(club.horario).length > 0 && (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--color-primary)', fontWeight: 800, background: 'var(--color-primary-fixed)', padding: '0.05rem 0.4rem', borderRadius: '4px' }}>
+                            {formatHorarioShort(club.horario)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -515,6 +584,9 @@ export default function AdminDashboard() {
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                     <Pill icon={<UserCheck size={14}/>} label={club.profesor} bg="var(--color-primary-container)" color="white" />
                     <Pill icon={<Users size={14}/>} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
+                    {club.horario && Object.keys(club.horario).length > 0 && (
+                      <Pill icon={<Calendar size={14}/>} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
+                    )}
                     <Pill icon={<TrendingUp size={14}/>} label={`${club.asistencia}% racha`}
                       color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
                       bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
@@ -894,6 +966,30 @@ export default function AdminDashboard() {
 
     </div>
   );
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function formatHorarioShort(horario: any): string {
+  if (!horario) return '';
+  const dias = Object.keys(horario);
+  if (dias.length === 0) return '';
+  
+  if (dias.length === 1) {
+    const d = dias[0];
+    return `${d.slice(0, 3)} ${horario[d].start}-${horario[d].end}`;
+  }
+
+  // Si todos tienen la misma hora, agrupar: "Lun, Mié 16:00-17:30"
+  const times = dias.map(d => `${horario[d].start}-${horario[d].end}`);
+  const allSame = times.every(t => t === times[0]);
+  
+  if (allSame) {
+    const diasStr = dias.map(d => d.slice(0, 3)).join(', ');
+    return `${diasStr} ${times[0]}`;
+  }
+
+  // Si son diferentes, mostrar el primero y "..." o algo similar
+  return `${dias[0].slice(0, 3)} ${horario[dias[0]].start}+`;
 }
 
 // ── Sub-componentes ────────────────────────────────────────────
