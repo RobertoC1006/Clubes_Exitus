@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Check, X, ArrowLeft, Loader2, StickyNote, Clock, Users, Calendar, Save } from 'lucide-react';
+import { Search, Check, X, ArrowLeft, Loader2, StickyNote, Clock, Users, Calendar, Save, ShieldAlert } from 'lucide-react';
+import { useUser } from './UserContext';
 import './index.css';
 
 export default function DetalleSesion() {
   const navigate = useNavigate();
+  const { usuario } = useUser();
   const { clubId, sesionId } = useParams();
   const [sesion, setSesion] = useState<any>(null);
   const [alumnos, setAlumnos] = useState<any[]>([]);
@@ -45,14 +47,17 @@ export default function DetalleSesion() {
   }, [sesionId]);
 
   const handleMarcar = (id: number, estado: string) => {
+    if (usuario?.rol === 'ADMINISTRADOR') return;
     setAlumnos(prev => prev.map(a => a.id === id ? { ...a, estado } : a));
   };
 
   const updateObservacion = (id: number, observacion: string) => {
+    if (usuario?.rol === 'ADMINISTRADOR') return;
     setAlumnos(prev => prev.map(a => a.id === id ? { ...a, observacion } : a));
   };
 
   const guardarCambios = async () => {
+    if (usuario?.rol === 'ADMINISTRADOR') return;
     setSaving(true);
     const payloadAsistencias = alumnos.map(a => ({
       alumnoId: a.id,
@@ -131,7 +136,8 @@ export default function DetalleSesion() {
             placeholder="Ej: Práctica de tiros libres..." 
             value={tema}
             onChange={(e) => setTema(e.target.value)}
-            style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '0.95rem', color: 'var(--color-primary)', fontWeight: 700 }}
+            disabled={usuario?.rol === 'ADMINISTRADOR'}
+            style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '0.95rem', color: 'var(--color-primary)', fontWeight: 700, opacity: usuario?.rol === 'ADMINISTRADOR' ? 0.6 : 1 }}
           />
         </div>
       </section>
@@ -220,20 +226,32 @@ export default function DetalleSesion() {
         })}
       </div>
 
-      <div style={{ position: 'fixed', bottom: '6.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 90, display: 'flex', justifyContent: 'center' }}>
-        <button className="btn" style={{ 
-             width: '100%', maxWidth: '448px', padding: '1.25rem', fontSize: '1rem', display: 'flex', justifyContent: 'center', gap: '0.75rem', 
-             boxShadow: '0 12px 32px rgba(29, 40, 72, 0.4)',
-             background: 'var(--color-primary)',
-             color: 'white', border: 'none', borderRadius: '1.25rem',
-             opacity: saving ? 0.7 : 1, cursor: 'pointer'
-          }} 
-          disabled={saving}
-          onClick={guardarCambios}>
-           {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
-           {saving ? 'Guardando...' : 'Guardar Cambios'}
-        </button>  
-      </div>
+      {usuario?.rol === 'ADMINISTRADOR' ? (
+        <div style={{ position: 'fixed', bottom: '6.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 90, display: 'flex', justifyContent: 'center' }}>
+          <div style={{ 
+            width: '100%', maxWidth: '448px', padding: '1rem', background: 'var(--color-secondary-container)', 
+            color: 'var(--color-secondary)', borderRadius: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 800, fontSize: '0.9rem',
+            border: '1px solid var(--color-secondary)'
+          }}>
+            <ShieldAlert size={20} /> Modo Reporte: Solo lectura para administrador.
+          </div>
+        </div>
+      ) : (
+        <div style={{ position: 'fixed', bottom: '6.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 90, display: 'flex', justifyContent: 'center' }}>
+          <button className="btn" style={{ 
+               width: '100%', maxWidth: '448px', padding: '1.25rem', fontSize: '1rem', display: 'flex', justifyContent: 'center', gap: '0.75rem', 
+               boxShadow: '0 12px 32px rgba(29, 40, 72, 0.4)',
+               background: 'var(--color-primary)',
+               color: 'white', border: 'none', borderRadius: '1.25rem',
+               opacity: saving ? 0.7 : 1, cursor: 'pointer'
+            }} 
+            disabled={saving}
+            onClick={guardarCambios}>
+             {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 
+             {saving ? 'Guardando...' : 'Guardar Cambios'}
+          </button>  
+        </div>
+      )}
     </div>
   );
 }

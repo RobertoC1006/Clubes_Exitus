@@ -7,9 +7,10 @@ import { SesionesModule } from './sesiones/sesiones.module';
 import { AdminModule } from './admin/admin.module';
 import { PagosModule } from './pagos/pagos.module';
 import { PadreModule } from './padre/padre.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
 @Module({
-  imports: [PrismaModule, ClubesModule, SesionesModule, AdminModule, PagosModule, PadreModule],
+  imports: [PrismaModule, ClubesModule, SesionesModule, AdminModule, PagosModule, PadreModule, NotificacionesModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificaciones: NotificacionesService
+  ) {}
 
   // ============================================================
   // MÉTRICAS GLOBALES (Dashboard)
@@ -208,11 +212,12 @@ export class AdminService {
 
     if (clubIds && clubIds.length > 0) {
       await Promise.all(
-        clubIds.map((clubId) =>
-          this.prisma.inscripcion.create({
+        clubIds.map(async (clubId) => {
+          await this.prisma.inscripcion.create({
             data: { alumnoId: alumno.id, clubId },
-          }),
-        ),
+          });
+          await this.notificarInscripcion(alumno.id, clubId);
+        }),
       );
     }
 
@@ -236,11 +241,12 @@ export class AdminService {
       await this.prisma.inscripcion.deleteMany({ where: { alumnoId: id } });
       if (clubIds.length > 0) {
         await Promise.all(
-          clubIds.map((clubId) =>
-            this.prisma.inscripcion.create({
+          clubIds.map(async (clubId) => {
+            await this.prisma.inscripcion.create({
               data: { alumnoId: id, clubId },
-            }),
-          ),
+            });
+            await this.notificarInscripcion(id, clubId);
+          }),
         );
       }
     }
@@ -258,10 +264,37 @@ export class AdminService {
   }
 
   async inscribirAlumno(alumnoId: number, clubId: number) {
-    return this.prisma.inscripcion.create({
+    const res = await this.prisma.inscripcion.create({
       data: { alumnoId, clubId },
       include: { club: { select: { nombre: true } } },
     });
+    await this.notificarInscripcion(alumnoId, clubId);
+    return res;
+  }
+
+  private async notificarInscripcion(alumnoId: number, clubId: number) {
+    try {
+      console.log(`[ADMIN-SERVICE] Intentando notificar inscripción: Alumno ${alumnoId}, Club ${clubId}`);
+      const data = await this.prisma.club.findUnique({
+        where: { id: clubId },
+        include: { profesor: true }
+      });
+      const alumno = await this.prisma.alumno.findUnique({ where: { id: alumnoId } });
+      
+      if (data && alumno) {
+        await this.notificaciones.crear({
+          titulo: 'Nuevo Alumno',
+          mensaje: `${alumno.nombre} ${alumno.apellido} ha sido inscrito en tu club de ${data.nombre}.`,
+          tipo: 'INFO',
+          usuarioId: data.profesorId
+        });
+        console.log(`[ADMIN-SERVICE] Profesor ${data.profesorId} notificado con éxito.`);
+      } else {
+        console.warn(`[ADMIN-SERVICE] No se pudo notificar: Club o Alumno no encontrados.`);
+      }
+    } catch (err) {
+      console.error("[ADMIN-SERVICE] Error al notificar al profesor:", err);
+    }
   }
 
   // ============================================================

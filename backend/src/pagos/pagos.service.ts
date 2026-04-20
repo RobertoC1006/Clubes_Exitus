@@ -6,10 +6,15 @@ import { EstadoPago } from '@prisma/client';
 export class PagosService {
   constructor(private prisma: PrismaService) {}
 
-  // Obtener todos los pagos (con filtro opcional por estado)
-  async getPagos(estado?: EstadoPago) {
+  // Obtener todos los pagos (con filtro opcional por estado, alumno o club)
+  async getPagos(estado?: EstadoPago, alumnoId?: number, clubId?: number) {
+    const where: any = {};
+    if (estado) where.estado = estado;
+    if (alumnoId) where.alumnoId = alumnoId;
+    if (clubId) where.clubId = clubId;
+
     return this.prisma.pago.findMany({
-      where: estado ? { estado } : undefined,
+      where,
       include: {
         alumno: { select: { nombre: true, apellido: true, grado: true } },
         club: { select: { nombre: true } },

@@ -6,10 +6,18 @@ import { EstadoPago } from '@prisma/client';
 export class PagosController {
   constructor(private readonly pagosService: PagosService) {}
 
-  // GET /pagos?estado=PENDIENTE
+  // GET /pagos?estado=PENDIENTE&alumnoId=1&clubId=2
   @Get()
-  getPagos(@Query('estado') estado?: EstadoPago) {
-    return this.pagosService.getPagos(estado);
+  getPagos(
+    @Query('estado') estado?: EstadoPago,
+    @Query('alumnoId') alumnoId?: string,
+    @Query('clubId') clubId?: string,
+  ) {
+    return this.pagosService.getPagos(
+      estado,
+      alumnoId ? Number(alumnoId) : undefined,
+      clubId ? Number(clubId) : undefined,
+    );
   }
 
   // GET /pagos/alumno/:alumnoId

@@ -206,6 +206,9 @@ export default function AdminDashboard() {
   const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [pagos, setPagos]       = useState<Pago[]>([]);
   const [pagoFiltro, setPagoFiltro] = useState<string>('');
+  const [pagoAlumnoFiltro, setPagoAlumnoFiltro] = useState<number | string>('');
+  const [pagoClubFiltro, setPagoClubFiltro] = useState<number | string>('');
+  const [tipoFiltroPago, setTipoFiltroPago] = useState<'ALUMNO' | 'CLUB'>('ALUMNO');
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
 
@@ -219,6 +222,7 @@ export default function AdminDashboard() {
 
   // Club modal state
   const [modalClub, setModalClub]  = useState<Partial<ClubMetrica> | null | false>(false);
+  const [modalPagosClub, setModalPagosClub] = useState<ClubMetrica | null | false>(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Búsqueda
@@ -282,14 +286,20 @@ export default function AdminDashboard() {
 
   const fetchPagos = useCallback(async () => {
     try {
-      const url = pagoFiltro ? `${API}/pagos?estado=${pagoFiltro}` : `${API}/pagos`;
+      let url = `${API}/pagos?`;
+      if (pagoFiltro) url += `estado=${pagoFiltro}&`;
+      if (pagoAlumnoFiltro) url += `alumnoId=${pagoAlumnoFiltro}&`;
+      if (pagoClubFiltro) url += `clubId=${pagoClubFiltro}&`;
+      
       const res = await fetch(url);
       setPagos(await res.json());
     } catch { /* silently fail */ }
-  }, [pagoFiltro]);
+  }, [pagoFiltro, pagoAlumnoFiltro, pagoClubFiltro]);
 
   useEffect(() => { fetchMetricas(); fetchProfesores(); }, []);
-  useEffect(() => { if (tab === 'pagos') fetchPagos(); }, [tab, pagoFiltro]);
+  useEffect(() => { 
+    if (tab === 'pagos' || modalPagosClub !== false) fetchPagos(); 
+  }, [tab, pagoFiltro, pagoAlumnoFiltro, pagoClubFiltro, modalPagosClub]);
   useEffect(() => { if (tab === 'personas') { fetchAlumnos(); fetchProfesores(); } }, [tab]);
 
   // ── CRUD Clubes ──────────────────────────────────────────────
@@ -598,11 +608,16 @@ export default function AdminDashboard() {
                       )}
                     </div>
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
-                      <button onClick={() => navigate(`/clubes/${club.id}/historial`)} 
-                        title="Ver Asistencia"
-                        style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
-                        <History size={16} />
-                      </button>
+                        <button onClick={() => setModalPagosClub(club)} 
+                          title="Ver Pagos del Club"
+                          style={{ ...iconBtnStyle('var(--color-primary-fixed)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
+                          <CreditCard size={16} />
+                        </button>
+                        <button onClick={() => navigate(`/clubes/${club.id}/historial`)} 
+                          title="Ver Asistencia"
+                          style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
+                          <History size={16} />
+                        </button>
                       <button onClick={() => setModalClub(club)} 
                         style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
                         <Edit2 size={16} />
@@ -828,24 +843,100 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: PAGOS ════════════════════════════ */}
         {tab === 'pagos' && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                Finanzas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', verticalAlign: 'middle', marginLeft: '0.5rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px' }}>{pagos.length}</span>
-              </h3>
-              <div style={{ position: 'relative' }}>
-                <select value={pagoFiltro} onChange={e => setPagoFiltro(e.target.value)} style={{
-                  ...inputStyle, width: 'auto', padding: '0.5rem 2rem 0.5rem 1rem', fontSize: '0.8rem', fontWeight: 700,
-                  borderRadius: '1rem', background: 'white', border: '1.5px solid var(--color-surface-container-high)',
-                  appearance: 'none'
-                }}>
-                  <option value="">Filtrar: Todos</option>
-                  <option value="PENDIENTE">⏳ Pendientes</option>
-                  <option value="PAGADO">✅ Pagados</option>
-                  <option value="RECHAZADO">❌ Rechazados</option>
-                </select>
-                <ChevronDown size={14} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                  Finanzas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px', marginLeft: '0.5rem' }}>{pagos.length}</span>
+                </h3>
+                
+                {/* SELECTOR DE MODO */}
+                <div style={{ background: 'var(--color-surface-container-high)', padding: '0.25rem', borderRadius: '1rem', display: 'flex', gap: '0.25rem' }}>
+                   <button 
+                     onClick={() => { setTipoFiltroPago('ALUMNO'); setPagoClubFiltro(''); }}
+                     style={{
+                        padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
+                        background: tipoFiltroPago === 'ALUMNO' ? 'white' : 'transparent',
+                        color: tipoFiltroPago === 'ALUMNO' ? 'var(--color-primary)' : 'var(--color-outline)',
+                        boxShadow: tipoFiltroPago === 'ALUMNO' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
+                     }}>
+                     👤 POR ALUMNO
+                   </button>
+                   <button 
+                     onClick={() => { setTipoFiltroPago('CLUB'); setPagoAlumnoFiltro(''); setSearchTerm(''); }}
+                     style={{
+                        padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
+                        background: tipoFiltroPago === 'CLUB' ? 'white' : 'transparent',
+                        color: tipoFiltroPago === 'CLUB' ? 'var(--color-primary)' : 'var(--color-outline)',
+                        boxShadow: tipoFiltroPago === 'CLUB' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
+                     }}>
+                     🏆 POR CLUB
+                   </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 2, minWidth: '250px' }}>
+                  <input 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder={tipoFiltroPago === 'ALUMNO' ? "Buscar por nombre de alumno..." : "Buscar por nombre de club..."} 
+                    style={{ ...inputStyle, paddingLeft: '2.5rem', borderRadius: '1.2rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.9rem', height: '3rem' }} 
+                  />
+                  <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                </div>
+
+                <div style={{ position: 'relative' }}>
+                  <select value={pagoFiltro} onChange={e => setPagoFiltro(e.target.value)} style={{
+                    ...inputStyle, width: 'auto', padding: '0.5rem 2.8rem 0.5rem 1.2rem', fontSize: '0.85rem', fontWeight: 700,
+                    borderRadius: '1.2rem', background: 'white', border: '1.5px solid var(--color-surface-container-high)', appearance: 'none', height: '3rem'
+                  }}>
+                    <option value="">Estado: Todos</option>
+                    <option value="PENDIENTE">⏳ Realizados</option>
+                    <option value="PAGADO">✅ Pagados</option>
+                    <option value="RECHAZADO">❌ Rechazados</option>
+                  </select>
+                  <ChevronDown size={16} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                </div>
               </div>
             </div>
+
+            {/* 💡 ESTUDIANTE SELECCIONADO: DETALLE ESPECIAL (Si el buscador tiene un nombre exacto o muy cercano) */}
+            {tipoFiltroPago === 'ALUMNO' && searchTerm.length >= 3 && alumnos.some(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())) && (
+              (() => {
+                const matchedAlumno = alumnos.find(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase()));
+                if (!matchedAlumno) return null;
+                const filteredPagos = pagos.filter(p => Number(p.alumnoId) === matchedAlumno.id);
+                if (filteredPagos.length === 0) return null;
+
+                return (
+                  <div className="bento-card animate-enter" style={{ padding: '1.5rem', background: 'var(--grad-primary)', color: 'white', marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', right: '-5%', top: '-20%', opacity: 0.1 }}>
+                      <Users size={120} color="white" />
+                    </div>
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.15em' }}>Estatus Financiero del Alumno</span>
+                          <h3 style={{ margin: '0.25rem 0 0', fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.03em' }}>
+                            {matchedAlumno.nombre} {matchedAlumno.apellido}
+                          </h3>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '1.1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
+                          <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pagados</p>
+                          <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PAGADO').length}</p>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '1.1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
+                          <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Realizados</p>
+                          <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-secondary)' }}>{filteredPagos.filter(p => p.estado === 'PENDIENTE').length}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
 
             {pagos.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-on-surface-variant)' }}>
@@ -855,6 +946,14 @@ export default function AdminDashboard() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {pagos
+                  .filter(p => {
+                    const search = searchTerm.toLowerCase();
+                    if (tipoFiltroPago === 'ALUMNO') {
+                      return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
+                    } else {
+                      return p.club.nombre.toLowerCase().includes(search);
+                    }
+                  })
                   .slice((currentPagePagos - 1) * ITEMS_PER_PAGE, currentPagePagos * ITEMS_PER_PAGE)
                   .map(pago => {
                   const colors = estadoColor[pago.estado];
@@ -931,7 +1030,14 @@ export default function AdminDashboard() {
                 })}
                 <Pagination 
                   current={currentPagePagos} 
-                  total={Math.ceil(pagos.length / ITEMS_PER_PAGE)} 
+                  total={Math.ceil(pagos.filter(p => {
+                    const search = searchTerm.toLowerCase();
+                    if (tipoFiltroPago === 'ALUMNO') {
+                      return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
+                    } else {
+                      return p.club.nombre.toLowerCase().includes(search);
+                    }
+                  }).length / ITEMS_PER_PAGE)} 
                   onChange={setCurrentPagePagos} 
                 />
               </div>
@@ -1033,6 +1139,130 @@ export default function AdminDashboard() {
         />
       )}
 
+      {/* ── MODAL PAGOS CLUB ─────────────────────────────── */}
+      {modalPagosClub !== false && (
+        <PagosClubModal
+          clubId={modalPagosClub.id}
+          clubNombre={modalPagosClub.nombre}
+          pagos={pagos}
+          onValidate={handleValidarPago}
+          onClose={() => setModalPagosClub(false)}
+        />
+      )}
+
+    </div>
+  );
+}
+
+// ── Sub-componentes Adicionales ────────────────────────────────
+function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
+  clubId: number;
+  clubNombre: string;
+  pagos: Pago[];
+  onValidate: (id: number, estado: 'PAGADO' | 'RECHAZADO', obs?: string) => void;
+  onClose: () => void;
+}) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const clubPagos = pagos.filter(p => p.club.nombre === clubNombre)
+                         .filter(p => (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const pagados = clubPagos.filter(p => p.estado === 'PAGADO');
+  const pendientes = clubPagos.filter(p => p.estado === 'PENDIENTE');
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }} onClick={onClose}>
+      <div style={{ 
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2rem', 
+        width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+      }} onClick={e => e.stopPropagation()}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              Pagos: <span style={{ color: 'var(--color-secondary)' }}>{clubNombre}</span>
+            </h3>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              Control financiero detallado de la disciplina
+            </p>
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={20} color="var(--color-primary)" />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ background: 'var(--color-success-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-success)', textTransform: 'uppercase' }}>Realizados</p>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-success)' }}>{pagados.length}</p>
+            </div>
+            <Check size={24} color="var(--color-success)" style={{ opacity: 0.3 }} />
+          </div>
+          <div style={{ background: 'var(--color-error-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-error)', textTransform: 'uppercase' }}>Pendientes</p>
+              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-error)' }}>{pendientes.length}</p>
+            </div>
+            <Clock size={24} color="var(--color-error)" style={{ opacity: 0.3 }} />
+          </div>
+        </div>
+
+        <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+          <input 
+            value={searchTerm} 
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nombre de alumno..." 
+            style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)' }} 
+          />
+          <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {clubPagos.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-outline)', fontStyle: 'italic' }}>
+              No se encontraron pagos vinculados a este filtro.
+            </div>
+          ) : clubPagos.map(p => {
+             const colors = estadoColor[p.estado];
+             return (
+               <div key={p.id} style={{ 
+                 padding: '1rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)',
+                 border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+               }}>
+                 <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
+                    <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CreditCard size={18} color={colors.fg} />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
+                    </div>
+                 </div>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                   {p.estado === 'PENDIENTE' ? (
+                     <>
+                        <button onClick={() => onValidate(p.id, 'PAGADO')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                          <Check size={16} strokeWidth={3} />
+                        </button>
+                        <button onClick={() => {
+                           const obs = prompt('Motivo del rechazo:') ?? '';
+                           onValidate(p.id, 'RECHAZADO', obs);
+                        }} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                          <X size={16} strokeWidth={3} />
+                        </button>
+                     </>
+                   ) : (
+                     <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
+                       {p.estado}
+                     </span>
+                   )}
+                 </div>
+               </div>
+             );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

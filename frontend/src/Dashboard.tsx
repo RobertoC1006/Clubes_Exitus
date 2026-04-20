@@ -180,15 +180,6 @@ export default function Dashboard() {
                 </p>
                 <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia</p>
              </div>
-             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)', background: 'white' }}>
-                <div style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-                  <TrendingUp size={18} color="#059669" />
-                </div>
-                <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>
-                  {loadingDashboard ? '...' : `+${metricas?.nuevosIngresos ?? 0}`}
-                </p>
-                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Nuevos Alumnos</p>
-             </div>
              <div className="bento-card" style={{ gridColumn: 'span 2', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--color-surface-container-high)', position: 'relative', overflow: 'hidden', background: 'white' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 2 }}>
                    <div style={{ background: 'var(--grad-gold)', width: '3.2rem', height: '3.2rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)' }}>
@@ -225,30 +216,6 @@ export default function Dashboard() {
             })}
           </div>
 
-          {/* SMART ALERTS */}
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.05em' }}>Centro de Notificaciones</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-             {alertas.length > 0 ? alertas.map(alerta => (
-               <div key={alerta.id} style={{ background: '#fef2f2', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '1.25rem', borderRadius: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ background: '#ef4444', width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                     <AlertCircle size={20} color="white" strokeWidth={2.5} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                     <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#991b1b' }}>{alerta.titulo}</p>
-                     <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: '#b91c1c', opacity: 0.8, fontWeight: 600 }}>{alerta.desc}</p>
-                  </div>
-                  <button 
-                    onClick={() => navigate('/clubes?tab=clubes')}
-                    style={{ background: '#fee2e2', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', color: '#991b1b', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer' }}>
-                    REVISAR
-                  </button>
-               </div>
-             )) : (
-               <div style={{ background: 'var(--color-surface-container-low)', padding: '1.5rem', borderRadius: '1.25rem', textAlign: 'center', border: '1px dashed var(--color-outline-variant)' }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>Todo al día. No hay alertas pendientes.</p>
-               </div>
-             )}
-          </div>
         </>
       )}
 

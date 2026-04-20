@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle, BookOpen } from 'lucide-react';
+import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle, BookOpen, ShieldAlert } from 'lucide-react';
 import { db } from './db';
+import { useUser } from './UserContext';
 import './index.css';
 
 export default function PaseLista() {
   const navigate = useNavigate();
   const { clubId } = useParams();
+  const { usuario } = useUser();
   const [alumnos, setAlumnos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  const isAdmin = usuario?.rol === 'ADMINISTRADOR';
   
   // Estado para la nota seleccionada
   const [noteAlumnoId, setNoteAlumnoId] = useState<number | null>(null);
@@ -56,6 +60,7 @@ export default function PaseLista() {
   const faltan = alumnos.length - marcados;
 
   const handleMarcar = (id: number, estado: string) => {
+    if (isAdmin) return;
     if (estado !== 'JUSTIFICADO' && noteAlumnoId === id) {
       setNoteAlumnoId(null);
     }
@@ -63,10 +68,12 @@ export default function PaseLista() {
   };
 
   const updateObservacion = (id: number, observacion: string) => {
+    if (isAdmin) return;
     setAlumnos(prev => prev.map(a => a.id === id ? { ...a, observacion } : a));
   };
 
   const guardarAsistencia = async () => {
+    if (isAdmin) return;
     if (faltan > 0) {
       alert(`Aún faltan ${faltan} alumnos por marcar.`);
       return;
@@ -344,21 +351,32 @@ export default function PaseLista() {
 
       {/* BOTÓN DE GUARDADO FLOTANTE */}
       <div style={{ position: 'fixed', bottom: '6.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 90, display: 'flex', justifyContent: 'center' }}>
-        <button className="btn" style={{ 
-             width: '100%', maxWidth: '448px', padding: '1.25rem', fontSize: '1rem', display: 'flex', justifyContent: 'center', gap: '0.75rem', 
-             boxShadow: '0 12px 32px rgba(29, 40, 72, 0.4)',
-             background: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
-             color: 'white', border: 'none', borderRadius: '1.25rem',
-             opacity: saving ? 0.7 : 1, transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-             cursor: 'pointer',
-             transform: faltan === 0 ? 'scale(1.02)' : 'scale(1)'
-          }} 
-          disabled={saving}
-          onClick={guardarAsistencia}>
-           
-           {saving ? <Loader2 className="animate-spin" size={20} /> : (faltan === 0 ? <Check size={20} strokeWidth={3} /> : <Send size={20} />)} 
-           {saving ? 'Procesando...' : (faltan === 0 ? 'Finalizar y Notificar Padres' : `Registrar (${marcados}/${alumnos.length})`)}
-        </button>  
+        {isAdmin ? (
+          <div style={{ 
+            width: '100%', maxWidth: '448px', padding: '1rem', 
+            background: 'var(--color-surface-container-high)', color: 'var(--color-primary)', 
+            borderRadius: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', 
+            justifyContent: 'center', fontWeight: 800, border: '1px solid var(--color-outline-variant)' 
+          }}>
+            <ShieldAlert size={20} /> Solo lectura (Modo Administrador)
+          </div>
+        ) : (
+          <button className="btn" style={{ 
+               width: '100%', maxWidth: '448px', padding: '1.25rem', fontSize: '1rem', display: 'flex', justifyContent: 'center', gap: '0.75rem', 
+               boxShadow: '0 12px 32px rgba(29, 40, 72, 0.4)',
+               background: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
+               color: 'white', border: 'none', borderRadius: '1.25rem',
+               opacity: saving ? 0.7 : 1, transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+               cursor: 'pointer',
+               transform: faltan === 0 ? 'scale(1.02)' : 'scale(1)'
+            }} 
+            disabled={saving}
+            onClick={guardarAsistencia}>
+             
+             {saving ? <Loader2 className="animate-spin" size={20} /> : (faltan === 0 ? <Check size={20} strokeWidth={3} /> : <Send size={20} />)} 
+             {saving ? 'Procesando...' : (faltan === 0 ? 'Finalizar y Notificar Padres' : `Registrar (${marcados}/${alumnos.length})`)}
+          </button>
+        )}
       </div>
     </div>
   );

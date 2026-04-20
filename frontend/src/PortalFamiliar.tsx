@@ -488,69 +488,7 @@ export default function PortalFamiliar() {
             </div>
           </section>
 
-          {/* AVISOS Y NOVEDADES (Pr          {/* AVISOS Y NOVEDADES (Premium News Carousel) */}
-          <section style={{ marginBottom: '2.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
-                Centro de Notificaciones
-              </h3>
-              {resumen.avisos.length > 1 && (
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {resumen.avisos.map((_, i) => (
-                    <div 
-                      key={i} 
-                      className={activeNoticeIndex === i ? 'dot-active' : ''}
-                      style={{ width: 6, height: 6, borderRadius: '3px', background: 'var(--color-outline-variant)', transition: 'all 0.3s ease' }} 
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
 
-            <div 
-              className="notices-carousel"
-              onScroll={(e) => {
-                const scrollLeft = (e.target as HTMLDivElement).scrollLeft;
-                const width = (e.target as HTMLDivElement).offsetWidth;
-                const index = Math.round(scrollLeft / width);
-                if(index !== activeNoticeIndex) setActiveNoticeIndex(index);
-              }}
-            >
-               {resumen.avisos.map(aviso => {
-                 const getAvisoColor = () => {
-                   if (aviso.tipo === 'error') return 'var(--color-error)';
-                   if (aviso.tipo === 'alert') return '#f59e0b'; // Amber for alerts
-                   if (aviso.tipo === 'success') return 'var(--color-success)';
-                   return 'var(--color-secondary)';
-                 };
-                 const color = getAvisoColor();
-                 
-                 return (
-                   <div key={aviso.id} className="bento-card notice-card" style={{ 
-                     padding: '1.5rem', 
-                     borderLeft: `5px solid ${color}`, 
-                     background: aviso.tipo === 'error' ? 'rgba(239,68,68,0.04)' : 'white',
-                     display: 'flex', gap: '1.25rem', alignItems: 'center',
-                     boxShadow: '0 8px 25px rgba(0,0,0,0.03)'
-                   }}>
-                     <div style={{ 
-                       fontSize: '1.8rem', 
-                       background: 'var(--color-surface-container-low)', 
-                       width: '3.5rem', height: '3.5rem', borderRadius: '1.25rem', 
-                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                       boxShadow: 'inset 0 0 10px rgba(0,0,0,0.02)'
-                     }}>{aviso.icono}</div>
-                    <div style={{ flex: 1 }}>
-                       <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{aviso.titulo}</p>
-                       <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: 'var(--color-on-surface-variant)', fontWeight: 600, lineHeight: 1.4 }}>{aviso.desc}</p>
-                    </div>
-                    <ChevronRight size={18} color="var(--color-outline-variant)" />
-                  </div>
-                 );
-               })}
-            </div>
-          </section>
 
           {/* LOGROS (Premium Badges) */}
           <section style={{ marginBottom: '2.5rem' }}>
