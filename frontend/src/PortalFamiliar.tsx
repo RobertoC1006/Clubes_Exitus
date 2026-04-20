@@ -6,6 +6,36 @@ import './index.css';
 
 const API = 'http://localhost:3000';
 
+const CALENDAR_ITEMS_PER_PAGE = 5;
+
+// Estilos globales internos para el Carousel y animaciones
+const globalStyles = `
+  .notices-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 1.25rem;
+    padding: 0.5rem 0 1.5rem;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+  }
+  .notices-carousel::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  .notice-card {
+    flex: 0 0 88%;
+    scroll-snap-align: center;
+    transition: transform 0.3s ease;
+  }
+  .notice-card:active {
+    transform: scale(0.98);
+  }
+  .dot-active {
+    background: var(--color-primary) !important;
+    width: 1.2rem !important;
+  }
+`;
+
 function getSemanaActual() {
   const dias = ['L', 'M', 'X', 'J', 'V'];
   const hoy = new Date();
@@ -51,9 +81,9 @@ export default function PortalFamiliar() {
   const [error, setError] = useState<string | null>(null);
   const [fetchingResumen, setFetchingResumen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [activeCalendarTab, setActiveCalendarTab] = useState<'pasadas' | 'proximas'>('proximas');
+  const [activeCalendarTab, setActiveCalendarTab] = useState<'proximas' | 'pasadas'>('proximas');
   const [currentPageCalendar, setCurrentPageCalendar] = useState(1);
-  const CALENDAR_ITEMS_PER_PAGE = 5;
+  const [activeNoticeIndex, setActiveNoticeIndex] = useState(0);
 
   // 1. Cargar Lista de Hijos
   useEffect(() => {
@@ -143,7 +173,128 @@ export default function PortalFamiliar() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
+    <div className="portal-container" style={{ padding: '1.5rem', background: '#F8F9FE', minHeight: '100vh', paddingBottom: '6rem' }}>
+      <style>{globalStyles}</style>
+
+      {/* MODAL CALENDARIO */}
+      {showCalendar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ background: 'var(--grad-primary)', padding: '1.5rem 2rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>Mi Calendario</h3>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', opacity: 0.8, fontWeight: 700 }}>{resumen?.alumno.nombre} • {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+              </div>
+              <button onClick={() => setShowCalendar(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            {/* TABS CALENDARIO */}
+            <div style={{ display: 'flex', background: 'var(--color-surface-dim)', padding: '0.5rem', gap: '0.5rem', borderBottom: '1px solid var(--color-surface-container-high)' }}>
+               {[
+                 { id: 'proximas', label: 'Próximas Clases', icon: <Clock size={16}/> },
+                 { id: 'pasadas', label: 'Historial / Pasadas', icon: <History size={16}/> }
+               ].map(tab => {
+                 const isA = activeCalendarTab === tab.id;
+                 return (
+                   <button 
+                    key={tab.id}
+                    onClick={() => { setActiveCalendarTab(tab.id as any); setCurrentPageCalendar(1); }}
+                    style={{ 
+                      flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', 
+                      background: isA ? 'white' : 'transparent', 
+                      color: isA ? 'var(--color-primary)' : 'var(--color-outline)',
+                      fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      boxShadow: isA ? 'var(--shadow-sm)' : 'none',
+                      transition: 'all 0.3s ease'
+                    }}
+                   >
+                     {tab.icon} {tab.label}
+                   </button>
+                 );
+               })}
+            </div>
+
+            <div style={{ padding: '1.5rem', maxHeight: '55vh', overflowY: 'auto' }}>
+              {(() => {
+                const pasadas = resumen?.calendario.filter((s: any) => s.estado !== 'PROGRAMADO').reverse() || [];
+                const proximas = resumen?.calendario.filter((s: any) => s.estado === 'PROGRAMADO') || [];
+                const listaActual = activeCalendarTab === 'pasadas' ? pasadas : proximas;
+                const totalPaginas = Math.ceil(listaActual.length / CALENDAR_ITEMS_PER_PAGE);
+
+                if (listaActual.length === 0) {
+                  return (
+                    <div style={{ padding: '4rem 1rem', textAlign: 'center' }}>
+                        <Calendar size={48} color="var(--color-outline-variant)" style={{ marginBottom: '1.25rem', opacity: 0.3 }} />
+                        <p style={{ fontWeight: 700, color: 'var(--color-outline)', fontSize: '0.9rem' }}>
+                          {activeCalendarTab === 'proximas' ? 'No hay más clases programadas este mes.' : 'Aún no se han registrado asistencias.'}
+                        </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {listaActual
+                        .slice((currentPageCalendar - 1) * CALENDAR_ITEMS_PER_PAGE, currentPageCalendar * CALENDAR_ITEMS_PER_PAGE)
+                        .map((s: any) => (
+                        <div key={s.id} className="animate-enter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-dim)', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+                           <div style={{ width: '3.5rem', textAlign: 'center', borderRight: '1.2px solid var(--color-surface-container-high)', paddingRight: '1rem' }}>
+                              <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
+                              <p style={{ margin: '0.1rem 0 0', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
+                                {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
+                              </p>
+                           </div>
+                           <div style={{ flex: 1 }}>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{s.club}</p>
+                              <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>{s.tema}</p>
+                           </div>
+                           <div style={{ 
+                             padding: '0.45rem 0.85rem', borderRadius: '0.8rem', fontSize: '0.65rem', fontWeight: 900,
+                             background: s.asistio ? 'var(--color-success-container)' : (s.estado === 'PENDIENTE' ? 'var(--color-surface-container-high)' : (s.estado === 'PROGRAMADO' ? 'var(--color-primary-container)' : 'var(--color-error-container)')),
+                             color: s.asistio ? 'var(--color-success)' : (s.estado === 'PENDIENTE' ? 'var(--color-primary)' : (s.estado === 'PROGRAMADO' ? 'white' : 'var(--color-error)'))
+                           }}>
+                             {s.asistio ? 'ASISTIÓ' : s.estado}
+                           </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* PAGINACIÓN MODAL */}
+                    {totalPaginas > 1 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', alignItems: 'center' }}>
+                          <button 
+                            disabled={currentPageCalendar === 1}
+                            onClick={() => setCurrentPageCalendar(p => Math.max(1, p - 1))}
+                            style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === 1 ? 0.3 : 1 }}
+                          >
+                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
+                          </button>
+                          <div style={{ background: 'var(--color-surface-dim)', borderRadius: '99px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                            {currentPageCalendar} <span style={{ opacity: 0.4 }}>/</span> {totalPaginas}
+                          </div>
+                          <button 
+                            disabled={currentPageCalendar === totalPaginas}
+                            onClick={() => setCurrentPageCalendar(p => Math.min(totalPaginas, p + 1))}
+                            style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === totalPaginas ? 0.3 : 1 }}
+                          >
+                            <ChevronRight size={18} />
+                          </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+            <div style={{ padding: '1.5rem', borderTop: '1px solid var(--color-surface-container-high)', textAlign: 'center' }}>
+               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Los horarios específicos se coordinan con el docente del club.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KID SELECTOR (Premium Chips) */}
       <section style={{ marginBottom: '2rem', marginTop: '1rem' }}>
@@ -337,23 +488,67 @@ export default function PortalFamiliar() {
             </div>
           </section>
 
-          {/* AVISOS Y NOVEDADES (Premium News) */}
+          {/* AVISOS Y NOVEDADES (Pr          {/* AVISOS Y NOVEDADES (Premium News Carousel) */}
           <section style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
-              Noticias e Institucional
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-               {resumen.avisos.map(aviso => (
-                 <div key={aviso.id} className="bento-card" style={{ padding: '1.25rem', borderLeft: `4px solid ${aviso.tipo === 'alert' ? 'var(--color-error)' : 'var(--color-secondary)'}`, display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ fontSize: '1.5rem', background: 'var(--color-surface-dim)', width: '3rem', height: '3rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{aviso.icono}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
+                Centro de Notificaciones
+              </h3>
+              {resumen.avisos.length > 1 && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {resumen.avisos.map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={activeNoticeIndex === i ? 'dot-active' : ''}
+                      style={{ width: 6, height: 6, borderRadius: '3px', background: 'var(--color-outline-variant)', transition: 'all 0.3s ease' }} 
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div 
+              className="notices-carousel"
+              onScroll={(e) => {
+                const scrollLeft = (e.target as HTMLDivElement).scrollLeft;
+                const width = (e.target as HTMLDivElement).offsetWidth;
+                const index = Math.round(scrollLeft / width);
+                if(index !== activeNoticeIndex) setActiveNoticeIndex(index);
+              }}
+            >
+               {resumen.avisos.map(aviso => {
+                 const getAvisoColor = () => {
+                   if (aviso.tipo === 'error') return 'var(--color-error)';
+                   if (aviso.tipo === 'alert') return '#f59e0b'; // Amber for alerts
+                   if (aviso.tipo === 'success') return 'var(--color-success)';
+                   return 'var(--color-secondary)';
+                 };
+                 const color = getAvisoColor();
+                 
+                 return (
+                   <div key={aviso.id} className="bento-card notice-card" style={{ 
+                     padding: '1.5rem', 
+                     borderLeft: `5px solid ${color}`, 
+                     background: aviso.tipo === 'error' ? 'rgba(239,68,68,0.04)' : 'white',
+                     display: 'flex', gap: '1.25rem', alignItems: 'center',
+                     boxShadow: '0 8px 25px rgba(0,0,0,0.03)'
+                   }}>
+                     <div style={{ 
+                       fontSize: '1.8rem', 
+                       background: 'var(--color-surface-container-low)', 
+                       width: '3.5rem', height: '3.5rem', borderRadius: '1.25rem', 
+                       display: 'flex', alignItems: 'center', justifyContent: 'center',
+                       boxShadow: 'inset 0 0 10px rgba(0,0,0,0.02)'
+                     }}>{aviso.icono}</div>
                     <div style={{ flex: 1 }}>
-                       <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{aviso.titulo}</p>
-                       <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{aviso.desc}</p>
+                       <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{aviso.titulo}</p>
+                       <p style={{ margin: '0.25rem 0 0', fontSize: '0.78rem', color: 'var(--color-on-surface-variant)', fontWeight: 600, lineHeight: 1.4 }}>{aviso.desc}</p>
                     </div>
-                    <ChevronRight size={20} color="var(--color-outline-variant)" />
-                 </div>
-               ))}
+                    <ChevronRight size={18} color="var(--color-outline-variant)" />
+                  </div>
+                 );
+               })}
             </div>
           </section>
 

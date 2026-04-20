@@ -79,17 +79,26 @@ export class PadreService {
       vencimiento: '30 de ' + mesActual.charAt(0).toUpperCase() + mesActual.slice(1)
     };
 
-    // 3. Logros (Calculados)
+    // 3. Logros (Calculados Dinámicamente)
     const totalAsistencias = await this.prisma.asistencia.count({ where: { alumnoId, estado: 'PRESENTE' } });
     const logros: any[] = [];
 
     if (totalAsistencias >= 1) logros.push({ titulo: 'Primer Paso', desc: 'Asistió a su primera clase', icon: '🎯' });
     if (totalAsistencias >= 5) logros.push({ titulo: 'Constancia', desc: '5 sesiones completadas', icon: '🔥' });
-    if (totalAsistencias >= 10) logros.push({ titulo: 'Atleta Pro', desc: 'Más de 10 asistencias', icon: '⚡' });
+    if (totalAsistencias >= 15) logros.push({ titulo: 'Élite Exitus', desc: '15+ sesiones completadas', icon: '🏆' });
     
     // Logro de "Al Día"
-    if (ultimoPago?.estado === 'PAGADO') {
-        logros.push({ titulo: 'Socio de Oro', desc: 'Pagos al día', icon: '💎' });
+    const todasInscripciones = alumno.inscripciones.map(i => i.clubId);
+    const pagosPendientesCount = await this.prisma.pago.count({
+      where: { 
+        alumnoId, 
+        clubId: { in: todasInscripciones },
+        estado: { in: ['PENDIENTE', 'RECHAZADO'] }
+      }
+    });
+
+    if (pagosPendientesCount === 0 && todasInscripciones.length > 0) {
+        logros.push({ titulo: 'Socio Responsable', desc: 'Pagos al día', icon: '💎' });
     }
 
     // 4. Calendario (Sesiones de este mes: Reales + Proyectadas)
@@ -156,10 +165,54 @@ export class PadreService {
     const calendario = [...calendarioReales, ...calendarioProyectado].sort((a,b) => a.fecha.getTime() - b.fecha.getTime());
 
     // 5. Avisos Dinámicos
-    const avisos = [
-      { id: 1, titulo: 'Inscripciones Abiertas', desc: 'Nuevos clubes de Robótica y Ajedrez disponibles.', icono: '📣', tipo: 'info' },
-      { id: 2, titulo: 'Cierre de Mes', desc: 'Recuerda subir tus comprobantes antes del 30.', icono: '⏰', tipo: 'alert' }
-    ];
+    const avisos: any[] = [];
+
+    // Alertas de faltas recientes (últimas sesiones del mes)
+    const faltasRecientes = sesionesReales
+      .filter(s => s.asistencias.some(a => a.estado === 'AUSENTE'))
+      .sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+
+    faltasRecientes.forEach(f => {
+      avisos.push({
+        id: `falta-${f.id}`,
+        titulo: 'Falta Registrada',
+        desc: `No se registró asistencia en ${f.club.nombre} el día ${f.fecha.toLocaleDateString()}.`,
+        icono: '⚠️',
+        tipo: 'alert'
+      });
+    });
+
+    // Notificaciones de pagos
+    if (ultimoPago?.estado === 'PENDIENTE') {
+      avisos.push({
+        id: 'pago-pend',
+        titulo: 'Pago Pendiente',
+        desc: `Recuerda regularizar el pago de ${mesActual} para estar al día.`,
+        icono: '💳',
+        tipo: 'error'
+      });
+    } else if (ultimoPago?.estado === 'RECHAZADO') {
+      avisos.push({
+        id: 'pago-rech',
+        titulo: 'Pago Rechazado',
+        desc: `Tu comprobante de ${ultimoPago.mes} fue rechazado. Revisa las observaciones.`,
+        icono: '❌',
+        tipo: 'error'
+      });
+    }
+
+    // Mensaje de motivación si no hay alertas negativas
+    if (avisos.length === 0 && totalAsistencias > 0) {
+      avisos.push({ 
+        id: 1, 
+        titulo: '¡Buen trabajo!', 
+        desc: `${alumno.nombre} mantiene una asistencia perfecta. ¡Sigue así!`, 
+        icono: '✨', 
+        tipo: 'info' 
+      });
+    } else if (avisos.length === 0) {
+      avisos.push({ id: 2, titulo: 'Bienvenido', desc: 'Explora tus clubes y mantente al día con tus clases.', icono: '📣', tipo: 'info' });
+    }
 
     return {
       alumno: {

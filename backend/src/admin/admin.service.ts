@@ -18,7 +18,7 @@ export class AdminService {
           by: ['estado'],
           _count: { estado: true },
         }),
-        // Alumnos con 2+ faltas (AUSENTE) en los últimos 30 días
+        // Alumnos con al menos 1 falta (AUSENTE) en los últimos 30 días
         this.prisma.asistencia.groupBy({
           by: ['alumnoId'],
           where: {
@@ -26,7 +26,7 @@ export class AdminService {
             createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
           },
           _count: { alumnoId: true },
-          having: { alumnoId: { _count: { gte: 2 } } },
+          having: { alumnoId: { _count: { gte: 1 } } },
           orderBy: { _count: { alumnoId: 'desc' } },
           take: 5,
         }),

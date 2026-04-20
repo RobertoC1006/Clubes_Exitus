@@ -159,14 +159,14 @@ export class ClubesService {
             s.asistencias.find(a => a.alumnoId === alumnoId && a.estado === 'AUSENTE')
           ).length;
 
-          if (inasistencias >= 2) {
+          if (inasistencias >= 1) {
             const alumno = await this.prisma.alumno.findUnique({ where: { id: alumnoId } });
             if (alumno && !alertas.find(a => a.alumnoId === alumnoId)) {
                 alertas.push({
                     id: `falta-${alumnoId}`,
                     alumnoId,
-                    titulo: 'Faltas Críticas',
-                    desc: `${alumno.nombre} ${alumno.apellido} lleva ${inasistencias} faltas seguidas en ${club.nombre}.`,
+                    titulo: 'Falta Registrada',
+                    desc: `${alumno.nombre} ${alumno.apellido} tuvo una falta en su última sesión de ${club.nombre}.`,
                     tipo: 'danger'
                 });
             }
