@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useUser } from './UserContext';
 import { CheckCircle2, Clock, AlertCircle, Search, Users, ExternalLink, Loader2, Bell, Upload, Image, RefreshCw, X } from 'lucide-react';
 import './index.css';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 const estadoConfig: Record<string, { bg: string; color: string; icon: any; label: string }> = {
   PAGADO:    { bg: 'var(--color-success-container)', color: 'var(--color-success)',  icon: CheckCircle2, label: 'Al Día' },
@@ -27,7 +30,7 @@ export default function Pagos() {
     
     // Solo los padres deben cargar datos aquí
     if (isPadre) {
-        fetch(`http://localhost:3000/padre/pagos/${usuario.id}`)
+        fetch(`${API}/padre/pagos/${usuario.id}`)
           .then(res => res.json())
           .then(data => {
             setPadreData(data);
@@ -49,7 +52,7 @@ export default function Pagos() {
     setUploading(true);
 
     try {
-      const resp = await fetch(`http://localhost:3000/pagos`, {
+      const resp = await fetch(`${API}/pagos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

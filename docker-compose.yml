@@ -13,7 +13,39 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - exitus_network
     restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clubes_exitus_backend
+    environment:
+      DATABASE_URL: "mysql://root:root@mysql-db:3306/clubes_exitus"
+    depends_on:
+      - mysql-db
+    networks:
+      - exitus_network
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clubes_exitus_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - exitus_network
+    restart: always
+
+networks:
+  exitus_network:
+    driver: bridge
 
 volumes:
   mysql_data:

@@ -6,7 +6,9 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import './index.css';
 import loginBg from './assets/login_bg.png';
 
-const API = 'http://localhost:3000';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 const svgPaths = {
   dni: "M16.6587 3.33173H3.33173C2.4117 3.33173 1.66587 4.07757 1.66587 4.9976V14.9928C1.66587 15.9128 2.4117 16.6587 3.33173 16.6587H16.6587C17.5787 16.6587 18.3245 15.9128 18.3245 14.9928V4.9976C18.3245 4.07757 17.5787 3.33173 16.6587 3.33173Z",
