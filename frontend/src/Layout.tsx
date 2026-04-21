@@ -66,8 +66,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
+      logout();
+      navigate('/login');
+    }
   };
 
   const isProfesor = usuario?.rol === 'PROFESOR';
@@ -194,7 +196,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          <button onClick={handleLogout} title="Cerrar sesión" style={{
+          <button onClick={() => navigate('/perfil')} title="Mi Perfil" style={{
             background: 'var(--color-surface-container-highest)',
             width: '2.4rem', height: '2.4rem', borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',

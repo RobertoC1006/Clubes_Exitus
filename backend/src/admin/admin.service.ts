@@ -159,6 +159,10 @@ export class AdminService {
       const existe = await this.prisma.usuario.findUnique({ where: { email: data.email } });
       if (existe) throw new ConflictException(`El email ${data.email} ya está registrado`);
     }
+    if (data.dni) {
+      const existe = await this.prisma.usuario.findUnique({ where: { dni: data.dni } });
+      if (existe) throw new ConflictException(`El DNI ${data.dni} ya está registrado`);
+    }
     return this.prisma.usuario.create({
       data,
       select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true },

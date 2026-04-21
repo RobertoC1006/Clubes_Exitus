@@ -4,7 +4,7 @@ export interface UsuarioSesion {
   id: number;
   nombre: string;
   apellido: string;
-  email: string;
+  dni: string;
   rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE' | 'ALUMNO';
   initials: string;
 }

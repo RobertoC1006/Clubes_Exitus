@@ -27,7 +27,7 @@ interface ClubMetrica {
   horario: any | null;
 }
 interface Profesor { id: number; nombre: string; apellido: string; email: string }
-interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string }
+interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; password?: string }
 interface Alumno {
   id: number; nombre: string; apellido: string; grado: string;
   padreId?: number | null;
@@ -38,6 +38,7 @@ interface Alumno {
 interface Pago {
   id: number; mes: string; monto: number | null; estado: 'PENDIENTE' | 'PAGADO' | 'RECHAZADO';
   urlComprobante: string | null; observacion: string | null;
+  alumnoId: number;
   alumno: { nombre: string; apellido: string; grado: string };
   club: { nombre: string };
 }
@@ -45,8 +46,8 @@ interface Pago {
 // ── Colores de estado ──────────────────────────────────────────
 const estadoColor = {
   PENDIENTE: { bg: 'var(--color-warning-container, #FFF3CD)', fg: '#856404' },
-  PAGADO:    { bg: 'var(--color-success-container, #D1FAE5)', fg: '#065F46' },
-  RECHAZADO: { bg: 'var(--color-error-container)',            fg: 'var(--color-error)' },
+  PAGADO: { bg: 'var(--color-success-container, #D1FAE5)', fg: '#065F46' },
+  RECHAZADO: { bg: 'var(--color-error-container)', fg: 'var(--color-error)' },
 };
 
 // ── Modal de Club ──────────────────────────────────────────────
@@ -58,13 +59,13 @@ function ClubModal({
   onSave: (data: { nombre: string; descripcion: string; profesorId: number; horario: any }) => void;
   onClose: () => void;
 }) {
-  const [nombre, setNombre]       = useState(club?.nombre ?? '');
-  const [desc, setDesc]           = useState(club?.descripcion ?? '');
-  const [profId, setProfId]       = useState<number>(club?.profesorId ?? (profesores[0]?.id ?? 0));
-  
+  const [nombre, setNombre] = useState(club?.nombre ?? '');
+  const [desc, setDesc] = useState(club?.descripcion ?? '');
+  const [profId, setProfId] = useState<number>(club?.profesorId ?? (profesores[0]?.id ?? 0));
+
   // Horario inicial: Lunes a Sábado desactivado por defecto
   const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const [horario, setHorario]     = useState<any>(club?.horario ?? {});
+  const [horario, setHorario] = useState<any>(club?.horario ?? {});
 
   const toggleDia = (dia: string) => {
     setHorario((prev: any) => {
@@ -204,24 +205,24 @@ export default function AdminDashboard() {
   const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte';
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [profesores, setProfesores] = useState<Profesor[]>([]);
-  const [pagos, setPagos]       = useState<Pago[]>([]);
+  const [pagos, setPagos] = useState<Pago[]>([]);
   const [pagoFiltro, setPagoFiltro] = useState<string>('');
   const [pagoAlumnoFiltro, setPagoAlumnoFiltro] = useState<number | string>('');
   const [pagoClubFiltro, setPagoClubFiltro] = useState<number | string>('');
   const [tipoFiltroPago, setTipoFiltroPago] = useState<'ALUMNO' | 'CLUB'>('ALUMNO');
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Personas state
-  const [usuarios, setUsuarios]       = useState<Usuario[]>([]);
-  const [alumnos, setAlumnos]         = useState<Alumno[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [personasTab, setPersonasTab] = useState<'profesores' | 'alumnos'>('profesores');
   const [modalUsuario, setModalUsuario] = useState<Partial<Usuario> | false>(false);
-  const [modalAlumno, setModalAlumno]   = useState<Partial<Alumno> | false>(false);
+  const [modalAlumno, setModalAlumno] = useState<Partial<Alumno> | false>(false);
   const [savingPersona, setSavingPersona] = useState(false);
 
   // Club modal state
-  const [modalClub, setModalClub]  = useState<Partial<ClubMetrica> | null | false>(false);
+  const [modalClub, setModalClub] = useState<Partial<ClubMetrica> | null | false>(false);
   const [modalPagosClub, setModalPagosClub] = useState<ClubMetrica | null | false>(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -290,22 +291,22 @@ export default function AdminDashboard() {
       if (pagoFiltro) url += `estado=${pagoFiltro}&`;
       if (pagoAlumnoFiltro) url += `alumnoId=${pagoAlumnoFiltro}&`;
       if (pagoClubFiltro) url += `clubId=${pagoClubFiltro}&`;
-      
+
       const res = await fetch(url);
       setPagos(await res.json());
     } catch { /* silently fail */ }
   }, [pagoFiltro, pagoAlumnoFiltro, pagoClubFiltro]);
 
   useEffect(() => { fetchMetricas(); fetchProfesores(); }, []);
-  useEffect(() => { 
-    if (tab === 'pagos' || modalPagosClub !== false) fetchPagos(); 
+  useEffect(() => {
+    if (tab === 'pagos' || modalPagosClub !== false) fetchPagos();
   }, [tab, pagoFiltro, pagoAlumnoFiltro, pagoClubFiltro, modalPagosClub]);
   useEffect(() => { if (tab === 'personas') { fetchAlumnos(); fetchProfesores(); } }, [tab]);
 
   // ── CRUD Clubes ──────────────────────────────────────────────
   const handleSaveClub = async (data: { nombre: string; descripcion: string; profesorId: number; horario: any }) => {
     const isEdit = modalClub && 'id' in modalClub && modalClub.id;
-    const url    = isEdit ? `${API}/admin/clubes/${modalClub.id}` : `${API}/admin/clubes`;
+    const url = isEdit ? `${API}/admin/clubes/${modalClub.id}` : `${API}/admin/clubes`;
     const method = isEdit ? 'PUT' : 'POST';
     await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
     setModalClub(false);
@@ -340,7 +341,7 @@ export default function AdminDashboard() {
   const handleSaveUsuario = async (data: Partial<Usuario>) => {
     setSavingPersona(true);
     const isEdit = modalUsuario && 'id' in modalUsuario && (modalUsuario as any).id;
-    const url    = isEdit ? `${API}/admin/usuarios/${(modalUsuario as any).id}` : `${API}/admin/usuarios`;
+    const url = isEdit ? `${API}/admin/usuarios/${(modalUsuario as any).id}` : `${API}/admin/usuarios`;
     const method = isEdit ? 'PUT' : 'POST';
     try {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -353,7 +354,7 @@ export default function AdminDashboard() {
   const handleSaveAlumno = async (data: { nombre: string; apellido: string; grado: string; padreId?: number; clubIds?: number[]; nuevoPadre?: any }) => {
     setSavingPersona(true);
     const isEdit = modalAlumno && 'id' in modalAlumno && (modalAlumno as any).id;
-    const url    = isEdit ? `${API}/admin/alumnos/${(modalAlumno as any).id}` : `${API}/admin/alumnos`;
+    const url = isEdit ? `${API}/admin/alumnos/${(modalAlumno as any).id}` : `${API}/admin/alumnos`;
     const method = isEdit ? 'PUT' : 'POST';
     try {
       // Si hay un nuevo padre, lo creamos primero
@@ -365,15 +366,15 @@ export default function AdminDashboard() {
           body: JSON.stringify({ ...data.nuevoPadre, rol: 'PADRE' })
         });
         if (pRes.ok) {
-           const pData = await pRes.json();
-           finalPadreId = pData.id;
+          const pData = await pRes.json();
+          finalPadreId = pData.id;
         }
       }
 
-      const res = await fetch(url, { 
-        method, 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ ...data, padreId: finalPadreId }) 
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, padreId: finalPadreId })
       });
       if (!res.ok) { const err = await res.json(); alert(err.message ?? 'Error al guardar'); }
       else { setModalAlumno(false); fetchAlumnos(); fetchMetricas(); fetchProfesores(); }
@@ -406,8 +407,8 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const clubesRanking = (metricas?.clubes && Array.isArray(metricas.clubes)) 
-    ? [...metricas.clubes].sort((a, b) => (b.asistencia ?? 0) - (a.asistencia ?? 0)) 
+  const clubesRanking = (metricas?.clubes && Array.isArray(metricas.clubes))
+    ? [...metricas.clubes].sort((a, b) => (b.asistencia ?? 0) - (a.asistencia ?? 0))
     : [];
 
   return (
@@ -421,10 +422,10 @@ export default function AdminDashboard() {
           <span style={{ height: 2, width: 24, background: 'var(--color-secondary)' }}></span>
         </div>
         <h2 style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.07em', lineHeight: 0.9, margin: 0 }}>
-          Central de <br/><span style={{ color: 'var(--color-secondary)' }}>Comando</span>
+          Central de <br /><span style={{ color: 'var(--color-secondary)' }}>Comando</span>
         </h2>
         <p style={{ margin: '1rem 0 0', color: 'var(--color-on-surface-variant)', fontSize: '1rem', fontWeight: 600, opacity: 0.8, maxWidth: '300px', lineHeight: 1.4 }}>
-            Control global de <strong>{metricas?.totalAlumnos ?? '…'} alumnos</strong> en <strong>{metricas?.totalClubes ?? '…'} clubes</strong> activos.
+          Control global de <strong>{metricas?.totalAlumnos ?? '…'} alumnos</strong> en <strong>{metricas?.totalClubes ?? '…'} clubes</strong> activos.
         </p>
       </section>
 
@@ -458,10 +459,10 @@ export default function AdminDashboard() {
 
               <div className="bento-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-                   <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <TrendingUp size={16} color="var(--color-success)" />
-                   </div>
-                   <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
+                  <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <TrendingUp size={16} color="var(--color-success)" />
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
                 </div>
                 <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas.asistenciaGlobal}%</p>
                 <div style={{ marginTop: '1rem', height: '8px', borderRadius: '99px', background: 'var(--color-surface-dim)', overflow: 'hidden' }}>
@@ -471,10 +472,10 @@ export default function AdminDashboard() {
 
               <div className="bento-card">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-                   <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Award size={16} color="var(--color-primary)" />
-                   </div>
-                   <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Expertos</p>
+                  <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Award size={16} color="var(--color-primary)" />
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Expertos</p>
                 </div>
                 <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas.totalProfesores}</p>
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700 }}>Docentes Exitus</p>
@@ -499,7 +500,7 @@ export default function AdminDashboard() {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                         <div style={{ width: '2.4rem', height: '2.4rem', borderRadius: '50%', background: 'var(--color-error-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                           <AlertTriangle size={16} color="var(--color-error)" />
+                          <AlertTriangle size={16} color="var(--color-error)" />
                         </div>
                         <div>
                           <p style={{ margin: 0, fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-primary)' }}>{a.alumno}</p>
@@ -527,40 +528,40 @@ export default function AdminDashboard() {
                 {clubesRanking
                   .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
                   .map((club, i) => (
-                  <div key={club.id} className="bento-card" style={{
-                    padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
-                  }}>
-                    <div style={{
-                      width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem',
-                      background: i === 0 ? 'var(--grad-gold)' : 'var(--color-surface-container-high)',
-                      color: i === 0 ? 'white' : 'var(--color-primary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
-                      fontSize: '1.1rem', boxShadow: i === 0 ? '0 4px 10px rgba(212, 175, 55, 0.3)' : 'none'
+                    <div key={club.id} className="bento-card" style={{
+                      padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
                     }}>
-                      {(currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1}
-                    </div>
-                    <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => navigate(`/clubes/${club.id}/historial`)}>
-                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        {club.nombre} <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                      </p>
-                      <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>• {club.inscritos} alumnos</span>
-                        {club.horario && Object.keys(club.horario).length > 0 && (
-                          <span style={{ fontSize: '0.65rem', color: 'var(--color-primary)', fontWeight: 800, background: 'var(--color-primary-fixed)', padding: '0.05rem 0.4rem', borderRadius: '4px' }}>
-                            {formatHorarioShort(club.horario)}
-                          </span>
-                        )}
+                      <div style={{
+                        width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem',
+                        background: i === 0 ? 'var(--grad-gold)' : 'var(--color-surface-container-high)',
+                        color: i === 0 ? 'white' : 'var(--color-primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
+                        fontSize: '1.1rem', boxShadow: i === 0 ? '0 4px 10px rgba(212, 175, 55, 0.3)' : 'none'
+                      }}>
+                        {(currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1}
+                      </div>
+                      <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => navigate(`/clubes/${club.id}/historial`)}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          {club.nombre} <ChevronRight size={14} style={{ opacity: 0.5 }} />
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>• {club.inscritos} alumnos</span>
+                          {club.horario && Object.keys(club.horario).length > 0 && (
+                            <span style={{ fontSize: '0.65rem', color: 'var(--color-primary)', fontWeight: 800, background: 'var(--color-primary-fixed)', padding: '0.05rem 0.4rem', borderRadius: '4px' }}>
+                              {formatHorarioShort(club.horario)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ display: 'block', fontWeight: 900, fontSize: '1.25rem', color: club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)', lineHeight: 1 }}>
+                          {club.asistencia}%
+                        </span>
+                        <span style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--color-outline)' }}>ASISTENCIA</span>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                       <span style={{ display: 'block', fontWeight: 900, fontSize: '1.25rem', color: club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)', lineHeight: 1 }}>
-                        {club.asistencia}%
-                      </span>
-                      <span style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--color-outline)' }}>ASISTENCIA</span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </section>
           </>
@@ -580,11 +581,11 @@ export default function AdminDashboard() {
 
             {/* SEARCH BAR */}
             <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
-              <input 
-                value={searchTerm} 
+              <input
+                value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Buscar disciplina o profesor..." 
-                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }} 
+                placeholder="Buscar disciplina o profesor..."
+                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }}
               />
               <BarChart2 size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
@@ -594,56 +595,56 @@ export default function AdminDashboard() {
                 .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
                 .slice((currentPageClubes - 1) * ITEMS_PER_PAGE, currentPageClubes * ITEMS_PER_PAGE)
                 .map(club => (
-                <div key={club.id} className="bento-card" style={{
-                  padding: '1.75rem',
-                  borderLeft: '6px solid var(--color-primary)',
-                  background: 'white',
-                  borderRadius: '1.2rem'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>{club.nombre}</h4>
-                      {club.descripcion && (
-                        <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.5, fontWeight: 500 }}>{club.descripcion}</p>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.6rem' }}>
-                        <button onClick={() => setModalPagosClub(club)} 
+                  <div key={club.id} className="bento-card" style={{
+                    padding: '1.75rem',
+                    borderLeft: '6px solid var(--color-primary)',
+                    background: 'white',
+                    borderRadius: '1.2rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>{club.nombre}</h4>
+                        {club.descripcion && (
+                          <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.5, fontWeight: 500 }}>{club.descripcion}</p>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.6rem' }}>
+                        <button onClick={() => setModalPagosClub(club)}
                           title="Ver Pagos del Club"
                           style={{ ...iconBtnStyle('var(--color-primary-fixed)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
                           <CreditCard size={16} />
                         </button>
-                        <button onClick={() => navigate(`/clubes/${club.id}/historial`)} 
+                        <button onClick={() => navigate(`/clubes/${club.id}/historial`)}
                           title="Ver Asistencia"
                           style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
                           <History size={16} />
                         </button>
-                      <button onClick={() => setModalClub(club)} 
-                        style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
-                        <Edit2 size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id} 
-                        style={{ ...iconBtnStyle('rgba(211, 47, 47, 0.08)', 'var(--color-error)'), width: '2.5rem', height: '2.5rem' }}>
-                        <Trash2 size={16} />
-                      </button>
+                        <button onClick={() => setModalClub(club)}
+                          style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id}
+                          style={{ ...iconBtnStyle('rgba(211, 47, 47, 0.08)', 'var(--color-error)'), width: '2.5rem', height: '2.5rem' }}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                      <Pill icon={<UserCheck size={14} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
+                      <Pill icon={<Users size={14} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
+                      {club.horario && Object.keys(club.horario).length > 0 && (
+                        <Pill icon={<Calendar size={14} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
+                      )}
+                      <Pill icon={<TrendingUp size={14} />} label={`${club.asistencia}% racha`}
+                        color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
+                        bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-                    <Pill icon={<UserCheck size={14}/>} label={club.profesor} bg="var(--color-primary-container)" color="white" />
-                    <Pill icon={<Users size={14}/>} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
-                    {club.horario && Object.keys(club.horario).length > 0 && (
-                      <Pill icon={<Calendar size={14}/>} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
-                    )}
-                    <Pill icon={<TrendingUp size={14}/>} label={`${club.asistencia}% racha`}
-                      color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
-                      bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
 
-            <Pagination 
-              current={currentPageClubes} 
+            <Pagination
+              current={currentPageClubes}
               total={Math.ceil(((metricas?.clubes ?? []).filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())).length) / ITEMS_PER_PAGE)}
               onChange={setCurrentPageClubes}
             />
@@ -665,7 +666,7 @@ export default function AdminDashboard() {
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                 }}>
-                  {st === 'profesores' ? <GraduationCap size={18}/> : <Users size={18}/>}
+                  {st === 'profesores' ? <GraduationCap size={18} /> : <Users size={18} />}
                   {st === 'profesores' ? 'Profesores' : 'Alumnos'}
                 </button>
               ))}
@@ -673,11 +674,11 @@ export default function AdminDashboard() {
 
             {/* SEARCH BAR PERSONAS */}
             <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
-              <input 
-                value={searchTerm} 
+              <input
+                value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder={personasTab === 'profesores' ? "Buscar por nombre, email o DNI..." : "Buscar por nombre o club..."} 
-                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }} 
+                placeholder={personasTab === 'profesores' ? "Buscar por nombre, email o DNI..." : "Buscar por nombre o club..."}
+                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }}
               />
               <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
@@ -701,13 +702,13 @@ export default function AdminDashboard() {
                 {(['ADMINISTRADOR', 'PROFESOR', 'PADRE'] as const).map(rol => {
                   const itemsFiltered = usuarios.filter(u => u.rol === rol)
                     .filter(u => (`${u.nombre ?? ''} ${u.apellido ?? ''} ${u.email ?? ''} ${u.dni ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()));
-                  
+
                   if (itemsFiltered.length === 0) return null;
-                  
+
                   const paginatedItems = itemsFiltered.slice((pagesUsuarios[rol] - 1) * ITEMS_PER_PAGE, pagesUsuarios[rol] * ITEMS_PER_PAGE);
                   const rolLabel = { ADMINISTRADOR: 'Administradores', PROFESOR: 'Docentes', PADRE: 'Padres de Familia' }[rol];
                   const rolColor = { ADMINISTRADOR: 'var(--color-primary)', PROFESOR: 'var(--color-secondary)', PADRE: 'var(--color-outline)' }[rol];
-                  
+
                   return (
                     <div key={rol} style={{ marginBottom: '2rem' }}>
                       <p style={{ margin: '0 0 0.75rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: rolColor, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -744,10 +745,10 @@ export default function AdminDashboard() {
                           </div>
                         ))}
                       </div>
-                      <Pagination 
-                        current={pagesUsuarios[rol]} 
-                        total={Math.ceil(itemsFiltered.length / ITEMS_PER_PAGE)} 
-                        onChange={(p) => setPagesUsuarios(prev => ({ ...prev, [rol]: p }))} 
+                      <Pagination
+                        current={pagesUsuarios[rol]}
+                        total={Math.ceil(itemsFiltered.length / ITEMS_PER_PAGE)}
+                        onChange={(p) => setPagesUsuarios(prev => ({ ...prev, [rol]: p }))}
                       />
                     </div>
                   );
@@ -781,59 +782,59 @@ export default function AdminDashboard() {
                     .filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()))
                     .slice((currentPageAlumnos - 1) * ITEMS_PER_PAGE, currentPageAlumnos * ITEMS_PER_PAGE)
                     .map(alumno => (
-                    <div key={alumno.id} className="bento-card" style={{
-                      padding: '1rem 1.15rem',
-                      borderLeft: '4px solid var(--color-secondary)',
-                      background: 'white'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{
-                          width: '3rem', height: '3rem', borderRadius: '1.2rem', flexShrink: 0,
-                          background: 'var(--color-secondary-container)', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-secondary)',
-                          boxShadow: '0 6px 15px rgba(237, 198, 32, 0.2)'
-                        }}>
-                          {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                            {alumno.nombre} {alumno.apellido}
-                          </p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
-                            <span style={{ fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{alumno.grado}</span>
-                            {alumno.padre ? (
+                      <div key={alumno.id} className="bento-card" style={{
+                        padding: '1rem 1.15rem',
+                        borderLeft: '4px solid var(--color-secondary)',
+                        background: 'white'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{
+                            width: '3rem', height: '3rem', borderRadius: '1.2rem', flexShrink: 0,
+                            background: 'var(--color-secondary-container)', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-secondary)',
+                            boxShadow: '0 6px 15px rgba(237, 198, 32, 0.2)'
+                          }}>
+                            {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                              {alumno.nombre} {alumno.apellido}
+                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{alumno.grado}</span>
+                              {alumno.padre ? (
                                 <>
-                                    <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
-                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-outline)', fontWeight: 700 }}>Padre: {alumno.padre.nombre}</span>
+                                  <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-outline)', fontWeight: 700 }}>Padre: {alumno.padre.nombre}</span>
                                 </>
-                            ) : (
+                              ) : (
                                 <>
-                                    <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
-                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-error)', fontWeight: 800 }}>⚠️ Sin Padre</span>
+                                  <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-error)', fontWeight: 800 }}>⚠️ Sin Padre</span>
                                 </>
-                            )}
-                            {alumno.inscripciones.length > 0 && (
-                              <>
-                                <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 800 }}>{alumno.inscripciones.length} clubes</span>
-                              </>
-                            )}
+                              )}
+                              {alumno.inscripciones.length > 0 && (
+                                <>
+                                  <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 800 }}>{alumno.inscripciones.length} clubes</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <button onClick={() => setModalAlumno(alumno)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
+                              <Edit2 size={15} />
+                            </button>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.4rem' }}>
-                          <button onClick={() => setModalAlumno(alumno)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
-                            <Edit2 size={15} />
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
-                
-                <Pagination 
-                  current={currentPageAlumnos} 
-                  total={Math.ceil(alumnos.filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase())).length / ITEMS_PER_PAGE)} 
-                  onChange={setCurrentPageAlumnos} 
+
+                <Pagination
+                  current={currentPageAlumnos}
+                  total={Math.ceil(alumnos.filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase())).length / ITEMS_PER_PAGE)}
+                  onChange={setCurrentPageAlumnos}
                 />
               </>
             )}
@@ -848,39 +849,39 @@ export default function AdminDashboard() {
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
                   Finanzas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px', marginLeft: '0.5rem' }}>{pagos.length}</span>
                 </h3>
-                
+
                 {/* SELECTOR DE MODO */}
                 <div style={{ background: 'var(--color-surface-container-high)', padding: '0.25rem', borderRadius: '1rem', display: 'flex', gap: '0.25rem' }}>
-                   <button 
-                     onClick={() => { setTipoFiltroPago('ALUMNO'); setPagoClubFiltro(''); }}
-                     style={{
-                        padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
-                        background: tipoFiltroPago === 'ALUMNO' ? 'white' : 'transparent',
-                        color: tipoFiltroPago === 'ALUMNO' ? 'var(--color-primary)' : 'var(--color-outline)',
-                        boxShadow: tipoFiltroPago === 'ALUMNO' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
-                     }}>
-                     👤 POR ALUMNO
-                   </button>
-                   <button 
-                     onClick={() => { setTipoFiltroPago('CLUB'); setPagoAlumnoFiltro(''); setSearchTerm(''); }}
-                     style={{
-                        padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
-                        background: tipoFiltroPago === 'CLUB' ? 'white' : 'transparent',
-                        color: tipoFiltroPago === 'CLUB' ? 'var(--color-primary)' : 'var(--color-outline)',
-                        boxShadow: tipoFiltroPago === 'CLUB' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
-                     }}>
-                     🏆 POR CLUB
-                   </button>
+                  <button
+                    onClick={() => { setTipoFiltroPago('ALUMNO'); setPagoClubFiltro(''); }}
+                    style={{
+                      padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
+                      background: tipoFiltroPago === 'ALUMNO' ? 'white' : 'transparent',
+                      color: tipoFiltroPago === 'ALUMNO' ? 'var(--color-primary)' : 'var(--color-outline)',
+                      boxShadow: tipoFiltroPago === 'ALUMNO' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
+                    }}>
+                    👤 POR ALUMNO
+                  </button>
+                  <button
+                    onClick={() => { setTipoFiltroPago('CLUB'); setPagoAlumnoFiltro(''); setSearchTerm(''); }}
+                    style={{
+                      padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
+                      background: tipoFiltroPago === 'CLUB' ? 'white' : 'transparent',
+                      color: tipoFiltroPago === 'CLUB' ? 'var(--color-primary)' : 'var(--color-outline)',
+                      boxShadow: tipoFiltroPago === 'CLUB' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
+                    }}>
+                    🏆 POR CLUB
+                  </button>
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 <div style={{ position: 'relative', flex: 2, minWidth: '250px' }}>
-                  <input 
-                    value={searchTerm} 
+                  <input
+                    value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    placeholder={tipoFiltroPago === 'ALUMNO' ? "Buscar por nombre de alumno..." : "Buscar por nombre de club..."} 
-                    style={{ ...inputStyle, paddingLeft: '2.5rem', borderRadius: '1.2rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.9rem', height: '3rem' }} 
+                    placeholder={tipoFiltroPago === 'ALUMNO' ? "Buscar por nombre de alumno..." : "Buscar por nombre de club..."}
+                    style={{ ...inputStyle, paddingLeft: '2.5rem', borderRadius: '1.2rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.9rem', height: '3rem' }}
                   />
                   <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
@@ -956,40 +957,40 @@ export default function AdminDashboard() {
                   })
                   .slice((currentPagePagos - 1) * ITEMS_PER_PAGE, currentPagePagos * ITEMS_PER_PAGE)
                   .map(pago => {
-                  const colors = estadoColor[pago.estado];
-                  return (
-                    <div key={pago.id} className="bento-card" style={{
-                      padding: '1.25rem', background: 'white'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                           <div style={{ width: '3rem', height: '3rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    const colors = estadoColor[pago.estado];
+                    return (
+                      <div key={pago.id} className="bento-card" style={{
+                        padding: '1.25rem', background: 'white'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', gap: '1rem' }}>
+                            <div style={{ width: '3rem', height: '3rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <CreditCard size={20} color="var(--color-primary)" />
-                           </div>
-                           <div>
+                            </div>
+                            <div>
                               <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
                                 {pago.alumno.nombre} {pago.alumno.apellido}
                               </p>
                               <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
                                 {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
                               </p>
-                           </div>
+                            </div>
+                          </div>
+                          <span style={{
+                            background: colors.bg, color: colors.fg,
+                            padding: '0.4rem 0.8rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
+                            textTransform: 'uppercase', letterSpacing: '0.05em'
+                          }}>
+                            {pago.estado}
+                          </span>
                         </div>
-                        <span style={{
-                          background: colors.bg, color: colors.fg,
-                          padding: '0.4rem 0.8rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
-                          textTransform: 'uppercase', letterSpacing: '0.05em'
-                        }}>
-                          {pago.estado}
-                        </span>
-                      </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
-                         <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
+                          <div>
                             {pago.monto && (
-                               <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                                 S/ {pago.monto.toFixed(2)}
-                               </p>
+                              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                                S/ {pago.monto.toFixed(2)}
+                              </p>
                             )}
                             {pago.urlComprobante && (
                               <a href={pago.urlComprobante} target="_blank" rel="noreferrer"
@@ -997,39 +998,39 @@ export default function AdminDashboard() {
                                 <ExternalLink size={12} /> Comprobante
                               </a>
                             )}
-                         </div>
+                          </div>
 
-                         {pago.estado === 'PENDIENTE' && (
-                           <div style={{ display: 'flex', gap: '0.5rem' }}>
-                             <button
-                               disabled={validandoPago === pago.id}
-                               onClick={() => handleValidarPago(pago.id, 'PAGADO')}
-                               style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                               <Check size={18} strokeWidth={3} />
-                             </button>
-                             <button
-                               disabled={validandoPago === pago.id}
-                               onClick={() => {
-                                 const obs = prompt('Motivo del rechazo (opcional):') ?? '';
-                                 handleValidarPago(pago.id, 'RECHAZADO', obs);
-                               }}
-                               style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                               <X size={18} strokeWidth={3} />
-                             </button>
-                           </div>
-                         )}
+                          {pago.estado === 'PENDIENTE' && (
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button
+                                disabled={validandoPago === pago.id}
+                                onClick={() => handleValidarPago(pago.id, 'PAGADO')}
+                                style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                                <Check size={18} strokeWidth={3} />
+                              </button>
+                              <button
+                                disabled={validandoPago === pago.id}
+                                onClick={() => {
+                                  const obs = prompt('Motivo del rechazo (opcional):') ?? '';
+                                  handleValidarPago(pago.id, 'RECHAZADO', obs);
+                                }}
+                                style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                                <X size={18} strokeWidth={3} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {pago.observacion && (
+                          <p style={{ margin: '0.75rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem 0.85rem', borderRadius: '0.85rem', fontWeight: 500 }}>
+                            “{pago.observacion}”
+                          </p>
+                        )}
                       </div>
-
-                      {pago.observacion && (
-                        <p style={{ margin: '0.75rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem 0.85rem', borderRadius: '0.85rem', fontWeight: 500 }}>
-                          “{pago.observacion}”
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-                <Pagination 
-                  current={currentPagePagos} 
+                    );
+                  })}
+                <Pagination
+                  current={currentPagePagos}
                   total={Math.ceil(pagos.filter(p => {
                     const search = searchTerm.toLowerCase();
                     if (tipoFiltroPago === 'ALUMNO') {
@@ -1037,8 +1038,8 @@ export default function AdminDashboard() {
                     } else {
                       return p.club.nombre.toLowerCase().includes(search);
                     }
-                  }).length / ITEMS_PER_PAGE)} 
-                  onChange={setCurrentPagePagos} 
+                  }).length / ITEMS_PER_PAGE)}
+                  onChange={setCurrentPagePagos}
                 />
               </div>
             )}
@@ -1053,7 +1054,7 @@ export default function AdminDashboard() {
               padding: '2.5rem 2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden'
             }}>
               <div style={{ position: 'absolute', bottom: '-15%', right: '-5%', opacity: 0.1 }}>
-                 <FileText size={160} color="white" />
+                <FileText size={160} color="white" />
               </div>
               <div style={{ position: 'relative', zIndex: 1, textAlign: 'left' }}>
                 <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
@@ -1068,36 +1069,36 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   <div style={{ width: 12, height: 2, background: 'var(--color-primary)', borderRadius: 2 }}></div>
-                   Reportes Individuales
-                </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 12, height: 2, background: 'var(--color-primary)', borderRadius: 2 }}></div>
+                Reportes Individuales
+              </p>
 
-               {(metricas?.clubes ?? [])
-                 .slice((currentPageReportes - 1) * ITEMS_PER_PAGE, currentPageReportes * ITEMS_PER_PAGE)
-                 .map(club => (
-                 <button key={club.id}
-                   onClick={() => window.open(`${API}/admin/reporte/asistencia?clubId=${club.id}`, '_blank')}
-                   style={{
-                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                     background: 'var(--color-surface-container-lowest)', border: 'none',
-                     borderRadius: '1rem', padding: '1rem 1.25rem', fontWeight: 700, fontSize: '0.9rem',
-                     color: 'var(--color-primary)', cursor: 'pointer',
-                   }}>
-                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                     <BookOpen size={16} color="var(--color-secondary)" /> {club.nombre}
-                   </span>
-                   <ChevronRight size={16} color="var(--color-on-surface-variant)" />
-                 </button>
-               ))}
+              {(metricas?.clubes ?? [])
+                .slice((currentPageReportes - 1) * ITEMS_PER_PAGE, currentPageReportes * ITEMS_PER_PAGE)
+                .map(club => (
+                  <button key={club.id}
+                    onClick={() => window.open(`${API}/admin/reporte/asistencia?clubId=${club.id}`, '_blank')}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      background: 'var(--color-surface-container-lowest)', border: 'none',
+                      borderRadius: '1rem', padding: '1rem 1.25rem', fontWeight: 700, fontSize: '0.9rem',
+                      color: 'var(--color-primary)', cursor: 'pointer',
+                    }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <BookOpen size={16} color="var(--color-secondary)" /> {club.nombre}
+                    </span>
+                    <ChevronRight size={16} color="var(--color-on-surface-variant)" />
+                  </button>
+                ))}
 
-               <Pagination 
-                 current={currentPageReportes} 
-                 total={Math.ceil((metricas?.clubes ?? []).length / ITEMS_PER_PAGE)} 
-                 onChange={setCurrentPageReportes} 
-               />
-             </div>
+              <Pagination
+                current={currentPageReportes}
+                total={Math.ceil((metricas?.clubes ?? []).length / ITEMS_PER_PAGE)}
+                onChange={setCurrentPageReportes}
+              />
+            </div>
 
             <p style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)' }}>
               Formato CSV con BOM para compatibilidad con Microsoft Excel
@@ -1164,19 +1165,19 @@ function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const clubPagos = pagos.filter(p => p.club.nombre === clubNombre)
-                         .filter(p => (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(searchTerm.toLowerCase()));
+    .filter(p => (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(searchTerm.toLowerCase()));
 
   const pagados = clubPagos.filter(p => p.estado === 'PAGADO');
   const pendientes = clubPagos.filter(p => p.estado === 'PENDIENTE');
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }} onClick={onClose}>
-      <div style={{ 
-        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2rem', 
+      <div style={{
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2rem',
         width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
         boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
       }} onClick={e => e.stopPropagation()}>
-        
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
           <div>
             <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
@@ -1209,11 +1210,11 @@ function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
         </div>
 
         <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-          <input 
-            value={searchTerm} 
+          <input
+            value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nombre de alumno..." 
-            style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)' }} 
+            placeholder="Buscar por nombre de alumno..."
+            style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)' }}
           />
           <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
         </div>
@@ -1224,42 +1225,42 @@ function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
               No se encontraron pagos vinculados a este filtro.
             </div>
           ) : clubPagos.map(p => {
-             const colors = estadoColor[p.estado];
-             return (
-               <div key={p.id} style={{ 
-                 padding: '1rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)',
-                 border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-               }}>
-                 <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
-                    <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CreditCard size={18} color={colors.fg} />
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
-                    </div>
-                 </div>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                   {p.estado === 'PENDIENTE' ? (
-                     <>
-                        <button onClick={() => onValidate(p.id, 'PAGADO')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                          <Check size={16} strokeWidth={3} />
-                        </button>
-                        <button onClick={() => {
-                           const obs = prompt('Motivo del rechazo:') ?? '';
-                           onValidate(p.id, 'RECHAZADO', obs);
-                        }} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                          <X size={16} strokeWidth={3} />
-                        </button>
-                     </>
-                   ) : (
-                     <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
-                       {p.estado}
-                     </span>
-                   )}
-                 </div>
-               </div>
-             );
+            const colors = estadoColor[p.estado];
+            return (
+              <div key={p.id} style={{
+                padding: '1rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)',
+                border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
+                  <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CreditCard size={18} color={colors.fg} />
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  {p.estado === 'PENDIENTE' ? (
+                    <>
+                      <button onClick={() => onValidate(p.id, 'PAGADO')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                        <Check size={16} strokeWidth={3} />
+                      </button>
+                      <button onClick={() => {
+                        const obs = prompt('Motivo del rechazo:') ?? '';
+                        onValidate(p.id, 'RECHAZADO', obs);
+                      }} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                        <X size={16} strokeWidth={3} />
+                      </button>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
+                      {p.estado}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
           })}
         </div>
       </div>
@@ -1272,7 +1273,7 @@ function formatHorarioShort(horario: any): string {
   if (!horario) return '';
   const dias = Object.keys(horario);
   if (dias.length === 0) return '';
-  
+
   if (dias.length === 1) {
     const d = dias[0];
     return `${d.slice(0, 3)} ${horario[d].start}-${horario[d].end}`;
@@ -1281,7 +1282,7 @@ function formatHorarioShort(horario: any): string {
   // Si todos tienen la misma hora, agrupar: "Lun, Mié 16:00-17:30"
   const times = dias.map(d => `${horario[d].start}-${horario[d].end}`);
   const allSame = times.every(t => t === times[0]);
-  
+
   if (allSame) {
     const diasStr = dias.map(d => d.slice(0, 3)).join(', ');
     return `${diasStr} ${times[0]}`;
@@ -1309,15 +1310,15 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
   if (total <= 1) return null;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginTop: '1.25rem', padding: '0.5rem 0' }}>
-      <button 
+      <button
         disabled={current === 1}
         onClick={() => onChange(current - 1)}
         style={{ ...iconBtnStyle(current === 1 ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 'var(--color-primary)'), opacity: current === 1 ? 0.3 : 1, width: '2.2rem', height: '2.2rem', boxShadow: current === 1 ? 'none' : 'var(--shadow-sm)' }}>
         <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
       </button>
-      <div style={{ 
-        background: 'var(--color-surface-container-low)', 
-        padding: '0.4rem 1rem', 
+      <div style={{
+        background: 'var(--color-surface-container-low)',
+        padding: '0.4rem 1rem',
         borderRadius: '99px',
         display: 'flex',
         alignItems: 'center',
@@ -1328,7 +1329,7 @@ function Pagination({ current, total, onChange }: { current: number; total: numb
         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', opacity: 0.5 }}>/</span>
         <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)' }}>{total}</span>
       </div>
-      <button 
+      <button
         disabled={current === total}
         onClick={() => onChange(current + 1)}
         style={{ ...iconBtnStyle(current === total ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 'var(--color-primary)'), opacity: current === total ? 0.3 : 1, width: '2.2rem', height: '2.2rem', boxShadow: current === total ? 'none' : 'var(--shadow-sm)' }}>
@@ -1371,15 +1372,15 @@ function UsuarioModal({
   onSave: (data: any) => void;
   onClose: () => void;
 }) {
-  const [nombre,   setNombre]   = useState(usuario.nombre   ?? '');
+  const [nombre, setNombre] = useState(usuario.nombre ?? '');
   const [apellido, setApellido] = useState(usuario.apellido ?? '');
-  const [email,    setEmail]    = useState(usuario.email    ?? '');
-  const [rol,      setRol]      = useState<'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'>(usuario.rol ?? 'PROFESOR');
-  const [dni,      setDni]      = useState(usuario.dni      ?? '');
+  const [rol, setRol] = useState<'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'>(usuario.rol ?? 'PROFESOR');
+  const [dni, setDni] = useState(usuario.dni ?? '');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ nombre, apellido, email: email || undefined, rol, dni: dni || undefined });
+    onSave({ nombre, apellido, rol, dni, password: password || undefined });
   };
 
   return (
@@ -1411,13 +1412,15 @@ function UsuarioModal({
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Email (opcional)</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exitus.edu" type="email" style={inputStyle} />
+            <label style={labelStyle}>DNI (Usuario para login)</label>
+            <input value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678" style={inputStyle} required />
           </div>
-          <div>
-            <label style={labelStyle}>DNI (para padres)</label>
-            <input value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678" style={inputStyle} />
-          </div>
+          {!usuario.id && (
+            <div>
+              <label style={labelStyle}>Contraseña Inicial</label>
+              <input value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" type="password" style={inputStyle} required={!usuario.id} />
+            </div>
+          )}
           <button type="submit" disabled={saving} style={{
             background: 'var(--color-primary)', color: 'white', border: 'none',
             borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
@@ -1445,10 +1448,10 @@ function AlumnoModal({
 }) {
   const padres = (usuarios ?? []).filter(u => u.rol === 'PADRE');
   const currentClubIds = (alumno as any).inscripciones?.map((i: any) => i.clubId) ?? [];
-  const [nombre,   setNombre]   = useState((alumno as any).nombre   ?? '');
+  const [nombre, setNombre] = useState((alumno as any).nombre ?? '');
   const [apellido, setApellido] = useState((alumno as any).apellido ?? '');
-  const [grado,    setGrado]    = useState((alumno as any).grado    ?? '');
-  const [padreId,  setPadreId]  = useState<number | string>((alumno as any).padreId ?? '');
+  const [grado, setGrado] = useState((alumno as any).grado ?? '');
+  const [padreId, setPadreId] = useState<number | string>((alumno as any).padreId ?? '');
   const [selectedClubIds, setSelectedClubIds] = useState<number[]>(currentClubIds);
 
   // Estado para creación rápida de padre
@@ -1458,23 +1461,23 @@ function AlumnoModal({
   const [pDni, setPDni] = useState('');
 
   const toggleClub = (id: number) => {
-    setSelectedClubIds(prev => 
+    setSelectedClubIds(prev =>
       prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
     );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload: any = { 
-        nombre, 
-        apellido, 
-        grado, 
-        clubIds: selectedClubIds,
-        padreId: padreId === '' ? undefined : Number(padreId)
+    const payload: any = {
+      nombre,
+      apellido,
+      grado,
+      clubIds: selectedClubIds,
+      padreId: padreId === '' ? undefined : Number(padreId)
     };
-    
+
     if (creandoPadre && pNombre && pApellido) {
-        payload.nuevoPadre = { nombre: pNombre, apellido: pApellido, dni: pDni };
+      payload.nuevoPadre = { nombre: pNombre, apellido: pApellido, dni: pDni };
     }
 
     onSave(payload);
@@ -1512,11 +1515,11 @@ function AlumnoModal({
               {GRADOS.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
-          
+
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
               <label style={labelStyle}>Asignar Padre / Tutor</label>
-              <button 
+              <button
                 type="button"
                 onClick={() => setCreandoPadre(!creandoPadre)}
                 style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase' }}
@@ -1526,44 +1529,44 @@ function AlumnoModal({
             </div>
 
             {creandoPadre ? (
-                <div style={{ background: 'var(--color-secondary-container)', padding: '0.85rem', borderRadius: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', textTransform: 'uppercase' }}>Registro Rápido de Padre</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                        <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombre Padre" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
-                        <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellido" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
-                    </div>
-                    <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI / ID" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+              <div style={{ background: 'var(--color-secondary-container)', padding: '0.85rem', borderRadius: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', textTransform: 'uppercase' }}>Registro Rápido de Padre</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombre Padre" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                  <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellido" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
                 </div>
+                <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI / ID" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+              </div>
             ) : (
-                <select value={padreId} onChange={e => setPadreId(e.target.value)} style={inputStyle}>
-                    <option value="">— Sin padre asignado —</option>
-                    {padres.map(p => (
-                        <option key={p.id} value={p.id}>{p.nombre} {p.apellido} ({p.dni || 'Sin DNI'})</option>
-                    ))}
-                </select>
+              <select value={padreId} onChange={e => setPadreId(e.target.value)} style={inputStyle}>
+                <option value="">— Sin padre asignado —</option>
+                {padres.map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre} {p.apellido} ({p.dni || 'Sin DNI'})</option>
+                ))}
+              </select>
             )}
           </div>
-          
+
           <div>
             <label style={labelStyle}>Inscribir en Clubes</label>
-            <div style={{ 
-              display: 'flex', flexDirection: 'column', gap: '0.5rem', 
-              maxHeight: '150px', overflowY: 'auto', padding: '0.75rem', 
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: '0.5rem',
+              maxHeight: '150px', overflowY: 'auto', padding: '0.75rem',
               background: 'var(--color-surface-container-lowest)', borderRadius: '0.75rem',
               border: '1px solid var(--color-outline-variant)'
             }}>
               {clubes.map(c => {
                 const isSelected = selectedClubIds.includes(c.id);
                 return (
-                  <label key={c.id} style={{ 
-                    display: 'flex', alignItems: 'center', gap: '0.6rem', 
+                  <label key={c.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.6rem',
                     cursor: 'pointer', padding: '0.4rem', borderRadius: '0.5rem',
                     background: isSelected ? 'var(--color-secondary-container)' : 'transparent',
                     transition: 'all 0.2s', fontSize: '0.85rem', fontWeight: 600,
                     color: isSelected ? 'var(--color-on-secondary-container)' : 'var(--color-on-surface)'
                   }}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleClub(c.id)}
                       style={{ width: '1.1rem', height: '1.1rem', accentColor: 'var(--color-secondary)' }}

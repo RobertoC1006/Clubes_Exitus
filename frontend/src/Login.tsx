@@ -1,228 +1,186 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
 import type { UsuarioSesion } from './UserContext';
-import { GraduationCap, Shield, BookOpen, Users, Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import './index.css';
+import loginBg from './assets/login_bg.png';
 
 const API = 'http://localhost:3000';
 
-const ROL_CONFIG = {
-  ADMINISTRADOR: { label: 'Administrador',  color: 'var(--color-primary)',            bg: 'var(--color-primary-container)',      icon: Shield,   emoji: '👑' },
-  PROFESOR:      { label: 'Profesor',        color: 'var(--color-secondary)',           bg: 'var(--color-secondary-container)',    icon: BookOpen, emoji: '🎓' },
-  PADRE:         { label: 'Padre / Tutor',   color: 'var(--color-on-surface-variant)', bg: 'var(--color-surface-container-high)', icon: Users,    emoji: '👨‍👩‍👦' },
-} as const;
-
-const GRUPOS = ['ADMINISTRADOR', 'PROFESOR', 'PADRE'] as const;
-
-interface UsuarioDB {
-  id: number; nombre: string; apellido: string; email: string;
-  rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string;
-}
+const svgPaths = {
+  dni: "M16.6587 3.33173H3.33173C2.4117 3.33173 1.66587 4.07757 1.66587 4.9976V14.9928C1.66587 15.9128 2.4117 16.6587 3.33173 16.6587H16.6587C17.5787 16.6587 18.3245 15.9128 18.3245 14.9928V4.9976C18.3245 4.07757 17.5787 3.33173 16.6587 3.33173Z",
+  dniLine: "M18.3245 5.83053L10.8531 10.5783C10.596 10.7394 10.2987 10.8248 9.9952 10.8248C9.69175 10.8248 9.39443 10.7394 9.13728 10.5783L1.66587 5.83053",
+  password: "M15.8257 9.16227H4.16467C3.24463 9.16227 2.4988 9.9081 2.4988 10.8281V16.6587C2.4988 17.5787 3.24463 18.3245 4.16467 18.3245H15.8257C16.7458 18.3245 17.4916 17.5787 17.4916 16.6587V10.8281C17.4916 9.9081 16.7458 9.16227 15.8257 9.16227Z",
+  passwordLock: "M5.83053 9.16227V5.83053C5.83053 4.726 6.26931 3.6667 7.05034 2.88567C7.83136 2.10464 8.89066 1.66587 9.9952 1.66587C11.0997 1.66587 12.159 2.10464 12.9401 2.88567C13.7211 3.6667 14.1599 4.726 14.1599 5.83053V9.16227"
+};
 
 export default function Login() {
   const { login } = useUser();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState<number | null>(null);
-  const [usuarios, setUsuarios] = useState<UsuarioDB[]>([]);
-  const [fetching, setFetching] = useState(true);
+  const [dni, setDni] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    setFetching(true);
-    fetch(`${API}/admin/usuarios`)
-      .then(r => r.json())
-      .then(data => { setUsuarios(Array.isArray(data) ? data : []); setError(''); })
-      .catch(() => setError('No se pudo conectar con el servidor'))
-      .finally(() => setFetching(false));
-  }, []);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  const handleLogin = (u: UsuarioDB) => {
-    setLoading(u.id);
-    const initials = (u.nombre[0] + (u.apellido?.[0] ?? '')).toUpperCase();
-    const sesion: UsuarioSesion = { ...u, initials };
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dni, password }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Credenciales inválidas');
+      }
+
+      const user = await response.json();
+      const initials = (user.nombre[0] + (user.apellido?.[0] ?? '')).toUpperCase();
+      const sesion: UsuarioSesion = { ...user, initials };
+
       login(sesion);
-      if (u.rol === 'ADMINISTRADOR') navigate('/admin');
-      else if (u.rol === 'PROFESOR')  navigate('/');
-      else                             navigate('/portal');
-    }, 380);
+
+      // Redirección por rol
+      if (user.rol === 'ADMINISTRADOR') navigate('/admin');
+      else if (user.rol === 'PROFESOR') navigate('/');
+      else navigate('/portal');
+      
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'var(--color-surface)', 
-      display: 'flex', 
-      flexDirection: 'column',
-      justifyContent: 'center',
-      padding: '2rem 1.5rem',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* PREMIUM DECORATION */}
-      <div style={{
-        position: 'absolute', top: '-5%', right: '-5%', width: '500px', height: '500px',
-        background: 'radial-gradient(circle, var(--color-secondary-container) 0%, transparent 80%)',
-        opacity: 0.15, zIndex: 0, filter: 'blur(100px)'
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '-10%', left: '-10%', width: '600px', height: '600px',
-        background: 'radial-gradient(circle, var(--color-primary-container) 0%, transparent 80%)',
-        opacity: 0.12, zIndex: 0, filter: 'blur(120px)'
-      }} />
+    <div style={{ height: '100vh', width: '100vw', overflow: 'hidden', position: 'relative', background: 'black', fontFamily: 'Inter, sans-serif' }}>
+      
+      {/* Background Container */}
+      <div className="login-bg-container" style={{ backgroundImage: `url(${loginBg})` }} />
+      <div className="login-overlay" />
 
-      {/* HERO SECTION */}
-      <div className="animate-enter" style={{ position: 'relative', zIndex: 1, textAlign: 'center', marginBottom: '3.5rem' }}>
-        <div style={{ 
-          display: 'inline-flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem',
-          background: 'white', padding: '0.75rem 1.5rem', borderRadius: '1.25rem',
-          boxShadow: '0 8px 24px rgba(29,40,72,0.06)', border: '1px solid var(--color-surface-container-high)'
-        }}>
-          <div style={{ 
-            background: 'var(--grad-primary)', width: '2.75rem', height: '2.75rem', 
-            borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 16px rgba(29,40,72,0.2)'
-          }}>
-            <GraduationCap size={24} color="white" strokeWidth={2.5} />
-          </div>
-          <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.06em' }}>EXITUS</span>
-        </div>
+      {/* Login Form Container */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         
-        <h1 style={{ 
-          margin: 0, fontSize: '2.8rem', fontWeight: 900, color: 'var(--color-primary)', 
-          letterSpacing: '-0.07em', lineHeight: 0.9 
-        }}>
-          Acceso <br/>
-          <span style={{ color: 'var(--color-secondary)' }}>Institucional</span>
-        </h1>
-        <p style={{ 
-          margin: '1.25rem auto 0', color: 'var(--color-on-surface-variant)', 
-          fontSize: '1rem', fontWeight: 600, maxWidth: '300px', lineHeight: 1.4, opacity: 0.8
-        }}>
-          Bienvenido al hub educativo de alto impacto. Selecciona tu perfil.
-        </p>
-      </div>
-
-      {/* ACCESS CARD */}
-      <div className="animate-enter glass-card" style={{ 
-        position: 'relative', zIndex: 1, 
-        padding: '1.75rem', width: '100%', maxWidth: '440px', margin: '0 auto',
-        animationDelay: '0.1s', background: 'rgba(255,255,255,0.7)'
-      }}>
-        
-        {fetching ? (
-          <div style={{ textAlign: 'center', padding: '3.5rem 1rem' }}>
-            <RefreshCw size={36} color="var(--color-primary)" className="spin" style={{ animation: 'spin 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite', opacity: 0.6 }} />
-            <p style={{ marginTop: '1.25rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sincronizando...</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
-        ) : error ? (
-          <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-            <div style={{ background: 'var(--color-error-container)', width: '3.5rem', height: '3.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-              <Shield size={24} color="var(--color-error)" />
-            </div>
-            <p style={{ color: 'var(--color-error)', fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.5rem' }}>Fallo de conexión</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 500, lineHeight: 1.5, marginBottom: '1.5rem' }}>
-              No pudimos establecer contacto con el servidor regional. Por favor, verifica tu conexión.
-            </p>
-            <button onClick={() => window.location.reload()} className="btn btn-primary" style={{ width: '100%', padding: '0.75rem' }}>
-              <RefreshCw size={16} /> Reintentar Acceso
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-            {GRUPOS.map(grupo => {
-              const cfg = ROL_CONFIG[grupo];
-              const Icon = cfg.icon;
-              const usersDeGrupo = usuarios.filter(u => u.rol === grupo);
-              if (usersDeGrupo.length === 0) return null;
-
-              return (
-                <div key={grupo}>
-                  <p style={{ 
-                    margin: '0 0 0.85rem', fontSize: '0.72rem', fontWeight: 900, 
-                    textTransform: 'uppercase', letterSpacing: '0.12em', color: cfg.color,
-                    display: 'flex', alignItems: 'center', gap: '0.5rem'
-                  }}>
-                    <div style={{ width: 12, height: 2, background: cfg.color, borderRadius: 2 }}></div>
-                    {cfg.label}
-                  </p>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {usersDeGrupo.map(u => (
-                      <button
-                        key={u.id}
-                        onClick={() => handleLogin(u)}
-                        disabled={loading !== null}
-                        className="login-item"
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '1.25rem',
-                          background: 'white', border: '1.5px solid var(--color-surface-dim)', 
-                          borderRadius: '1.5rem', padding: '1rem', cursor: 'pointer', 
-                          width: '100%', textAlign: 'left', position: 'relative',
-                          transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                          opacity: loading !== null && loading !== u.id ? 0.4 : 1,
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-                        }}
-                      >
-                        <div style={{
-                          width: '3.2rem', height: '3.2rem', borderRadius: '1.1rem',
-                          background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)',
-                          boxShadow: 'var(--shadow-sm)'
-                        }}>
-                          {(u.nombre[0] + (u.apellido?.[0] ?? '')).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                            {u.nombre} {u.apellido}
-                          </p>
-                          <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-                            {u.email ?? (u.dni ? `DNI: ${u.dni}` : 'Campus Enterprise')}
-                          </p>
-                        </div>
-                        {loading === u.id
-                          ? <Loader2 size={24} color="var(--color-primary)" className="spin" style={{ animation: 'spin 1s linear infinite' }} />
-                          : null
-                        }
-                      </button>
-                    ))}
-                  </div>
+        <div style={{ width: '100%', maxWidth: '420px', padding: '0 1.5rem', animation: 'fadeInSlideUp 0.7s forwards' }}>
+          
+          <div className="login-card-glass">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', padding: '2.5rem' }}>
+              
+              {/* Header */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+                   <div style={{ width: '2.5rem', height: '2.5rem', background: '#EDC620', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(237, 198, 32, 0.3)' }}>
+                      <span style={{ color: 'white', fontWeight: 900, fontSize: '1.25rem', fontStyle: 'italic' }}>E</span>
+                   </div>
+                   <span style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.05em' }}>EXITUS</span>
                 </div>
-              );
-            })}
-
-            {usuarios.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-on-surface-variant)' }}>
-                <Users size={40} style={{ opacity: 0.2, marginBottom: '0.75rem' }} />
-                <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>Base de datos vacía</p>
-                <p style={{ fontSize: '0.75rem', opacity: 0.8 }}>No hay perfiles configurados en este momento.</p>
+                <h1 style={{ margin: 0, color: 'white', fontSize: '1.875rem', fontWeight: 800 }}>Bienvenido</h1>
+                <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>Gestiona tus clubes con alto impacto</p>
               </div>
-            )}
-          </div>
-        )}
 
-        <div style={{ 
-          marginTop: '2rem', borderTop: '1px solid var(--color-surface-container-high)', 
-          paddingTop: '1rem', textAlign: 'center'
-        }}>
-          <p style={{ fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Powered by EXITUS Tech
+              {/* Error Message */}
+              {error && (
+                <div className={`login-error-msg ${error ? 'animate-shake' : ''}`}>
+                  {error}
+                </div>
+              )}
+
+              {/* Form Fields */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                
+                {/* DNI Input */}
+                <div className="login-input-group">
+                  <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', width: '1.25rem', height: '1.25rem', color: 'rgba(255,255,255,0.4)' }}>
+                    <svg fill="none" viewBox="0 0 20 20">
+                      <path d={svgPaths.dni} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+                      <path d={svgPaths.dniLine} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={dni}
+                    onChange={(e) => setDni(e.target.value)}
+                    placeholder="Documento de Identidad (DNI)"
+                    className="login-input"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Password Input */}
+                <div className="login-input-group">
+                  <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', width: '1.25rem', height: '1.25rem', color: 'rgba(255,255,255,0.4)' }}>
+                    <svg fill="none" viewBox="0 0 20 20">
+                      <path d={svgPaths.password} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+                      <path d={svgPaths.passwordLock} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+                    </svg>
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Contraseña"
+                    className="login-input"
+                    style={{ paddingRight: '3rem' }}
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer' }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                {/* Remember Me & Recover */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>Recordarme</span>
+                  </label>
+                  <button type="button" style={{ background: 'none', border: 'none', color: '#EDC620', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="login-btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginTop: '0.5rem' }}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    "Iniciar sesión"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <p style={{ marginTop: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 700 }}>
+            © 2026 EXITUS • Innovación Educativa
           </p>
         </div>
       </div>
-
-      <style>{`
-        .login-item:active { transform: scale(0.97); }
-        @media (hover: hover) {
-          .login-item:hover { 
-            border-color: var(--color-primary);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.06);
-            transform: translateY(-2px);
-          }
-        }
-      `}</style>
     </div>
   );
 }

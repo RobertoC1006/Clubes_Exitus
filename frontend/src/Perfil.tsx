@@ -1,4 +1,4 @@
-import { LogOut, ChevronRight, Shield, Bell, Mail, BookOpen } from 'lucide-react';
+import { LogOut, ChevronRight, Shield, Bell, BookOpen, User, Fingerprint } from 'lucide-react';
 import { useUser } from './UserContext';
 import './index.css';
 
@@ -18,14 +18,18 @@ function MenuItem({ icon: Icon, label, sublabel, danger, onClick }: MenuItemProp
       padding: '0.9rem 1rem', borderRadius: '0.75rem', textAlign: 'left',
       transition: 'background 0.15s'
     }}>
-      <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.65rem', background: danger ? 'var(--color-error-container)' : 'var(--color-surface-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={18} color={danger ? 'var(--color-error)' : 'var(--color-primary)'} strokeWidth={2} />
+      <div style={{ 
+        width: '2.4rem', height: '2.4rem', borderRadius: '0.8rem', 
+        background: danger ? 'rgba(211, 47, 47, 0.1)' : 'var(--color-surface-container)', 
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 
+      }}>
+        <Icon size={18} color={danger ? 'var(--color-error)' : 'var(--color-primary)'} strokeWidth={2.5} />
       </div>
       <div style={{ flex: 1 }}>
         <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: danger ? 'var(--color-error)' : 'var(--color-primary)' }}>{label}</p>
         {sublabel && <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>{sublabel}</p>}
       </div>
-      <ChevronRight size={16} color="var(--color-outline)" />
+      <ChevronRight size={16} color="var(--color-outline-variant)" />
     </button>
   );
 }
@@ -42,86 +46,95 @@ export default function Perfil() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
+    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem', maxWidth: '500px', margin: '0 auto' }}>
 
-      {/* TARJETA DE PERFIL */}
+      {/* TARJETA DE PERFIL PREMIUM */}
       <section style={{ marginBottom: '2rem' }}>
         <div style={{
-          background: 'var(--color-primary-container)', borderRadius: '1.5rem',
-          padding: '1.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem',
-          boxShadow: '0 8px 32px rgba(29,40,72,0.25)'
+          background: 'var(--grad-primary)', borderRadius: '2rem',
+          padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem',
+          boxShadow: '0 20px 40px rgba(29,40,72,0.25)', border: '1px solid rgba(255,255,255,0.1)',
+          position: 'relative', overflow: 'hidden'
         }}>
-          {/* Avatar */}
-          <div style={{ width: '5rem', height: '5rem', borderRadius: '1.5rem', background: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 900, fontSize: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
+          {/* Decoración de fondo */}
+          <div style={{ position: 'absolute', top: '-10%', right: '-10%', opacity: 0.1 }}>
+             <User size={150} color="white" />
+          </div>
+
+          {/* Avatar Initials */}
+          <div style={{ 
+            width: '5.5rem', height: '5.5rem', borderRadius: '1.75rem', 
+            background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)',
+            color: 'white', fontWeight: 900, fontSize: '2rem', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            boxShadow: '0 8px 16px rgba(0,0,0,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+            zIndex: 1
+          }}>
             {usuario.initials}
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'white', letterSpacing: '-0.03em' }}>
+
+          <div style={{ textAlign: 'center', zIndex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.03em' }}>
               {usuario.nombre} {usuario.apellido}
             </h2>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-on-primary-container)', fontWeight: 600 }}>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {rolLabel[usuario.rol]}
             </p>
           </div>
-          {/* Badge de ID (Simulado si no hay DNI) */}
-          <span style={{ background: 'rgba(255,255,255,0.15)', color: 'white', padding: '0.3rem 0.9rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em' }}>
-            USUARIO ID: #{usuario.id}
-          </span>
         </div>
       </section>
 
-      {/* INFO PERSONAL */}
+      {/* INFORMACIÓN DE IDENTIDAD */}
       <section style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-on-surface-variant)' }}>
-          Información Personal
+        <h3 style={{ margin: '0 0 0.75rem 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)' }}>
+          Datos de acceso
         </h3>
-        <div style={{ background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <Mail size={16} color="var(--color-outline)" />
+        <div className="bento-card" style={{ background: 'white', border: '1px solid var(--color-surface-container-high)', borderRadius: '1.5rem', padding: '0.5rem' }}>
+          <div style={{ padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.75rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <Fingerprint size={20} color="var(--color-primary)" strokeWidth={2.5} />
+            </div>
             <div>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Correo Institucional</p>
-              <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{usuario.email}</p>
+              <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 800, textTransform: 'uppercase' }}>DNI / Usuario</p>
+              <p style={{ margin: 0, fontWeight: 900, color: 'var(--color-primary)', fontSize: '1.1rem' }}>{usuario.dni}</p>
             </div>
           </div>
+          
           <div style={{ height: '1px', background: 'var(--color-surface-container-high)', margin: '0 1rem' }} />
-          <div style={{ padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <BookOpen size={16} color="var(--color-outline)" />
+          
+          <div style={{ padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ width: '2.25rem', height: '2.25rem', borderRadius: '0.75rem', background: 'var(--color-secondary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <Shield size={20} color="var(--color-on-secondary-container)" strokeWidth={2.5} />
+            </div>
             <div>
-              <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Rol en Plataforma</p>
-              <p style={{ margin: 0, fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{usuario.rol}</p>
+              <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 800, textTransform: 'uppercase' }}>Rol del sistema</p>
+              <p style={{ margin: 0, fontWeight: 900, color: 'var(--color-primary)', fontSize: '1.1rem' }}>{usuario.rol}</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* MENÚ DE OPCIONES */}
-      <section style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-on-surface-variant)' }}>
-          Configuración
+      <section style={{ marginBottom: '2rem' }}>
+        <h3 style={{ margin: '0 0 0.75rem 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)' }}>
+          Preferencias
         </h3>
-        <div style={{ background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem' }}>
-          <MenuItem icon={Bell}         label="Notificaciones"  sublabel="Gestionar alertas y avisos" />
+        <div style={{ background: 'white', borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)', padding: '0.5rem' }}>
+          <MenuItem icon={Bell} label="Notificaciones" sublabel="Gestionar alertas del sistema" />
           <div style={{ height: '1px', background: 'var(--color-surface-container-high)', margin: '0 1rem' }} />
-          <MenuItem icon={Shield}       label="Privacidad"      sublabel="Tus datos y permisos"       />
-        </div>
-      </section>
-
-      {/* CERRAR SESIÓN */}
-      <section>
-        <div style={{ background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem' }}>
-          <MenuItem
-            icon={LogOut}
-            label="Cerrar Sesión"
-            sublabel="Salir de la cuenta de forma segura"
-            danger
+          <MenuItem icon={LogOut} label="Cerrar Sesión" sublabel="Salir de la cuenta de forma segura" danger 
             onClick={() => {
-              if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
+              if (window.confirm('¿Deseas cerrar tu sesión actual?')) {
                 logout();
               }
-            }}
+            }} 
           />
         </div>
       </section>
+
+      <p style={{ textAlign: 'center', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, opacity: 0.6 }}>
+        PLATAFORMA CLUBES EXITUS • V2.5 
+      </p>
 
     </div>
   );
