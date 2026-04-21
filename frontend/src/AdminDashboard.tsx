@@ -1729,7 +1729,7 @@ export default function AdminDashboard() {
       )}
 
       {/* ── MODAL PAGOS CLUB ─────────────────────────────── */}
-      {modalPagosClub !== false && (
+      {modalPagosClub && (
         <PagosClubModal
           clubId={modalPagosClub.id}
           clubNombre={modalPagosClub.nombre}
