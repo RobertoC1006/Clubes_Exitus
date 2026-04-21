@@ -10,7 +10,9 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './index.css';
 
-const API = 'http://localhost:3000';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 // ── Tipos ──────────────────────────────────────────────────────
 interface Metricas {

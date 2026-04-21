@@ -3,6 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Search, Check, X, ArrowLeft, Loader2, StickyNote, Clock, Users, Calendar, Save, ShieldAlert } from 'lucide-react';
 import { useUser } from './UserContext';
 import './index.css';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 export default function DetalleSesion() {
   const navigate = useNavigate();
@@ -16,7 +19,7 @@ export default function DetalleSesion() {
   const [tema, setTema] = useState('');
 
   useEffect(() => {
-    fetch(`http://localhost:3000/sesiones/${sesionId}`)
+    fetch(`${API}/sesiones/${sesionId}`)
       .then(res => res.json())
       .then(data => {
         setSesion(data);
@@ -66,7 +69,7 @@ export default function DetalleSesion() {
     }));
 
     try {
-      await fetch(`http://localhost:3000/sesiones/${sesionId}/asistencia`, {
+      await fetch(`${API}/sesiones/${sesionId}/asistencia`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ asistencias: payloadAsistencias, tema })

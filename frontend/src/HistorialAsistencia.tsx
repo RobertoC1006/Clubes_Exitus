@@ -3,6 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, Users, Loader2, ChevronRight, Clock, Trophy } from 'lucide-react';
 import { useUser } from './UserContext';
 import './index.css';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 export default function HistorialAsistencia() {
   const navigate = useNavigate();
@@ -19,8 +22,8 @@ export default function HistorialAsistencia() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`http://localhost:3000/sesiones?clubId=${clubId}`).then(res => res.json()),
-      fetch(`http://localhost:3000/admin/clubes`).then(res => res.json()).then(clubes => 
+      fetch(`${API}/sesiones?clubId=${clubId}`).then(res => res.json()),
+      fetch(`${API}/admin/clubes`).then(res => res.json()).then(clubes => 
         clubes.find((c: any) => c.id === Number(clubId))
       ).catch(() => null)
     ])

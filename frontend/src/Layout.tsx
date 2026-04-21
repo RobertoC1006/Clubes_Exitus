@@ -3,7 +3,9 @@ import { LayoutDashboard, CheckSquare, CreditCard, User, GraduationCap, BarChart
 import { useUser } from './UserContext';
 import { useState, useEffect, useRef } from 'react';
 
-const API = 'http://localhost:3000';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();

@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import { useUser } from './UserContext';
 import './index.css';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 // ── Helpers ────────────────────────────────────────────────────
 function formatHorarioShort(horario: any): string {
@@ -66,8 +69,8 @@ export default function Dashboard() {
     
     // 🔹 Profesor ve SOLO sus clubes. Admin ve todos.
     const url = usuario.rol === 'ADMINISTRADOR'
-      ? 'http://localhost:3000/clubes'
-      : `http://localhost:3000/clubes/mis-clubes/${usuario.id}`;
+      ? `${API}/clubes`
+      : `${API}/clubes/mis-clubes/${usuario.id}`;
 
     fetch(url)
       .then(res => res.json())
@@ -83,7 +86,7 @@ export default function Dashboard() {
 
     // 🔹 Cargar métricas del dashboard
     setLoadingDashboard(true);
-    fetch(`http://localhost:3000/clubes/profesor-dashboard/${usuario.id}`)
+    fetch(`${API}/clubes/profesor-dashboard/${usuario.id}`)
       .then(res => res.json())
       .then(data => {
         setMetricas(data.metricas);

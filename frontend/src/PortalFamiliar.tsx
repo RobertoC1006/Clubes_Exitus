@@ -4,7 +4,9 @@ import { useUser } from './UserContext';
 import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock, History, RefreshCw, ChevronRight } from 'lucide-react';
 import './index.css';
 
-const API = 'http://localhost:3000';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 const CALENDAR_ITEMS_PER_PAGE = 5;
 

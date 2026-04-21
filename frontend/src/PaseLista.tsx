@@ -4,6 +4,9 @@ import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users,
 import { db } from './db';
 import { useUser } from './UserContext';
 import './index.css';
+import { API_BASE_URL } from './config';
+
+const API = API_BASE_URL;
 
 export default function PaseLista() {
   const navigate = useNavigate();
@@ -34,7 +37,7 @@ export default function PaseLista() {
 
   // 🔹 Traer Alumnos Reales del Club
   useEffect(() => {
-    fetch(`http://localhost:3000/clubes/${clubId}/alumnos`)
+    fetch(`${API}/clubes/${clubId}/alumnos`)
       .then(res => res.json())
       .then(data => {
         const list = Array.isArray(data) ? data : [];
@@ -89,14 +92,14 @@ export default function PaseLista() {
 
     if (navigator.onLine) {
       try {
-        const reqSesion = await fetch(`http://localhost:3000/sesiones`, {
+        const reqSesion = await fetch(`${API}/sesiones`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ clubId: Number(clubId), fecha: new Date().toISOString() })
         });
         const sesion = await reqSesion.json();
         
-        await fetch(`http://localhost:3000/sesiones/${sesion.id}/asistencia`, {
+        await fetch(`${API}/sesiones/${sesion.id}/asistencia`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ asistencias: payloadAsistencias })
