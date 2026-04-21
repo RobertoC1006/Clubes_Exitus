@@ -13,7 +13,7 @@ export class AdminService {
   // MÉTRICAS GLOBALES (Dashboard)
   // ============================================================
   async getMetricas() {
-    const [totalAlumnos, totalClubes, totalProfesores, todasAsistencias, alertas] =
+    const [totalAlumnos, totalClubes, totalProfesores, todasAsistencias, alertasBase] =
       await Promise.all([
         this.prisma.alumno.count(),
         this.prisma.club.count(),
@@ -42,7 +42,7 @@ export class AdminService {
 
     // Enriquecer alertas con datos del alumno
     const alertasConNombre = await Promise.all(
-      alertas.map(async (a) => {
+      alertasBase.map(async (a) => {
         const alumno = await this.prisma.alumno.findUnique({
           where: { id: a.alumnoId },
           include: { inscripciones: { include: { club: true }, take: 1 } },
@@ -56,7 +56,7 @@ export class AdminService {
     );
 
     // Clubes con métricas de asistencia
-    const clubes = await this.prisma.club.findMany({
+    const clubesRaw = await this.prisma.club.findMany({
       include: {
         profesor: { select: { nombre: true, apellido: true } },
         _count: { select: { inscripciones: true } },
@@ -68,7 +68,7 @@ export class AdminService {
       },
     });
 
-    const clubesConAsistencia = clubes.map((club) => {
+    const clubesConAsistencia = clubesRaw.map((club) => {
       const todasLasAsistencias = club.sesiones.flatMap((s) => s.asistencias);
       const pres = todasLasAsistencias.filter((a) => a.estado === 'PRESENTE').length;
       const tot = todasLasAsistencias.length;
@@ -83,6 +83,51 @@ export class AdminService {
       };
     });
 
+    // RANKINGS DE ASISTENCIA (Rankings de Alumnos por Estado)
+    const [asistenciasRank, ausenciasRank, justificadosRank] = await Promise.all([
+      this.prisma.asistencia.groupBy({
+        by: ['alumnoId'],
+        where: { estado: 'PRESENTE' },
+        _count: { alumnoId: true },
+        orderBy: { _count: { alumnoId: 'desc' } },
+        take: 10,
+      }),
+      this.prisma.asistencia.groupBy({
+        by: ['alumnoId'],
+        where: { estado: 'AUSENTE' },
+        _count: { alumnoId: true },
+        orderBy: { _count: { alumnoId: 'desc' } },
+        take: 10,
+      }),
+      this.prisma.asistencia.groupBy({
+        by: ['alumnoId'],
+        where: { estado: 'JUSTIFICADO' },
+        _count: { alumnoId: true },
+        orderBy: { _count: { alumnoId: 'desc' } },
+        take: 10,
+      }),
+    ]);
+
+    const getRankData = async (rank: any[]) => {
+      return Promise.all(
+        rank.map(async (r) => {
+          const alumno = await this.prisma.alumno.findUnique({
+            where: { id: r.alumnoId },
+            include: { inscripciones: { include: { club: true }, take: 1 } },
+          });
+          return {
+            alumno: `${alumno?.nombre} ${alumno?.apellido}`,
+            club: alumno?.inscripciones[0]?.club?.nombre ?? 'Sin club',
+            cuenta: r._count.alumnoId,
+          };
+        }),
+      );
+    };
+
+    const rankingAsistencias = await getRankData(asistenciasRank);
+    const rankingAusencias = await getRankData(ausenciasRank);
+    const rankingJustificaciones = await getRankData(justificadosRank);
+
     return {
       totalAlumnos,
       totalClubes,
@@ -90,6 +135,9 @@ export class AdminService {
       asistenciaGlobal,
       clubes: clubesConAsistencia,
       alertas: alertasConNombre,
+      rankingAsistencias,
+      rankingAusencias,
+      rankingJustificaciones,
     };
   }
 

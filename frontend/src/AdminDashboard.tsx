@@ -18,6 +18,9 @@ interface Metricas {
   totalClubes: number;
   totalProfesores: number;
   asistenciaGlobal: number;
+  rankingAsistencias: { alumno: string; club: string; cuenta: number }[];
+  rankingAusencias: { alumno: string; club: string; cuenta: number }[];
+  rankingJustificaciones: { alumno: string; club: string; cuenta: number }[];
   clubes: ClubMetrica[];
   alertas: { alumno: string; club: string; faltas: number }[];
 }
@@ -244,6 +247,11 @@ export default function AdminDashboard() {
   const [currentPagePagos, setCurrentPagePagos] = useState(1);
   const [currentPageReportes, setCurrentPageReportes] = useState(1);
   const [currentPageRanking, setCurrentPageRanking] = useState(1);
+  
+  // Retención Modal state
+  const [isRetencionModalOpen, setIsRetencionModalOpen] = useState(false);
+  const [rankingSubTab, setRankingSubTab] = useState<'asistencias' | 'ausencias' | 'justificaciones'>('asistencias');
+  const [currentPageRetencion, setCurrentPageRetencion] = useState(1);
   const [pagesUsuarios, setPagesUsuarios] = useState<Record<string, number>>({
     ADMINISTRADOR: 1,
     PROFESOR: 1,
@@ -481,17 +489,30 @@ export default function AdminDashboard() {
                 }} />
               </div>
 
-              <div className="bento-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-                  <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <TrendingUp size={16} color="var(--color-success)" />
+              <div className="bento-card"
+                onClick={() => setIsRetencionModalOpen(true)}
+                style={{ 
+                  cursor: 'pointer', 
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TrendingUp size={16} color="var(--color-success)" />
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
                 </div>
                 <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas.asistenciaGlobal}%</p>
                 <div style={{ marginTop: '1rem', height: '8px', borderRadius: '99px', background: 'var(--color-surface-dim)', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${metricas.asistenciaGlobal}%`, background: 'var(--color-success)', borderRadius: '99px', transition: 'width 1s ease' }} />
                 </div>
+                <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver Rankings</p>
               </div>
 
               <div className="bento-card">
@@ -506,41 +527,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* ALERTAS */}
-            {metricas.alertas.length > 0 && (
-              <section style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-error)', animation: 'pulse 2s infinite' }}></div>
-                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Atención Prioritaria</h3>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-error)' }}>{metricas.alertas.length} incidencias</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {metricas.alertas.slice(0, 5).map((a, i) => (
-                    <div key={i} className="bento-card" style={{
-                      padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(211, 47, 47, 0.1)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                        <div style={{ width: '2.4rem', height: '2.4rem', borderRadius: '50%', background: 'var(--color-error-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <AlertTriangle size={16} color="var(--color-error)" />
-                        </div>
-                        <div>
-                          <p style={{ margin: 0, fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-primary)' }}>{a.alumno}</p>
-                          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{a.club}</p>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-error)' }}>{a.faltas}</span>
-                        <span style={{ fontSize: '0.55rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>FALTAS</span>
-                      </div>
-                    </div>
-                  ))}
-                  <style>{`@keyframes pulse { 0% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0.5; transform: scale(1); } }`}</style>
-                </div>
-              </section>
-            )}
 
             {/* RANKING */}
             <section>
@@ -1252,6 +1238,135 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* ── ALUMNO MODAL ─────────────────────────────────── */}
+      {modalAlumno !== false && (
+        <AlumnoModal
+          alumno={modalAlumno as Partial<Alumno>}
+          saving={savingPersona}
+          clubes={metricas?.clubes ?? []}
+          usuarios={usuarios}
+          onSave={handleSaveAlumno}
+          onClose={() => setModalAlumno(false)}
+        />
+      )}
+
+      {/* ── MODAL RETENCIÓN ─────────────────────────────── */}
+      {isRetencionModalOpen && metricas && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsRetencionModalOpen(false)}>
+          <div style={{
+            background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+            width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)'
+          }} onClick={e => e.stopPropagation()}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>
+                  Análisis de <span style={{ color: 'var(--color-secondary)' }}>Retención</span>
+                </h3>
+                <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
+                  Compromiso, asistencia y tendencias de los alumnos.
+                </p>
+              </div>
+              <button onClick={() => setIsRetencionModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1.25rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={24} color="var(--color-primary)" />
+              </button>
+            </div>
+
+            {/* Centered Pill Switcher for Rankings */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
+              <div style={{ 
+                display: 'flex', background: 'var(--color-surface-container-low)', 
+                padding: '0.3rem', borderRadius: '1.5rem', gap: '0.2rem',
+                border: '1px solid var(--color-surface-container-high)',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+              }}>
+                {[
+                  { id: 'asistencias', label: 'Asistencias', color: 'var(--color-success)', icon: <Award size={16} /> },
+                  { id: 'ausencias', label: 'Ausencias', color: 'var(--color-error)', icon: <AlertTriangle size={16} /> },
+                  { id: 'justificaciones', label: 'Justificaciones', color: '#EAB308', icon: <History size={16} /> }
+                ].map(st => (
+                  <button 
+                    key={st.id} 
+                    onClick={() => { setRankingSubTab(st.id as any); setCurrentPageRetencion(1); }}
+                    title={st.label}
+                    style={{
+                      padding: '1rem', borderRadius: '1.2rem', border: 'none', cursor: 'pointer',
+                      background: rankingSubTab === st.id ? st.color : 'transparent',
+                      color: rankingSubTab === st.id ? 'white' : 'var(--color-outline)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: rankingSubTab === st.id ? `0 4px 12px ${st.color}44` : 'none',
+                      width: '3.5rem', height: '3.5rem'
+                    }}
+                  >
+                    {st.icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {(() => {
+                const dataKey = rankingSubTab === 'asistencias' ? 'rankingAsistencias' : 
+                              rankingSubTab === 'ausencias' ? 'rankingAusencias' : 'rankingJustificaciones';
+                const list = metricas[dataKey] || [];
+                const paginated = list.slice((currentPageRetencion - 1) * 5, currentPageRetencion * 5);
+                const totalPages = Math.ceil(list.length / 5);
+                const currentThemeColor = rankingSubTab === 'asistencias' ? 'var(--color-success)' : 
+                                        rankingSubTab === 'ausencias' ? 'var(--color-error)' : '#EAB308';
+
+                if (list.length === 0) return (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--color-surface-container-lowest)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-surface-container-high)' }}>
+                    <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>No hay datos suficientes para generar este ranking.</p>
+                  </div>
+                );
+
+                return (
+                  <>
+                    {paginated.map((item, i) => (
+                      <div key={i} className="ranking-item" style={{ 
+                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white', 
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                        border: '1px solid var(--color-surface-container-low)',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
+                      }}>
+                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                          <div style={{ 
+                            width: '2.8rem', height: '2.8rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', 
+                            color: currentThemeColor, border: `2px solid ${currentThemeColor}11`
+                          }}>{(currentPageRetencion - 1) * 5 + i + 1}</div>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{item.alumno}</p>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{item.club}</p>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', background: 'var(--color-surface-dim)', padding: '0.6rem 1.2rem', borderRadius: '1.2rem', border: '1px solid var(--color-surface-container-high)' }}>
+                          <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: currentThemeColor, letterSpacing: '-0.03em' }}>{item.cuenta}</p>
+                          <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registros</p>
+                        </div>
+                      </div>
+                    ))}
+                    <style>{`
+                      .ranking-item:hover {
+                        transform: translateX(5px);
+                        border-color: ${currentThemeColor}33;
+                        background: var(--color-surface-container-lowest);
+                      }
+                    `}</style>
+                    <Pagination current={currentPageRetencion} total={totalPages} onChange={setCurrentPageRetencion} />
+                  </>
+                );
+              })()}
+            </div>
+
+          </div>
+        </div>
+      )}
+
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
       {modalAlumno !== false && (
