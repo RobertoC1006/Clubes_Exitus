@@ -29,7 +29,13 @@ interface ClubMetrica {
   profesorId: number; profesor: string; inscritos: number; asistencia: number;
   horario: any | null;
 }
-interface Profesor { id: number; nombre: string; apellido: string; email: string }
+interface Profesor { 
+  id: number; 
+  nombre: string; 
+  apellido: string; 
+  email: string; 
+  clubes?: { id: number; nombre: string; horario: any }[];
+}
 interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; password?: string }
 interface Alumno {
   id: number; nombre: string; apellido: string; grado: string;
@@ -252,6 +258,8 @@ export default function AdminDashboard() {
   const [isRetencionModalOpen, setIsRetencionModalOpen] = useState(false);
   const [rankingSubTab, setRankingSubTab] = useState<'asistencias' | 'ausencias' | 'justificaciones'>('asistencias');
   const [currentPageRetencion, setCurrentPageRetencion] = useState(1);
+  const [isProfesoresModalOpen, setIsProfesoresModalOpen] = useState(false);
+  const [currentPageProfesores, setCurrentPageProfesores] = useState(1);
   const [pagesUsuarios, setPagesUsuarios] = useState<Record<string, number>>({
     ADMINISTRADOR: 1,
     PROFESOR: 1,
@@ -508,22 +516,36 @@ export default function AdminDashboard() {
                     <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
                   </div>
                 </div>
-                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas.asistenciaGlobal}%</p>
+                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas?.asistenciaGlobal ?? 0}%</p>
                 <div style={{ marginTop: '1rem', height: '8px', borderRadius: '99px', background: 'var(--color-surface-dim)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${metricas.asistenciaGlobal}%`, background: 'var(--color-success)', borderRadius: '99px', transition: 'width 1s ease' }} />
+                  <div style={{ height: '100%', width: `${metricas?.asistenciaGlobal ?? 0}%`, background: 'var(--color-success)', borderRadius: '99px', transition: 'width 1s ease' }} />
                 </div>
                 <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver Rankings</p>
               </div>
 
-              <div className="bento-card">
+              <div className="bento-card"
+                onClick={async () => {
+                  if (profesores.length === 0) await fetchProfesores();
+                  setIsProfesoresModalOpen(true);
+                }}
+                style={{ 
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
                   <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Award size={16} color="var(--color-primary)" />
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Expertos</p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Profesores</p>
                 </div>
-                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas.totalProfesores}</p>
-                <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700 }}>Docentes Exitus</p>
+                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas?.totalProfesores ?? 0}</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700 }}>Personal Activo</p>
+                <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver staff completo</p>
               </div>
             </div>
 
@@ -1239,6 +1261,101 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* MODAL: PROFESORES */}
+      {isProfesoresModalOpen && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+          padding: '1.5rem', animation: 'fadeIn 0.3s'
+        }}>
+          <div className="modal-content animate-pop" style={{
+            background: 'var(--color-surface)', width: '100%', maxWidth: '550px',
+            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
+          }}>
+            <button onClick={() => setIsProfesoresModalOpen(false)} style={{
+              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-container-high)',
+              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+            }}>
+              <X size={20} color="var(--color-primary)" />
+            </button>
+
+            <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
+              <div style={{ 
+                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-primary-container)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
+                boxShadow: '0 8px 16px rgba(var(--color-primary-rgb), 0.2)'
+              }}>
+                <Award size={24} color="var(--color-primary)" />
+              </div>
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Staff Docente</h2>
+              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Gestión de Expertos</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {profesores.length > 0 ? (
+                <>
+                  {profesores
+                    .slice((currentPageProfesores - 1) * 5, currentPageProfesores * 5)
+                    .map((prof, i) => (
+                      <div key={prof.id} style={{ 
+                        padding: '1.5rem', borderRadius: '1.75rem', background: 'white', 
+                        border: '1px solid var(--color-surface-container-low)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                          <div style={{ 
+                            width: '3.2rem', height: '3.2rem', borderRadius: '1.1rem', background: 'var(--color-surface-dim)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem', color: 'var(--color-primary)'
+                          }}>
+                            {prof.nombre.charAt(0)}{prof.apellido.charAt(0)}
+                          </div>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>{prof.email || 'Sin correo registrado'}</p>
+                          </div>
+                        </div>
+                        
+                        <div style={{ 
+                          background: 'var(--color-surface-container-lowest)', padding: '1rem 1.25rem', 
+                          borderRadius: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                          border: '1px solid var(--color-surface-container-low)'
+                        }}>
+                          {prof.clubes && prof.clubes.length > 0 ? prof.clubes.map((c: any) => (
+                            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-secondary)' }}></div>
+                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
+                              </div>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: '1px solid var(--color-surface-container-high)' }}>
+                                {formatHorarioShort(c.horario)}
+                              </span>
+                            </div>
+                          )) : (
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontStyle: 'italic', textAlign: 'center' }}>Sin clubes asignados</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  <Pagination 
+                    current={currentPageProfesores} 
+                    total={Math.ceil(profesores.length / 5)} 
+                    onChange={setCurrentPageProfesores} 
+                  />
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                  <Users size={48} color="var(--color-surface-container-high)" style={{ marginBottom: '1rem' }} />
+                  <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>Cargando staff docente...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
       {modalAlumno !== false && (
         <AlumnoModal
@@ -1508,29 +1625,6 @@ function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
   );
 }
 
-// ── Helpers ────────────────────────────────────────────────────
-function formatHorarioShort(horario: any): string {
-  if (!horario) return '';
-  const dias = Object.keys(horario);
-  if (dias.length === 0) return '';
-
-  if (dias.length === 1) {
-    const d = dias[0];
-    return `${d.slice(0, 3)} ${horario[d].start}-${horario[d].end}`;
-  }
-
-  // Si todos tienen la misma hora, agrupar: "Lun, Mié 16:00-17:30"
-  const times = dias.map(d => `${horario[d].start}-${horario[d].end}`);
-  const allSame = times.every(t => t === times[0]);
-
-  if (allSame) {
-    const diasStr = dias.map(d => d.slice(0, 3)).join(', ');
-    return `${diasStr} ${times[0]}`;
-  }
-
-  // Si son diferentes, mostrar el primero y "..." o algo similar
-  return `${dias[0].slice(0, 3)} ${horario[dias[0]].start}+`;
-}
 
 // ── Sub-componentes ────────────────────────────────────────────
 function Pill({ icon, label, color, bg }: { icon: React.ReactNode; label: string; color?: string; bg?: string }) {
@@ -1833,3 +1927,14 @@ function AlumnoModal({
   );
 }
 
+
+// ── Utilidades ──────────────────────────────────────────────
+function formatHorarioShort(horario: any): string {
+  if (!horario || typeof horario !== 'object') return 'Horario por definir';
+  const dias = Object.entries(horario);
+  if (dias.length === 0) return 'Sin horario';
+  
+  return dias.map(([dia, config]: [string, any]) => {
+    return `${dia.substring(0, 2)}: ${config.start}-${config.end}`;
+  }).join(' | ');
+}

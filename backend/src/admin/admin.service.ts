@@ -190,7 +190,15 @@ export class AdminService {
   async getProfesores() {
     return this.prisma.usuario.findMany({
       where: { rol: 'PROFESOR' },
-      select: { id: true, nombre: true, apellido: true, email: true },
+      include: {
+        clubes: {
+          select: {
+            id: true,
+            nombre: true,
+            horario: true,
+          },
+        },
+      },
       orderBy: { nombre: 'asc' },
     });
   }
