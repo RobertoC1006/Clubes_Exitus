@@ -266,6 +266,13 @@ export default function AdminDashboard() {
     PROFESOR: 1,
     PADRE: 1
   });
+  
+  // Sesiones Modal state
+  const [modalSesiones, setModalSesiones] = useState<any | null>(null);
+  const [sesionesClub, setSesionesClub] = useState<any[]>([]);
+  const [loadingSesiones, setLoadingSesiones] = useState(false);
+  const [currentPageSesiones, setCurrentPageSesiones] = useState(1);
+  const [expandedSesionId, setExpandedSesionId] = useState<number | null>(null);
 
   // Reset pagination when search or tab changes
   useEffect(() => {
@@ -306,6 +313,21 @@ export default function AdminDashboard() {
       setAlumnos(await res.json());
     } catch { /* silently fail */ }
   }, []);
+
+  const fetchSesiones = async (clubId: number) => {
+    setLoadingSesiones(true);
+    try {
+      const res = await fetch(`${API}/admin/clubes/${clubId}/sesiones`);
+      if (!res.ok) throw new Error();
+      setSesionesClub(await res.json());
+      setCurrentPageSesiones(1);
+      setExpandedSesionId(null);
+    } catch {
+      alert('Error al cargar sesiones');
+    } finally {
+      setLoadingSesiones(false);
+    }
+  };
 
   const fetchPagos = useCallback(async () => {
     try {
@@ -653,7 +675,10 @@ export default function AdminDashboard() {
                           style={{ ...iconBtnStyle('var(--color-primary-fixed)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
                           <CreditCard size={16} />
                         </button>
-                        <button onClick={() => navigate(`/clubes/${club.id}/historial`)}
+                        <button onClick={() => {
+                            setModalSesiones(club);
+                            fetchSesiones(club.id);
+                          }}
                           title="Ver Asistencia"
                           style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
                           <History size={16} />
@@ -1441,6 +1466,121 @@ export default function AdminDashboard() {
                 
                 <Pagination current={currentPageRanking} total={Math.ceil(clubesRanking.length / ITEMS_PER_PAGE)} onChange={setCurrentPageRanking} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: HISTORIAL DE SESIONES */}
+      {modalSesiones && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+          padding: '1.5rem', animation: 'fadeIn 0.3s'
+        }}>
+          <div className="modal-content animate-pop" style={{
+            background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
+            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflowY: 'auto', maxHeight: '90vh'
+          }}>
+            <button onClick={() => setModalSesiones(null)} style={{
+              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-dim)',
+              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+            }}>
+              <X size={20} color="var(--color-primary)" />
+            </button>
+
+            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+              <div style={{ 
+                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-secondary-container)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
+                boxShadow: '0 8px 16px rgba(var(--color-secondary-rgb), 0.2)'
+              }}>
+                <History size={24} color="var(--color-secondary)" />
+              </div>
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Historial</h2>
+              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>{modalSesiones.nombre}</p>
+            </div>
+
+            {loadingSesiones ? (
+              <div style={{ padding: '3rem', textAlign: 'center' }}>
+                <div className="animate-spin" style={{ width: '2.5rem', height: '2.5rem', border: '3px solid var(--color-surface-dim)', borderTopColor: 'var(--color-secondary)', borderRadius: '50%', margin: '0 auto' }}></div>
+              </div>
+            ) : sesionesClub.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-outline)' }}>
+                 No hay sesiones registradas aún.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {sesionesClub
+                  .slice((currentPageSesiones - 1) * ITEMS_PER_PAGE, currentPageSesiones * ITEMS_PER_PAGE)
+                  .map((sesion) => {
+                    const pres = sesion.asistencias.filter((a: any) => a.estado === 'PRESENTE').length;
+                    const aus = sesion.asistencias.filter((a: any) => a.estado === 'AUSENTE').length;
+                    const jus = sesion.asistencias.filter((a: any) => a.estado === 'JUSTIFICADO').length;
+                    const total = sesion.asistencias.length;
+                    const isExpanded = expandedSesionId === sesion.id;
+
+                    return (
+                      <div key={sesion.id} style={{
+                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white', 
+                        border: '1px solid var(--color-surface-container-low)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                              {new Date(sesion.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                            </p>
+                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                              {sesion.tema || 'Sin tema específico'}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
+                              <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{pres}</span>
+                              <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{aus}</span>
+                              <span title="Justificados" style={{ background: 'var(--color-warning-container)', color: 'var(--color-warning)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{jus}</span>
+                            </div>
+                            <button 
+                              onClick={() => setExpandedSesionId(isExpanded ? null : sesion.id)}
+                              style={{ border: 'none', background: 'none', color: 'var(--color-secondary)', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
+                            >
+                              {isExpanded ? 'OCULTAR DETALLE ↑' : 'VER ASISTENCIA ↓'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
+                            {sesion.asistencias.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {sesion.asistencias.map((a: any) => (
+                                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{a.alumno.nombre} {a.alumno.apellido}</span>
+                                    <span style={{ 
+                                      padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
+                                      background: a.estado === 'PRESENTE' ? 'var(--color-success-container)' : a.estado === 'AUSENTE' ? 'var(--color-error-container)' : 'var(--color-warning-container)',
+                                      color: a.estado === 'PRESENTE' ? 'var(--color-success)' : a.estado === 'AUSENTE' ? 'var(--color-error)' : 'var(--color-warning)'
+                                    }}>
+                                      {a.estado}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', textAlign: 'center' }}>No hay registros en esta sesión.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                
+                <Pagination current={currentPageSesiones} total={Math.ceil(sesionesClub.length / ITEMS_PER_PAGE)} onChange={setCurrentPageSesiones} />
+              </div>
+            )}
           </div>
         </div>
       )}

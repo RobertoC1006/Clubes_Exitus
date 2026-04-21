@@ -386,4 +386,18 @@ export class AdminService {
     }
     return rows.join('\n');
   }
+
+  async getClubSesiones(clubId: number) {
+    return this.prisma.sesion.findMany({
+      where: { clubId },
+      include: {
+        asistencias: {
+          include: {
+            alumno: { select: { id: true, nombre: true, apellido: true, grado: true } },
+          },
+        },
+      },
+      orderBy: { fecha: 'desc' },
+    });
+  }
 }

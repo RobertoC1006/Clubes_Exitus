@@ -125,4 +125,9 @@ export class AdminController {
     res.setHeader('Content-Disposition', 'attachment; filename="reporte_asistencia.csv"');
     res.send('\uFEFF' + csv);
   }
+
+  @Get('clubes/:id/sesiones')
+  getClubSesiones(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getClubSesiones(id);
+  }
 }
