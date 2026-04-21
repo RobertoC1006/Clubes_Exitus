@@ -45,6 +45,9 @@ model Usuario {
   // Relación con Alumno (un padre tiene varios hijos)
   hijos     Alumno[] @relation("PadreAlumno")
 
+  // Relación con Notificaciones
+  notificaciones Notificacion[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -54,12 +57,15 @@ model Club {
   nombre      String
   descripcion String?
   
+  horario     Json?
+  
   // Relación: Todo club tiene un profesor a cargo
   profesorId  Int
   profesor    Usuario  @relation("ProfesorClub", fields: [profesorId], references: [id])
 
   inscripciones Inscripcion[]
   sesiones      Sesion[]
+  pagos         Pago[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -77,6 +83,7 @@ model Alumno {
 
   inscripciones Inscripcion[]
   asistencias   Asistencia[]
+  pagos         Pago[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -131,4 +138,39 @@ model Asistencia {
 
   // Validacion: Un alumno solo debe tener un registro de asistencia por sesión
   @@unique([sesionId, alumnoId]) 
+}
+
+enum EstadoPago {
+  PENDIENTE
+  PAGADO
+  RECHAZADO
+}
+
+model Pago {
+  id            Int          @id @default(autoincrement())
+  mes           String       // Ej: "Abril 2025"
+  monto         Float?
+  estado        EstadoPago   @default(PENDIENTE)
+  urlComprobante String?     // URL o path de la imagen subida
+  observacion   String?      // Nota del admin al rechazar/aprobar
+
+  alumnoId      Int
+  alumno        Alumno       @relation(fields: [alumnoId], references: [id])
+
+  clubId        Int
+  club          Club         @relation(fields: [clubId], references: [id])
+
+  creadoEn      DateTime     @default(now())
+  actualizadoEn DateTime     @updatedAt
+}
+
+model Notificacion {
+  id        Int      @id @default(autoincrement())
+  titulo    String
+  mensaje   String
+  tipo      String   @default("INFO") // INFO, PAGO, ASISTENCIA
+  leida     Boolean  @default(false)
+  usuarioId Int
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  createdAt DateTime @default(now())
 }

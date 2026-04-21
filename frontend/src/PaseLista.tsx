@@ -1,187 +1,383 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Filter, Check, X, Info, ArrowLeft, Send } from 'lucide-react';
+import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle, BookOpen, ShieldAlert } from 'lucide-react';
+import { db } from './db';
+import { useUser } from './UserContext';
 import './index.css';
-
-// Mock Alumnos
-const ALUMNOS_MOCKS = [
-  { id: 1024, nombre: 'Alejandro Benitez', grado: '10º A', estado: 'PRESENTE' },
-  { id: 1025, nombre: 'Valentina Morales', grado: '10º A', estado: 'AUSENTE' },
-  { id: 1026, nombre: 'Gabriel Castillo', grado: '10º A', estado: null },
-  { id: 1027, nombre: 'Diego Fernandez', grado: '10º B', estado: null },
-  { id: 1028, nombre: 'Sofía Castro', grado: '10º A', estado: 'JUSTIFICADO' },
-  { id: 1029, nombre: 'Mateo Rodríguez', grado: '10º A', estado: 'PRESENTE' }
-];
 
 export default function PaseLista() {
   const navigate = useNavigate();
   const { clubId } = useParams();
+  const { usuario } = useUser();
+  const [alumnos, setAlumnos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  const isAdmin = usuario?.rol === 'ADMINISTRADOR';
   
-  const [alumnos, setAlumnos] = useState(ALUMNOS_MOCKS);
+  // Estado para la nota seleccionada
+  const [noteAlumnoId, setNoteAlumnoId] = useState<number | null>(null);
+
+  // 🔹 Monitor de conexión
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 🔹 Traer Alumnos Reales del Club
+  useEffect(() => {
+    fetch(`http://localhost:3000/clubes/${clubId}/alumnos`)
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : [];
+        const asignados = list.map((a: any) => ({ 
+          ...a, 
+          nombre: a.nombre || 'Sin Nombre',
+          apellido: a.apellido || '',
+          estadoPago: a.estadoPago || 'PENDIENTE',
+          estado: null, 
+          observacion: '' 
+        }));
+        setAlumnos(asignados);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Error fetching students:", err);
+        setAlumnos([]);
+        setLoading(false);
+      });
+  }, [clubId]);
+
   const marcados = alumnos.filter(a => a.estado !== null).length;
   const faltan = alumnos.length - marcados;
 
   const handleMarcar = (id: number, estado: string) => {
+    if (isAdmin) return;
+    if (estado !== 'JUSTIFICADO' && noteAlumnoId === id) {
+      setNoteAlumnoId(null);
+    }
     setAlumnos(prev => prev.map(a => a.id === id ? { ...a, estado } : a));
+  };
+
+  const updateObservacion = (id: number, observacion: string) => {
+    if (isAdmin) return;
+    setAlumnos(prev => prev.map(a => a.id === id ? { ...a, observacion } : a));
+  };
+
+  const guardarAsistencia = async () => {
+    if (isAdmin) return;
+    if (faltan > 0) {
+      alert(`Aún faltan ${faltan} alumnos por marcar.`);
+      return;
+    }
+    
+    setSaving(true);
+
+    const payloadAsistencias = alumnos.map(a => ({
+      alumnoId: a.id,
+      estado: a.estado,
+      observacion: a.observacion
+    }));
+
+    if (navigator.onLine) {
+      try {
+        const reqSesion = await fetch(`http://localhost:3000/sesiones`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clubId: Number(clubId), fecha: new Date().toISOString() })
+        });
+        const sesion = await reqSesion.json();
+        
+        await fetch(`http://localhost:3000/sesiones/${sesion.id}/asistencia`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ asistencias: payloadAsistencias })
+        });
+        
+        alert("✔️ Asistencia guardada y notificaciones enviadas.");
+        navigate(-1);
+      } catch(err) {
+        alert("Error de red. Guardando copia local...");
+        saveOffline(payloadAsistencias);
+      }
+    } else {
+      saveOffline(payloadAsistencias);
+    }
+  };
+
+  const saveOffline = async (payload: any[]) => {
+    try {
+      await db.asistenciasPendientes.add({
+        clubId: Number(clubId),
+        fecha: new Date().toISOString(),
+        asistencias: payload,
+        syncStatus: 'pending'
+      });
+      alert("📡 MODO OFFLINE: El pase de lista se guardó localmente.");
+      navigate(-1);
+    } catch (e) {
+      alert("Error crítico al guardar localmente.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getStatusColor = (estado: string | null) => {
     if(estado === 'PRESENTE') return 'var(--color-success)';
     if(estado === 'AUSENTE') return 'var(--color-error)';
-    if(estado === 'JUSTIFICADO') return 'var(--color-primary-fixed-dim)';
+    if(estado === 'JUSTIFICADO') return 'var(--color-secondary)';
     return 'transparent';
   };
 
   const getInitials = (nombre: string) => {
     const parts = nombre.split(' ');
+    if (!parts[0]) return '?';
     return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
   };
 
+  const alumnosFiltrados = alumnos.filter(a => {
+    const fullName = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
+                          (a.id && a.id.toString().includes(searchTerm));
+    return matchesSearch;
+  });
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+        <Loader2 className="animate-spin" size={48} strokeWidth={2} />
+      </div>
+    );
+  }
+
   return (
-    <div className="app-container animate-enter" style={{ paddingBottom: '10rem' }}>
+    <div className="app-container animate-enter" style={{ paddingBottom: '11rem' }}>
       
-      {/* HEADER */}
-      <div className="flex-between" style={{ padding: '0.5rem 0 1rem 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button onClick={() => navigate(-1)} style={{ background: 'transparent', padding: '0.2rem', marginLeft: '-0.3rem' }}>
+      {/* HEADER PREMIUM */}
+      <section style={{ padding: '1.5rem 1rem 1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
+          <button onClick={() => navigate(-1)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
              <ArrowLeft size={24} color="var(--color-primary)" />
           </button>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--color-primary)' }}>Pase de Lista</h2>
-        </div>
-      </div>
-
-      {/* DASHBOARD SUMARIO PREMIUM PERO COMPACTO */}
-      <section className="glass-card" style={{ 
-        padding: '1.25rem', 
-        marginBottom: '1.25rem',
-        display: 'flex', flexDirection: 'column', gap: '0.75rem',
-        border: '1px solid var(--color-surface-container-high)'
-      }}>
-        <div className="flex-between" style={{ alignItems: 'flex-end' }}>
           <div>
-            <p style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-secondary)', margin: 0, marginBottom: '0.2rem' }}>Reporte de Asistencia</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-              <span style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1, letterSpacing: '-0.05em' }}>{marcados}/{alumnos.length}</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>listos</span>
-            </div>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em', lineHeight: 1 }}>Control de <br/> <span style={{ color: 'var(--color-secondary)' }}>Asistencia</span></h2>
+            {isOffline && (
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-error)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.3rem' }}>
+                <WifiOff size={12} /> SINCRONIZACIÓN LOCAL ACTIVA
+              </span>
+            )}
           </div>
-          <div style={{ paddingBottom: '0.3rem', textAlign: 'right' }}>
-            <span style={{ 
-                background: faltan === 0 ? 'var(--color-success-container)' : 'var(--color-surface-container-highest)',
-                color: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
-                padding: '0.3rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 700
-            }}>
-                {faltan > 0 ? `Faltan ${faltan}` : 'Completado'}
-            </span>
-          </div>
-        </div>
-        
-        {/* Progress Bar */}
-        <div style={{ width: '100%', background: 'var(--color-surface-container-high)', height: '6px', borderRadius: '99px', overflow: 'hidden' }}>
-            <div style={{ background: faltan === 0 ? 'var(--color-success)' : 'var(--color-secondary-container)', height: '100%', width: `${(marcados / alumnos.length) * 100}%`, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
         </div>
       </section>
 
-      {/* SECCIÓN DE LISTA */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <div style={{ flex: 1, background: 'var(--color-surface-container-lowest)', borderRadius: '0.75rem', padding: '0.6rem 1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <Search size={18} color="var(--color-outline-variant)" />
-          <input type="text" placeholder="Buscar por apellido o ID..." style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: 'var(--color-on-surface)' }} />
+      {/* DASHBOARD SUMARIO (BENTO) */}
+      <section className="bento-card" style={{ padding: '1.75rem', marginBottom: '1.5rem', background: 'white' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--color-outline)', margin: '0 0 0.5rem 0' }}>Sincronización Total</p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <span style={{ fontSize: '3.5rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 0.9, letterSpacing: '-0.06em' }}>{marcados}</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-outline-variant)' }}>/ {alumnos.length}</span>
+            </div>
+          </div>
+          <div style={{ 
+              background: faltan === 0 ? 'var(--color-success-container)' : 'var(--color-surface-dim)',
+              color: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
+              padding: '0.6rem 1rem', borderRadius: '1rem', fontSize: '0.8rem', fontWeight: 900,
+              boxShadow: 'var(--shadow-sm)'
+          }}>
+              {faltan > 0 ? `Quedan ${faltan}` : '✓ Completado'}
+          </div>
         </div>
-        <button style={{ background: 'var(--color-surface-container-lowest)', padding: '0.6rem 0.75rem', borderRadius: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-          <Filter size={18} color="var(--color-primary)" />
-        </button>
+        <div style={{ marginTop: '1.75rem' }}>
+            <div style={{ width: '100%', background: 'var(--color-surface-dim)', height: '10px', borderRadius: '99px', overflow: 'hidden' }}>
+                <div style={{ background: faltan === 0 ? 'var(--color-success)' : 'var(--grad-primary)', height: '100%', width: `${(marcados / alumnos.length) * 100}%`, transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)' }}></div>
+            </div>
+            <p style={{ margin: '0.75rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700, textAlign: 'right' }}>
+                {Math.round((marcados / alumnos.length) * 100)}% Progreso Diario
+            </p>
+        </div>
+      </section>
+
+      {/* BUSCADOR */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ background: 'white', border: '1px solid var(--color-surface-container-high)', borderRadius: '1rem', padding: '0.75rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
+          <Search size={18} color="var(--color-outline)" />
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre o ID..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ background: 'transparent', border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: 'var(--color-on-surface)', fontWeight: 600 }} 
+          />
+          {searchTerm && <X size={16} color="var(--color-outline-variant)" onClick={() => setSearchTerm('')} />}
+        </div>
       </div>
 
-      <div className="flex-column" style={{ gap: '0.75rem' }}>
-        {alumnos.map((alumno) => {
+      {/* LISTA DE ALUMNOS */}
+      <div className="flex-column" style={{ gap: '0.75rem', paddingBottom: '2rem' }}>
+        {alumnosFiltrados.map((alumno) => {
           const isActive = alumno.estado !== null;
+          const canWriteNote = alumno.estado === 'JUSTIFICADO';
           
           return (
-          <div key={alumno.id} style={{ 
-            background: 'var(--color-surface-container-lowest)',
-            borderRadius: '1rem', 
-            padding: '0.85rem', 
-            boxShadow: isActive ? '0 4px 12px rgba(14,26,57,0.03)' : 'none',
-            border: `1px solid ${isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-container-highest)'}`,
-            display: 'flex', flexDirection: 'column', gap: '0.85rem',
-            transition: 'all 0.25s ease'
+            <div key={alumno.id} className="bento-card animate-enter" style={{ 
+              padding: '1.25rem',
+              borderLeft: `6px solid ${isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-dim)'}`,
+              display: 'flex', flexDirection: 'column', gap: '1rem',
+              background: 'white',
+              transform: isActive ? 'scale(1.01)' : 'scale(1)',
+            }}>
+               
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <div style={{ 
+                    width: '3.5rem', height: '3.5rem', borderRadius: '1.2rem', 
+                    background: isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-dim)',
+                    color: isActive ? 'white' : 'var(--color-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 900, fontSize: '1.2rem', boxShadow: 'var(--shadow-sm)'
+                  }}>
+                     {getInitials(alumno.nombre)}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                     <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{alumno.nombre} {alumno.apellido}</h3>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>#{alumno.id}</span>
+                        <span style={{ height: '4px', width: '4px', borderRadius: '50%', background: 'var(--color-outline-variant)' }} />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)' }}>{alumno.grado}</span>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Controles de Estado Premium */}
+               <div style={{ display: 'flex', background: 'var(--color-surface-dim)', borderRadius: '1rem', padding: '0.4rem', gap: '0.4rem' }}>
+                  {['PRESENTE', 'AUSENTE', 'JUSTIFICADO'].map(label => {
+                    const isS = alumno.estado === label;
+                    return (
+                      <button 
+                        key={label}
+                        onClick={() => handleMarcar(alumno.id, label)} 
+                        style={{
+                          flex: 1, padding: '0.75rem 0', borderRadius: '0.75rem', border: 'none',
+                          background: isS ? getStatusColor(label) : 'transparent',
+                          color: isS ? 'white' : 'var(--color-primary)',
+                          fontWeight: 900, fontSize: '0.75rem', textTransform: 'uppercase', 
+                          letterSpacing: '0.05em', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                        }}>
+                        {label === 'PRESENTE' && (isS ? <Check size={14} strokeWidth={4} /> : 'Pres.')}
+                        {label === 'AUSENTE' && (isS ? <X size={14} strokeWidth={4} /> : 'Aus.')}
+                        {label === 'JUSTIFICADO' && (isS ? <StickyNote size={14} /> : 'Just.')}
+                      </button>
+                    );
+                  })}
+               </div>
+
+                {/* NOTAS DINÁMICAS (Solo si es Justificado) */}
+                {alumno.estado === 'JUSTIFICADO' && (
+                  <div style={{ animation: 'enter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
+                    <div style={{ 
+                      display: 'flex', alignItems: 'center', gap: '0.75rem', 
+                      background: 'var(--color-surface-container-low)', 
+                      padding: '0.85rem 1rem', borderRadius: '1rem', 
+                      border: '1.5px solid var(--color-secondary-container)',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}>
+                       <StickyNote size={16} color="var(--color-secondary)" />
+                       <input 
+                         type="text"
+                         placeholder="Motivo de la justificación..."
+                         value={alumno.observacion}
+                         onChange={(e) => updateObservacion(alumno.id, e.target.value)}
+                         autoFocus
+                         style={{ 
+                           flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                           fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: 700
+                         }}
+                       />
+                    </div>
+                  </div>
+                )}
+            </div>
+          );
+        })}
+        
+        {alumnosFiltrados.length === 0 && (
+          <div style={{ 
+            padding: '5rem 2rem', textAlign: 'center', 
+            background: 'var(--color-surface-container-lowest)', 
+            borderRadius: '2rem', border: '2px dashed var(--color-surface-container-high)' 
           }}>
-             
-             {/* Datos del Alumno - Se reemplazó la foto por Iniciales dinámicas */}
-             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ 
-                  width: '2.5rem', height: '2.5rem', borderRadius: '50%', 
-                  background: isActive ? getStatusColor(alumno.estado) : 'var(--color-surface-container-high)',
-                  color: isActive ? 'white' : 'var(--color-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontWeight: 800, fontSize: '0.9rem', letterSpacing: '0.05em',
-                  transition: 'all 0.3s'
-                }}>
-                   {getInitials(alumno.nombre)}
-                </div>
-                <div>
-                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-primary)' }}>{alumno.nombre}</h3>
-                   <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-outline)' }}>#{alumno.id} • {alumno.grado}</p>
-                </div>
-             </div>
-
-             {/* Segmented Control Premium (Controles parecidos a iOS) */}
-             <div style={{ 
-                display: 'flex', background: 'var(--color-surface-container)', 
-                borderRadius: '0.6rem', padding: '0.25rem', gap: '0.25rem'
-             }}>
-                <button onClick={() => handleMarcar(alumno.id, 'PRESENTE')} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                    padding: '0.5rem 0', borderRadius: '0.4rem',
-                    background: alumno.estado === 'PRESENTE' ? 'var(--color-success)' : 'transparent',
-                    color: alumno.estado === 'PRESENTE' ? 'white' : 'var(--color-outline)',
-                    transition: 'all 0.2s', border: 'none', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase'
-                }}>
-                    <Check size={14} strokeWidth={alumno.estado === 'PRESENTE' ? 3 : 2} /> Pres
-                </button>
-
-                <button onClick={() => handleMarcar(alumno.id, 'AUSENTE')} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                    padding: '0.5rem 0', borderRadius: '0.4rem',
-                    background: alumno.estado === 'AUSENTE' ? 'var(--color-error)' : 'transparent',
-                    color: alumno.estado === 'AUSENTE' ? 'white' : 'var(--color-outline)',
-                    transition: 'all 0.2s', border: 'none', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase'
-                }}>
-                    <X size={14} strokeWidth={alumno.estado === 'AUSENTE' ? 3 : 2} /> Aus
-                </button>
-
-                <button onClick={() => handleMarcar(alumno.id, 'JUSTIFICADO')} style={{
-                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                    padding: '0.5rem 0', borderRadius: '0.4rem',
-                    background: alumno.estado === 'JUSTIFICADO' ? 'var(--color-primary-fixed-dim)' : 'transparent',
-                    color: alumno.estado === 'JUSTIFICADO' ? 'white' : 'var(--color-outline)',
-                    transition: 'all 0.2s', border: 'none', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase'
-                }}>
-                    <Info size={14} strokeWidth={alumno.estado === 'JUSTIFICADO' ? 3 : 2} /> Just
-                </button>
-             </div>
-
+            <div style={{ color: 'var(--color-outline-variant)', marginBottom: '1rem' }}>
+              <Users size={48} strokeWidth={1.5} style={{ opacity: 0.5 }} />
+            </div>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+              {searchTerm ? 'No hay coincidencias' : 'Sin alumnos asignados'}
+            </h3>
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>
+              {searchTerm 
+                ? 'Prueba con otro nombre o número de identificación.' 
+                : 'Este club aún no tiene estudiantes registrados por el administrador.'}
+            </p>
           </div>
-        )})}
+        )}
       </div>
 
-      {/* FLOAT ACTION BUTTON */}
-      <div style={{ position: 'fixed', bottom: '5.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 90, display: 'flex', justifyContent: 'center' }}>
-        <button className="btn" style={{ 
-             width: '100%', maxWidth: '448px', padding: '0.9rem', fontSize: '0.95rem', display: 'flex', justifyContent: 'center', gap: '0.5rem', 
-             boxShadow: '0 8px 24px rgba(29, 40, 72, 0.4)',
-             background: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
-             color: 'white', border: 'none', borderRadius: '1rem'
-          }} onClick={() => {
-           if (faltan > 0) alert(`Aún faltan ${faltan} alumnos por marcar.`);
-           else alert('¡Asistencia Guardada (Imagina esto sincronizándose en offline mode)!');
-        }}>
-           {faltan === 0 ? <Check size={18} /> : <Send size={18} />} 
-           {faltan === 0 ? 'Guardar Asistencia' : `Finalizar Registro`}
-        </button>  
-      </div>
+      {/* BARRA DE ACCIONES MASIVAS (Móvil UX) */}
+      {faltan > 0 && faltan < alumnos.length && (
+        <div style={{ position: 'fixed', bottom: '11.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 85, animation: 'fadeInSlideUp 0.4s ease-out' }}>
+           <div style={{ 
+              background: 'var(--color-primary-container)', color: 'white', padding: '0.85rem 1.25rem', borderRadius: '1.25rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'var(--shadow-lg)'
+           }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800 }}>¿Faltan {faltan} alumnos?</p>
+              <button 
+                onClick={() => setAlumnos(prev => prev.map(a => a.estado === null ? { ...a, estado: 'PRESENTE' } : a))}
+                style={{ background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', padding: '0.5rem 1rem', borderRadius: '0.75rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase' }}
+              >
+                Marcar resto Presente
+              </button>
+           </div>
+        </div>
+      )}
 
+      {/* BOTÓN DE GUARDADO FLOTANTE */}
+      <div style={{ position: 'fixed', bottom: '6.5rem', left: 0, width: '100%', padding: '0 1.25rem', zIndex: 90, display: 'flex', justifyContent: 'center' }}>
+        {isAdmin ? (
+          <div style={{ 
+            width: '100%', maxWidth: '448px', padding: '1rem', 
+            background: 'var(--color-surface-container-high)', color: 'var(--color-primary)', 
+            borderRadius: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', 
+            justifyContent: 'center', fontWeight: 800, border: '1px solid var(--color-outline-variant)' 
+          }}>
+            <ShieldAlert size={20} /> Solo lectura (Modo Administrador)
+          </div>
+        ) : (
+          <button className="btn" style={{ 
+               width: '100%', maxWidth: '448px', padding: '1.25rem', fontSize: '1rem', display: 'flex', justifyContent: 'center', gap: '0.75rem', 
+               boxShadow: '0 12px 32px rgba(29, 40, 72, 0.4)',
+               background: faltan === 0 ? 'var(--color-success)' : 'var(--color-primary)',
+               color: 'white', border: 'none', borderRadius: '1.25rem',
+               opacity: saving ? 0.7 : 1, transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+               cursor: 'pointer',
+               transform: faltan === 0 ? 'scale(1.02)' : 'scale(1)'
+            }} 
+            disabled={saving}
+            onClick={guardarAsistencia}>
+             
+             {saving ? <Loader2 className="animate-spin" size={20} /> : (faltan === 0 ? <Check size={20} strokeWidth={3} /> : <Send size={20} />)} 
+             {saving ? 'Procesando...' : (faltan === 0 ? 'Finalizar y Notificar Padres' : `Registrar (${marcados}/${alumnos.length})`)}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

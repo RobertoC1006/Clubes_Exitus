@@ -12,6 +12,11 @@ export class SesionesController {
      return this.sesionesService.getSesionesByClub(clubId);
   }
 
+  @Get(':id')
+  getSesion(@Param('id', ParseIntPipe) id: number) {
+    return this.sesionesService.getSesionById(id);
+  }
+
   // POST /sesiones
   @Post()
   createSesion(
@@ -25,8 +30,9 @@ export class SesionesController {
   @Put(':id/asistencia')
   updateAsistencias(
     @Param('id', ParseIntPipe) sessionId: number,
-    @Body('asistencias') asistencias: { alumnoId: number, estado: EstadoAsistencia }[]
+    @Body('asistencias') asistencias: { alumnoId: number, estado: EstadoAsistencia, observacion?: string }[],
+    @Body('tema') tema?: string
   ) {
-     return this.sesionesService.updateAsistencias(sessionId, asistencias);
+     return this.sesionesService.updateAsistencias(sessionId, asistencias, tema);
   }
 }

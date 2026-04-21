@@ -52,14 +52,34 @@
   --spacing-88: 22rem;
 
   /* Elevación / Sombras suaves (Premium feel) */
-  --shadow-sm: 0 2px 4px rgba(29, 40, 72, 0.05);
-  --shadow-md: 0 4px 12px rgba(29, 40, 72, 0.08);
-  --shadow-lg: 0 12px 24px rgba(29, 40, 72, 0.12);
-  --shadow-glass: 0 8px 32px 0 rgba(29, 40, 72, 0.08); /* Más suave para el celu */
+  --shadow-sm: 0 2px 4px rgba(29, 40, 72, 0.04);
+  --shadow-md: 0 8px 16px rgba(29, 40, 72, 0.06);
+  --shadow-lg: 0 16px 32px rgba(29, 40, 72, 0.1);
+  --shadow-glass: 0 8px 32px 0 rgba(29, 40, 72, 0.08); 
   
+  /* Gradientes Premium (Metálicos) */
+  --grad-gold: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+  --grad-silver: linear-gradient(135deg, #C0C0C0, #FFFFFF, #B0B0B0, #E0E0E0, #909090);
+  --grad-bronze: linear-gradient(135deg, #CD7F32, #E6BE8A, #A0522D, #C4A484, #8B4513);
+  --grad-primary: linear-gradient(135deg, var(--color-primary), #2a3c74);
+
   /* Transiciones */
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* New Tokens */
+  --color-surface-cyan: #E0F7FA;
+  --radius-xl: 1.75rem;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Reset Profesional */
@@ -194,4 +214,195 @@ button {
   border-bottom: 1px solid var(--color-surface-container-highest);
   padding: 1rem;
   margin: -1rem -1rem 1rem -1rem; /* Para que ocupe todo el ancho del container mobil */
+}
+
+/* ==========================================================================
+   NUEVAS UTILIDADES PREMIUM (V2)
+   ========================================================================== */
+
+/* Bento Box para Dashboards Pro */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.bento-card {
+  background: white;
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-surface-container-high);
+  transition: all var(--transition-normal);
+  overflow: hidden;
+  position: relative;
+}
+
+.bento-card:active { transform: scale(0.98); }
+
+/* Insignias Metálicas (Logros) */
+.badge-premium {
+  width: 54px;
+  height: 54px;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.badge-gold   { background: var(--grad-gold); }
+.badge-silver { background: var(--grad-silver); }
+.badge-bronze { background: var(--grad-bronze); }
+
+/* Perfil Chips (Kid Selector) */
+.profile-chip {
+  padding: 0.5rem 1rem;
+  border-radius: 100px;
+  background: white;
+  border: 1.5px solid var(--color-surface-container-highest);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.profile-chip.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(29, 40, 72, 0.2);
+}
+
+/* Estilo de Tabla Pro (Admin) */
+.pro-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.pro-table tr {
+  background: white;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.pro-table tr:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+
+.pro-table td {
+  padding: 1rem;
+  border: none;
+}
+
+.pro-table td:first-child { border-top-left-radius: 1rem; border-bottom-left-radius: 1rem; }
+.pro-table td:last-child { border-top-right-radius: 1rem; border-bottom-right-radius: 1rem; }
+
+/* Status Badges */
+.status-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 99px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   LOGIN PREMIUM STYLES (Glassmorphism)
+   ========================================================================== */
+
+.login-bg-container {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 1s ease-in-out;
+  filter: brightness(0.6);
+}
+
+.login-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%);
+}
+
+.login-card-glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.login-input-group {
+  position: relative;
+  width: 100%;
+}
+
+.login-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1rem 1rem 1rem 3rem;
+  color: white;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.login-input:focus {
+  border-color: rgba(237, 198, 32, 0.5);
+  box-shadow: 0 0 0 4px rgba(237, 198, 32, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.login-btn-primary {
+  width: 100%;
+  background: #EDC620;
+  color: #11182B;
+  font-weight: 800;
+  padding: 1rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(237, 198, 32, 0.3);
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.login-btn-primary:hover {
+  background: #FFD600;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(237, 198, 32, 0.4);
+}
+
+.login-btn-primary:active {
+  transform: translateY(0);
+  scale: 0.98;
+}
+
+.login-error-msg {
+  background: rgba(211, 47, 47, 0.2);
+  border: 1px solid rgba(211, 47, 47, 0.4);
+  color: #FFCDD2;
+  font-size: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out 0s 2;
 }
