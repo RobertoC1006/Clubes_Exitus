@@ -11,7 +11,7 @@ echo "Waiting for database to be ready..."
 # But deploy is safer for existing schemas.
 # Let's try to run deploy first. If it fails due to connection, we retry.
 
-until npx prisma migrate deploy; do
+until npx prisma db push --accept-data-loss; do
   echo "Database is not ready yet - retrying in 5 seconds..."
   sleep 5
 done
