@@ -260,6 +260,7 @@ export default function AdminDashboard() {
   const [currentPageRetencion, setCurrentPageRetencion] = useState(1);
   const [isProfesoresModalOpen, setIsProfesoresModalOpen] = useState(false);
   const [currentPageProfesores, setCurrentPageProfesores] = useState(1);
+  const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
   const [pagesUsuarios, setPagesUsuarios] = useState<Record<string, number>>({
     ADMINISTRADOR: 1,
     PROFESOR: 1,
@@ -547,55 +548,61 @@ export default function AdminDashboard() {
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700 }}>Personal Activo</p>
                 <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver staff completo</p>
               </div>
+
+              <div className="bento-card"
+                onClick={() => setIsRankingModalOpen(true)}
+                style={{ 
+                  gridColumn: '1 / -1',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  background: 'white',
+                  padding: '2rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  border: '1.5px solid var(--color-secondary-container)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem' }}>
+                    <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                      <Award size={16} color="var(--color-secondary)" />
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Disciplinas</p>
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                    {clubesRanking[0]?.nombre || 'Cargando...'}
+                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-secondary)' }}>{clubesRanking[0]?.asistencia ?? 0}%</p>
+                      <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia Promedio</p>
+                    </div>
+                    <div style={{ width: '2px', height: '2rem', background: 'rgba(0,0,0,0.05)' }}></div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)' }}>{clubesRanking[0]?.inscritos ?? 0}</p>
+                      <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Alumnos Activos</p>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ 
+                    width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem', background: 'white', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 0 1rem auto',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.08)', fontSize: '2rem', fontWeight: 900, color: 'var(--color-secondary)'
+                  }}>
+                    1°
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>VER RANKING COMPLETO <ChevronRight size={14} style={{ verticalAlign: 'middle' }} /></p>
+                </div>
+              </div>
             </div>
 
 
-            {/* RANKING */}
-            <section>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <Award size={18} color="var(--color-secondary)" />
-                <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ranking de disciplinas</h3>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {clubesRanking
-                  .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
-                  .map((club, i) => (
-                    <div key={club.id} className="bento-card" style={{
-                      padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem',
-                    }}>
-                      <div style={{
-                        width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem',
-                        background: i === 0 ? 'var(--grad-gold)' : 'var(--color-surface-container-high)',
-                        color: i === 0 ? 'white' : 'var(--color-primary)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
-                        fontSize: '1.1rem', boxShadow: i === 0 ? '0 4px 10px rgba(212, 175, 55, 0.3)' : 'none'
-                      }}>
-                        {(currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1}
-                      </div>
-                      <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => navigate(`/clubes/${club.id}/historial`)}>
-                        <p style={{ margin: 0, fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          {club.nombre} <ChevronRight size={14} style={{ opacity: 0.5 }} />
-                        </p>
-                        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>• {club.inscritos} alumnos</span>
-                          {club.horario && Object.keys(club.horario).length > 0 && (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--color-primary)', fontWeight: 800, background: 'var(--color-primary-fixed)', padding: '0.05rem 0.4rem', borderRadius: '4px' }}>
-                              {formatHorarioShort(club.horario)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ display: 'block', fontWeight: 900, fontSize: '1.25rem', color: club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)', lineHeight: 1 }}>
-                          {club.asistencia}%
-                        </span>
-                        <span style={{ fontSize: '0.55rem', fontWeight: 800, color: 'var(--color-outline)' }}>ASISTENCIA</span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </section>
           </>
         )}
 
@@ -1351,6 +1358,88 @@ export default function AdminDashboard() {
                   <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>Cargando staff docente...</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: RANKING DISCIPLINAS */}
+      {isRankingModalOpen && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+          padding: '1.5rem', animation: 'fadeIn 0.3s'
+        }}>
+          <div className="modal-content animate-pop" style={{
+            background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
+            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
+          }}>
+            <button onClick={() => setIsRankingModalOpen(false)} style={{
+              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-dim)',
+              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+            }}>
+              <X size={20} color="var(--color-primary)" />
+            </button>
+
+            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+              <div style={{ 
+                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-secondary-container)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
+                boxShadow: '0 8px 16px rgba(var(--color-secondary-rgb), 0.2)'
+              }}>
+                <Award size={24} color="var(--color-secondary)" />
+              </div>
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Ranking de Disciplinas</h2>
+              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>Basado en niveles de asistencia</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {clubesRanking
+                  .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
+                  .map((club, i) => {
+                    const rank = (currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1;
+                    return (
+                      <div key={club.id} style={{
+                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white', 
+                        display: 'flex', alignItems: 'center', gap: '1rem',
+                        border: '1px solid var(--color-surface-container-low)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                      }}>
+                        <div style={{
+                          width: '2.8rem', height: '2.8rem', borderRadius: '1rem',
+                          background: rank <= 3 ? 'var(--grad-gold)' : 'var(--color-surface-container-high)',
+                          color: rank <= 3 ? 'var(--color-on-secondary)' : 'var(--color-primary)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
+                          fontSize: '1.2rem', boxShadow: rank <= 3 ? '0 4px 12px rgba(212, 175, 55, 0.3)' : 'none'
+                        }}>
+                          {rank}
+                        </div>
+                        <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => {
+                          setIsRankingModalOpen(false);
+                          navigate(`/clubes/${club.id}/historial`);
+                        }}>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                            {club.nombre}
+                          </p>
+                          <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>{club.profesor}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 900 }}>• {club.inscritos} alumnos</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ display: 'block', fontWeight: 900, fontSize: '1.4rem', color: club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-warning)', lineHeight: 1 }}>
+                            {club.asistencia}%
+                          </span>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                
+                <Pagination current={currentPageRanking} total={Math.ceil(clubesRanking.length / ITEMS_PER_PAGE)} onChange={setCurrentPageRanking} />
             </div>
           </div>
         </div>
