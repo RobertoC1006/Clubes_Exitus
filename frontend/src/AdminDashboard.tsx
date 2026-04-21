@@ -232,6 +232,11 @@ export default function AdminDashboard() {
   // Validando pago
   const [validandoPago, setValidandoPago] = useState<number | null>(null);
 
+  // Alumnos Inscritos Modal state
+  const [isAlumnosInscritosModalOpen, setIsAlumnosInscritosModalOpen] = useState(false);
+  const [currentPageAlumnosModal, setCurrentPageAlumnosModal] = useState(1);
+  const [searchTermAlumnosModal, setSearchTermAlumnosModal] = useState('');
+
   // Pagination states
   const ITEMS_PER_PAGE = 5;
   const [currentPageClubes, setCurrentPageClubes] = useState(1);
@@ -437,24 +442,43 @@ export default function AdminDashboard() {
           <>
             {/* BENTO MÉTRICAS (Premium) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2.5rem' }}>
-              <div className="bento-card" style={{
-                gridColumn: '1 / -1',
-                background: 'var(--grad-primary)',
-                padding: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                boxShadow: '0 24px 48px rgba(29,40,72,0.3)',
-                border: 'none'
-              }}>
+              <div className="bento-card" 
+                onClick={async () => { 
+                  if (alumnos.length === 0) await fetchAlumnos();
+                  setIsAlumnosInscritosModalOpen(true); 
+                }}
+                style={{
+                  gridColumn: '1 / -1',
+                  background: 'var(--grad-primary)',
+                  padding: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  boxShadow: '0 24px 48px rgba(29,40,72,0.3)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+              >
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.6)' }}>Impacto Total</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.6)' }}>Alumnos inscritos</p>
                   <p style={{ margin: '0.25rem 0 0', fontSize: '5.5rem', fontWeight: 900, color: 'white', lineHeight: 0.9, letterSpacing: '-0.08em' }}>{metricas.totalAlumnos}</p>
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
                     <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.75rem', fontWeight: 800, border: '1px solid rgba(255,255,255,0.1)' }}>{metricas.totalClubes} clubes</span>
-                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', fontSize: '0.75rem', fontWeight: 900 }}>Activos v2024</span>
+                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', fontSize: '0.75rem', fontWeight: 900 }}>Ver listado completo</span>
                   </div>
                 </div>
                 <div style={{ opacity: 0.15 }}>
                   <Users size={140} color="white" />
                 </div>
+                {/* Subtle shine effect */}
+                <div style={{
+                  position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
+                  background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent)',
+                  transform: 'skewX(-25deg)',
+                  animation: 'shimmer 3s infinite'
+                }} />
               </div>
 
               <div className="bento-card">
@@ -1126,6 +1150,107 @@ export default function AdminDashboard() {
           onSave={handleSaveUsuario}
           onClose={() => setModalUsuario(false)}
         />
+      )}
+
+      {/* ── MODAL ALUMNOS INSCRITOS ──────────────────────── */}
+      {isAlumnosInscritosModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
+          <div style={{
+            background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+            width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)',
+            position: 'relative'
+          }} onClick={e => e.stopPropagation()}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>
+                  Alumnos <span style={{ color: 'var(--color-secondary)' }}>Inscritos</span>
+                </h3>
+                <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
+                  Listado global y asignación de disciplinas.
+                </p>
+              </div>
+              <button onClick={() => setIsAlumnosInscritosModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1.25rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <X size={24} color="var(--color-primary)" />
+              </button>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+              <input
+                value={searchTermAlumnosModal}
+                onChange={e => { setSearchTermAlumnosModal(e.target.value); setCurrentPageAlumnosModal(1); }}
+                placeholder="Buscar alumno por nombre o apellido..."
+                style={{ ...inputStyle, paddingLeft: '3.2rem', borderRadius: '1.25rem', height: '3.5rem', background: 'var(--color-surface-container-lowest)', fontSize: '1rem' }}
+              />
+              <Search size={22} color="var(--color-outline)" style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {(() => {
+                const filtered = alumnos.filter(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTermAlumnosModal.toLowerCase()));
+                const paginated = filtered.slice((currentPageAlumnosModal - 1) * 5, currentPageAlumnosModal * 5);
+                const totalPages = Math.ceil(filtered.length / 5);
+
+                if (filtered.length === 0) return (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-outline)' }}>
+                    <Users size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
+                    <p style={{ marginTop: '1rem', fontWeight: 600 }}>No se encontraron alumnos</p>
+                  </div>
+                );
+
+                return (
+                  <>
+                    {paginated.map(alumno => (
+                      <div key={alumno.id} style={{
+                        padding: '1.25rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
+                        border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        transition: 'transform 0.2s ease'
+                      }}>
+                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                          <div style={{ 
+                            width: '3.5rem', height: '3.5rem', borderRadius: '1.2rem', 
+                            background: 'var(--grad-secondary)', color: 'var(--color-on-secondary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem'
+                          }}>
+                            {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
+                          </div>
+                          <div>
+                            <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                              {alumno.nombre} {alumno.apellido}
+                            </p>
+                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                              {alumno.grado} • {alumno.padre ? `Padre: ${alumno.padre.nombre}` : 'Sin tutor'}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
+                          {alumno.inscripciones.length > 0 ? alumno.inscripciones.map((ins, idx) => (
+                            <span key={idx} style={{ 
+                              fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-primary-container)', 
+                              color: 'white', padding: '0.25rem 0.6rem', borderRadius: '99px', textTransform: 'uppercase'
+                            }}>
+                              {ins.club.nombre}
+                            </span>
+                          )) : (
+                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-error)', fontStyle: 'italic' }}>
+                              Sin clubes
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <Pagination 
+                      current={currentPageAlumnosModal}
+                      total={totalPages}
+                      onChange={setCurrentPageAlumnosModal}
+                    />
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
