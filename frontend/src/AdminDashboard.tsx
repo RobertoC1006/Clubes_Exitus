@@ -482,7 +482,7 @@ export default function AdminDashboard() {
         {tab === 'panel' && metricas && (
           <>
             {/* BENTO MÉTRICAS (Premium) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2.5rem' }}>
+            <div className="bento-grid" style={{ marginBottom: '2.5rem' }}>
               <div className="bento-card" 
                 onClick={async () => { 
                   if (alumnos.length === 0) await fetchAlumnos();
