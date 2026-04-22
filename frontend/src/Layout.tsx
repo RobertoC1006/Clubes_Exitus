@@ -100,7 +100,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className={usuario ? 'layout-root has-sidebar' : 'layout-root'} style={{ minHeight: '100vh', background: 'var(--color-surface)' }}>
+    <div className={usuario ? 'layout-root has-sidebar' : 'layout-root'} style={{ background: 'var(--color-surface)' }}>
+
+
 
       {/* SIDEBAR DESKTOP */}
       {usuario && (
@@ -150,11 +152,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* ÁREA DE CONTENIDO (Header + Contenido de Página) */}
-      <div className="content-area">
+      <div className="content-area discrete-scroll">
         <header className="header-glass" style={{
-          padding: '0.8rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+          padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.02)', maxHeight: '60px'
         }}>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             {/* Solo mostrar Logo en Header si es móvil */}
             <div className="mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -287,7 +290,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         <div className="app-container">
-          <main style={{ flex: 1, paddingBottom: '2rem' }}>
+          <main style={{ flex: 1, paddingBottom: '0.75rem' }}>
+
+
             {children}
           </main>
         </div>

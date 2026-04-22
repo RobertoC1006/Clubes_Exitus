@@ -692,37 +692,40 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: CLUBES ═══════════════════════════ */}
         {tab === 'clubes' && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                Disciplinas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', verticalAlign: 'middle', marginLeft: '0.5rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px' }}>{metricas?.clubes.length ?? 0}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                Disciplinas <span style={{ color: 'var(--color-secondary)', fontSize: '0.75rem', verticalAlign: 'middle', marginLeft: '0.4rem', background: 'var(--color-secondary-container)', padding: '0.15rem 0.5rem', borderRadius: '99px' }}>{metricas?.clubes.length ?? 0}</span>
               </h3>
-              <button onClick={() => setModalClub({})} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-                <PlusCircle size={15} /> Nuevo
+              <button onClick={() => setModalClub({})} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}>
+                <PlusCircle size={14} /> Nuevo
               </button>
             </div>
 
+
             {/* SEARCH BAR */}
-            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+            <div style={{ marginBottom: '0.8rem', position: 'relative' }}>
               <input
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="Buscar disciplina o profesor..."
-                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }}
+                style={{ ...inputStyle, paddingLeft: '2.5rem', paddingTop: '0.65rem', paddingBottom: '0.65rem', borderRadius: '1rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.85rem' }}
               />
-              <BarChart2 size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <BarChart2 size={16} color="var(--color-outline)" style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {(metricas?.clubes ?? [])
                 .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
                 .slice((currentPageClubes - 1) * ITEMS_PER_PAGE, currentPageClubes * ITEMS_PER_PAGE)
                 .map(club => (
                   <div key={club.id} className="bento-card" style={{
-                    padding: '1.75rem',
-                    borderLeft: '6px solid var(--color-primary)',
+                    padding: '1.1rem',
+                    borderLeft: '5px solid var(--color-primary)',
                     background: 'white',
-                    borderRadius: '1.2rem'
+                    borderRadius: '1rem'
                   }}>
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1 }}>
                         <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>{club.nombre}</h4>
@@ -754,16 +757,17 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-                      <Pill icon={<UserCheck size={14} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
-                      <Pill icon={<Users size={14} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
+                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
+                      <Pill icon={<UserCheck size={12} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
+                      <Pill icon={<Users size={12} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
                       {club.horario && (
-                        <Pill icon={<Calendar size={14} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
+                        <Pill icon={<Calendar size={12} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
                       )}
-                      <Pill icon={<TrendingUp size={14} />} label={`${club.asistencia}% racha`}
+                      <Pill icon={<TrendingUp size={12} />} label={`${club.asistencia}%`}
                         color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
                         bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
                     </div>
+
                   </div>
                 ))}
             </div>
@@ -780,7 +784,8 @@ export default function AdminDashboard() {
         {tab === 'personas' && (
           <>
             {/* Sub-tabs Profesores / Alumnos */}
-            <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', background: 'var(--color-surface-container-low)', padding: '0.4rem', borderRadius: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1rem', background: 'var(--color-surface-container-low)', padding: '0.3rem', borderRadius: '1.25rem' }}>
+
               {(['profesores', 'alumnos'] as const).map(st => (
                 <button key={st} onClick={() => setPersonasTab(st)} style={{
                   flex: 1, padding: '0.75rem', borderRadius: '0.9rem', border: 'none', cursor: 'pointer',
@@ -798,7 +803,8 @@ export default function AdminDashboard() {
             </div>
 
             {/* SEARCH BAR PERSONAS */}
-            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+            <div style={{ marginBottom: '1rem', position: 'relative' }}>
+
               <input
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -1623,11 +1629,12 @@ export default function AdminDashboard() {
               <Search size={22} color="var(--color-outline)" style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {(() => {
                 const filtered = alumnos.filter(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTermAlumnosModal.toLowerCase()));
-                const paginated = filtered.slice((currentPageAlumnosModal - 1) * 5, currentPageAlumnosModal * 5);
-                const totalPages = Math.ceil(filtered.length / 5);
+                const paginated = filtered.slice((currentPageAlumnosModal - 1) * 4, currentPageAlumnosModal * 4);
+                const totalPages = Math.ceil(filtered.length / 4);
+
 
                 if (filtered.length === 0) return (
                   <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-outline)' }}>
@@ -1640,26 +1647,28 @@ export default function AdminDashboard() {
                   <>
                     {paginated.map(alumno => (
                       <div key={alumno.id} style={{
-                        padding: '1.25rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
+                        padding: '1.1rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
                         border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         transition: 'transform 0.2s ease'
                       }}>
-                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                           <div style={{ 
-                            width: '3.5rem', height: '3.5rem', borderRadius: '1.2rem', 
+                            width: '3.2rem', height: '3.2rem', borderRadius: '1rem', 
                             background: 'var(--grad-secondary)', color: 'var(--color-on-secondary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem'
                           }}>
                             {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
                           </div>
+
                           <div>
-                            <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                               {alumno.nombre} {alumno.apellido}
                             </p>
-                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                            <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
                               {alumno.grado} • {alumno.padre ? `Padre: ${alumno.padre.nombre}` : 'Sin tutor'}
                             </p>
                           </div>
+
                         </div>
                         <div style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
                           {alumno.inscripciones.length > 0 ? alumno.inscripciones.map((ins, idx) => (
@@ -1703,62 +1712,56 @@ export default function AdminDashboard() {
             borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
           }}>
-            <button onClick={() => setIsProfesoresModalOpen(false)} style={{
-              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-container-high)',
-              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-            }}>
-              <X size={20} color="var(--color-primary)" />
-            </button>
-
-            <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
-              <div style={{ 
-                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-primary-container)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
-                boxShadow: '0 8px 16px rgba(var(--color-primary-rgb), 0.2)'
-              }}>
-                <Award size={24} color="var(--color-primary)" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                  Staff <span style={{ color: 'var(--color-secondary)' }}>Docente</span>
+                </h3>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                  Docentes y expertos a cargo de las disciplinas.
+                </p>
               </div>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Staff Docente</h2>
-              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Gestión de Expertos</p>
+              <button onClick={() => setIsProfesoresModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={20} color="var(--color-primary)" />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {profesores.length > 0 ? (
                 <>
                   {profesores
-                    .slice((currentPageProfesores - 1) * 5, currentPageProfesores * 5)
+                    .slice((currentPageProfesores - 1) * 4, currentPageProfesores * 4)
                     .map((prof, i) => (
                       <div key={prof.id} style={{ 
-                        padding: '1.5rem', borderRadius: '1.75rem', background: 'white', 
+                        padding: '1.1rem', borderRadius: '1.5rem', background: 'white', 
                         border: '1px solid var(--color-surface-container-low)',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
                           <div style={{ 
-                            width: '3.2rem', height: '3.2rem', borderRadius: '1.1rem', background: 'var(--color-surface-dim)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem', color: 'var(--color-primary)'
+                            width: '3rem', height: '3rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)'
                           }}>
                             {prof.nombre.charAt(0)}{prof.apellido.charAt(0)}
                           </div>
                           <div>
-                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>{prof.email || 'Sin correo registrado'}</p>
+                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{prof.email || 'Sin correo registrado'}</p>
                           </div>
                         </div>
                         
                         <div style={{ 
-                          background: 'var(--color-surface-container-lowest)', padding: '1rem 1.25rem', 
-                          borderRadius: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                          background: 'var(--color-surface-container-lowest)', padding: '0.8rem 1rem', 
+                          borderRadius: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
                           border: '1px solid var(--color-surface-container-low)'
                         }}>
                           {prof.clubes && prof.clubes.length > 0 ? prof.clubes.map((c: any) => (
                             <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-secondary)' }}></div>
-                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
+                                <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
                               </div>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: '1px solid var(--color-surface-container-high)' }}>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-surface-container-high)' }}>
                                 {formatHorarioShort(c.horario)}
                               </span>
                             </div>
@@ -1770,9 +1773,10 @@ export default function AdminDashboard() {
                     ))}
                   <Pagination 
                     current={currentPageProfesores} 
-                    total={Math.ceil(profesores.length / 5)} 
+                    total={Math.ceil(profesores.length / 4)} 
                     onChange={setCurrentPageProfesores} 
                   />
+
                 </>
               ) : (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
@@ -2055,8 +2059,9 @@ export default function AdminDashboard() {
                 const dataKey = rankingSubTab === 'asistencias' ? 'rankingAsistencias' : 
                               rankingSubTab === 'ausencias' ? 'rankingAusencias' : 'rankingJustificaciones';
                 const list = metricas[dataKey] || [];
-                const paginated = list.slice((currentPageRetencion - 1) * 5, currentPageRetencion * 5);
-                const totalPages = Math.ceil(list.length / 5);
+                const paginated = list.slice((currentPageRetencion - 1) * 4, currentPageRetencion * 4);
+                const totalPages = Math.ceil(list.length / 4);
+
                 const currentThemeColor = rankingSubTab === 'asistencias' ? 'var(--color-success)' : 
                                         rankingSubTab === 'ausencias' ? 'var(--color-error)' : '#EAB308';
 
@@ -2081,7 +2086,8 @@ export default function AdminDashboard() {
                             width: '2.8rem', height: '2.8rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', 
                             color: currentThemeColor, border: `2px solid ${currentThemeColor}11`
-                          }}>{(currentPageRetencion - 1) * 5 + i + 1}</div>
+                          }}>{(currentPageRetencion - 1) * 4 + i + 1}</div>
+
                           <div>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{item.alumno}</p>
                             <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{item.club}</p>
