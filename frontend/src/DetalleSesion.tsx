@@ -113,7 +113,7 @@ export default function DetalleSesion() {
   const fechaFormat = fechaObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="app-container animate-enter" style={{ paddingBottom: '11rem' }}>
+    <div className="animate-enter" style={{ paddingBottom: '11rem' }}>
       
       <section style={{ padding: '1.5rem 1rem 1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>

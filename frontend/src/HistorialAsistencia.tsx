@@ -54,7 +54,7 @@ export default function HistorialAsistencia() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
+    <div className="animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
       
       {/* HEADER PREMIUM */}
       <section style={{ marginBottom: '2rem' }}>

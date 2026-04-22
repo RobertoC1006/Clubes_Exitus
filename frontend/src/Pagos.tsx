@@ -90,7 +90,7 @@ export default function Pagos() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
+    <div className="animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
 
       {/* HERO SECTION */}
       <section style={{ marginBottom: '2rem' }}>

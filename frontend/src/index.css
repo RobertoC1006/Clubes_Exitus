@@ -71,6 +71,12 @@
   /* New Tokens */
   --color-surface-cyan: #E0F7FA;
   --radius-xl: 1.75rem;
+
+  /* Layout Tokens V3 */
+  --sidebar-width: 260px;
+  --max-content-width: 1440px;
+  --header-height: 72px;
+  --main-padding: 2rem;
 }
 
 .animate-spin {
@@ -184,21 +190,48 @@ button {
   justify-content: space-between;
 }
 
-/* Contenedor principal de la APP - Ahora Responsivo */
+/* Contenedor principal de la APP - Centrado Maestro V3 */
 .app-container {
   width: 100%;
-  max-width: 1440px; /* Expandimos para escritorio */
+  max-width: var(--max-content-width);
   margin: 0 auto;
   min-height: 100vh;
-  padding: 1rem;
+  padding: var(--main-padding);
   position: relative;
-  transition: padding var(--transition-normal);
+  transition: all var(--transition-normal);
+}
+
+#root {
+  width: 100%;
+}
+
+/* El Layout Root ahora envuelve todo en escritorio para centrar sidebar + contenido */
+@media (min-width: 768px) {
+  .layout-root {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+    background: var(--color-surface);
+    box-shadow: 0 0 100px rgba(0,0,0,0.03); /* Sombra sutil para dar profundidad al centrado */
+  }
+
+  .content-area {
+    min-width: 0; /* Evita que el contenido desborde el grid */
+    background: var(--color-surface);
+  }
 }
 
 @media (max-width: 768px) {
   .app-container {
-    max-width: 480px; /* Mantenemos el límite en móviles para consistencia */
+    padding: 1rem;
+    max-width: 100%; /* Permitimos que use el ancho en tablets */
   }
+  
+  /* Mantener el límite visual solo en móviles pequeños si se desea, 
+     pero para responsividad profesional es mejor dejar que fluya. */
 }
 
 /* 🌟 Micro Animación fluida de entrada 🌟 */
@@ -228,16 +261,17 @@ button {
    NUEVAS UTILIDADES PREMIUM (V2)
    ========================================================================== */
 
-/* Bento Box para Dashboards Pro - Adaptativo */
+/* Bento Box para Dashboards Pro - Adaptativo y Centrado */
 .bento-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+  justify-content: center; /* Centrar conjunto de tarjetas */
 }
 
 @media (min-width: 768px) {
   .bento-grid {
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
     gap: 1.5rem;
   }
 }
@@ -435,11 +469,10 @@ button {
   .sidebar-desktop {
     display: flex;
     flex-direction: column;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 260px;
+    width: var(--sidebar-width);
     height: 100vh;
+    position: sticky; /* Cambiamos de fixed a sticky para que viva dentro del grid centrado */
+    top: 0;
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -448,15 +481,15 @@ button {
     z-index: 150;
   }
 
-  /* Ajustar el contenedor principal si el sidebar existe */
+  /* Ya no necesitamos estos hacks de padding-left y margin-left */
   .has-sidebar .app-container {
-    padding-left: calc(260px + 1rem);
+    padding-left: 1rem; /* Padding normal */
   }
 
   .has-sidebar .header-glass {
-    margin-left: 260px;
-    width: calc(100% - 260px);
-    left: 260px;
+    margin-left: 0;
+    width: 100%;
+    left: 0;
   }
 
   /* Ocultar navegación inferior en Desktop */
@@ -468,21 +501,23 @@ button {
 .sidebar-link {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center; /* Centrar contenido */
+  gap: 0.75rem;
   padding: 0.85rem 1rem;
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   color: var(--color-on-surface-variant);
   text-decoration: none;
   font-weight: 700;
   font-size: 0.9rem;
   transition: all var(--transition-normal);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+  width: 100%;
 }
 
 .sidebar-link:hover {
   background: var(--color-surface-container-high);
   color: var(--color-primary);
-  transform: translateX(5px);
+  /* Eliminamos el desplazamiento lateral para mantener el centrado */
 }
 
 .sidebar-link.active {
@@ -497,4 +532,63 @@ button {
 
 .sidebar-link:hover svg {
   transform: scale(1.1);
+}
+
+/* ==========================================================================
+   UTILERÍA DE MODALES Y CENTRADO PRO (V3)
+   ========================================================================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(29, 40, 72, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: var(--color-surface-container-lowest);
+  border-radius: 2rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 32px 64px -16px rgba(0,0,0,0.2);
+  border: 1px solid white;
+  overflow: hidden;
+  animation: slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Utilería Master de Centrado V3 */
+.pro-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Header Centrado V3 */
+.hero-centered {
+  text-align: center;
+  margin: 0 auto 3rem auto;
+  max-width: 900px;
+}
+
+.hero-centered h2 {
+  font-size: 3.5rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .hero-centered h2 {
+    font-size: 2.25rem;
+  }
 }

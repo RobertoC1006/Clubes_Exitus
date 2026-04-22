@@ -39,14 +39,14 @@ export default function Perfil() {
 
   if (!usuario) {
     return (
-      <div className="app-container flex-center">
+      <div className="flex-center">
         <p>No has iniciado sesión.</p>
       </div>
     );
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem', maxWidth: '500px', margin: '0 auto' }}>
+    <div className="animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem', maxWidth: '500px', margin: '0 auto' }}>
 
       {/* TARJETA DE PERFIL PREMIUM */}
       <section style={{ marginBottom: '2rem' }}>

@@ -162,7 +162,7 @@ export default function PaseLista() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ paddingBottom: '11rem' }}>
+    <div className="animate-enter" style={{ paddingBottom: '11rem' }}>
       
       {/* HEADER PREMIUM */}
       <section style={{ padding: '1.5rem 1rem 1rem' }}>
