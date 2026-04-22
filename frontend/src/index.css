@@ -184,13 +184,21 @@ button {
   justify-content: space-between;
 }
 
-/* Contenedor principal de la APP móvil */
+/* Contenedor principal de la APP - Ahora Responsivo */
 .app-container {
-  max-width: 480px; /* Ancho de celular grande */
+  width: 100%;
+  max-width: 1440px; /* Expandimos para escritorio */
   margin: 0 auto;
   min-height: 100vh;
   padding: 1rem;
   position: relative;
+  transition: padding var(--transition-normal);
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    max-width: 480px; /* Mantenemos el límite en móviles para consistencia */
+  }
 }
 
 /* 🌟 Micro Animación fluida de entrada 🌟 */
@@ -220,11 +228,18 @@ button {
    NUEVAS UTILIDADES PREMIUM (V2)
    ========================================================================== */
 
-/* Bento Box para Dashboards Pro */
+/* Bento Box para Dashboards Pro - Adaptativo */
 .bento-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .bento-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
 }
 
 .bento-card {
@@ -405,4 +420,81 @@ button {
 
 .animate-shake {
   animation: shake 0.2s ease-in-out 0s 2;
+}
+
+/* ==========================================================================
+   NAVEGACIÓN RESPONSIVA (SIDEBAR DESKTOP)
+   ========================================================================== */
+
+/* Solo visible en pantallas grandes (>768px) */
+.sidebar-desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .sidebar-desktop {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid var(--color-surface-container-high);
+    padding: 1.5rem 1rem;
+    z-index: 150;
+  }
+
+  /* Ajustar el contenedor principal si el sidebar existe */
+  .has-sidebar .app-container {
+    padding-left: calc(260px + 1rem);
+  }
+
+  .has-sidebar .header-glass {
+    margin-left: 260px;
+    width: calc(100% - 260px);
+    left: 260px;
+  }
+
+  /* Ocultar navegación inferior en Desktop */
+  .bottom-nav-mobile {
+    display: none !important;
+  }
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: all var(--transition-normal);
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-link:hover {
+  background: var(--color-surface-container-high);
+  color: var(--color-primary);
+  transform: translateX(5px);
+}
+
+.sidebar-link.active {
+  background: var(--color-primary-fixed);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebar-link svg {
+  transition: transform var(--transition-normal);
+}
+
+.sidebar-link:hover svg {
+  transform: scale(1.1);
 }

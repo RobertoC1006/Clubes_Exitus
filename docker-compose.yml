@@ -21,6 +21,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: clubes_exitus_backend
+    ports:
+      - "3000:3000"
     environment:
       DATABASE_URL: "mysql://root:root@mysql-db:3306/clubes_exitus"
     depends_on:

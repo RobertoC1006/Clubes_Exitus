@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, CreditCard, User, GraduationCap, BarChart2, BookOpen, UserPlus, Download, Bell, Check, Loader2 } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, CreditCard, User, Users, GraduationCap, BarChart2, BookOpen, UserPlus, Download, Bell, Check, Loader2, LogOut } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useState, useEffect, useRef } from 'react';
 
@@ -76,16 +76,74 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const isProfesor = usuario?.rol === 'PROFESOR';
   const isAdmin    = usuario?.rol === 'ADMINISTRADOR';
-  const isPadre    = usuario?.rol === 'PADRE';
-
+  const isPadre    = usuario?.rol === 'PADRE';  
   const homeRoute  = isAdmin ? '/admin' : isPadre ? '/portal' : '/';
   const homeActive = ['/', '/admin', '/portal'].includes(location.pathname);
 
+  const adminTabs = [
+    { key: 'panel',    icon: <BarChart2 size={22}/>,  label: 'Panel',    path: '/admin?tab=panel' },
+    { key: 'clubes',   icon: <BookOpen size={22}/>,   label: 'Clubes',   path: '/admin?tab=clubes' },
+    { key: 'personas', icon: <UserPlus size={22}/>,   label: 'Personas', path: '/admin?tab=personas' },
+    { key: 'pagos',    icon: <CreditCard size={22}/>, label: 'Pagos',    path: '/admin?tab=pagos' },
+    { key: 'reporte',  icon: <Download size={22}/>,   label: 'Reporte',  path: '/admin?tab=reporte' },
+  ];
+
+  const globalLinks = [
+    { key: 'inicio', icon: <LayoutDashboard size={22}/>, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') },
+    ...(isProfesor ? [{ key: 'clubes', icon: <BookOpen size={22}/>, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' }] : []),
+    ...(isPadre || isAdmin ? [{ key: 'pagos', icon: <CreditCard size={22}/>, label: 'Pagos', path: '/pagos', active: location.pathname === '/pagos' }] : []),
+    { key: 'perfil', icon: <User size={22}/>, label: 'Perfil', path: '/perfil', active: location.pathname === '/perfil' },
+  ];
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-surface)' }}>
+    <div className={usuario ? 'has-sidebar' : ''} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-surface)' }}>
+
+      {/* SIDEBAR DESKTOP */}
+      {usuario && (
+        <aside className="sidebar-desktop">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', padding: '0.5rem' }}>
+            <div style={{ background: 'var(--color-primary)', width: '2rem', height: '2rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GraduationCap size={18} color="var(--color-secondary-container)" />
+            </div>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.03em' }}>EXITUS</h1>
+          </div>
+
+          <nav style={{ flex: 1 }}>
+            {(isAdmin && (location.pathname.startsWith('/admin') || location.pathname === '/')) ? (
+              adminTabs.map(t => {
+                const isActive = new URLSearchParams(location.search).get('tab') === t.key || (!new URLSearchParams(location.search).get('tab') && t.key === 'panel');
+                return (
+                  <button key={t.key} onClick={() => navigate(t.path)} className={`sidebar-link ${isActive ? 'active' : ''}`}>
+                    {t.icon}
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })
+            ) : (
+              globalLinks.map(l => (
+                <button key={l.key} onClick={() => navigate(l.path)} className={`sidebar-link ${l.active ? 'active' : ''}`}>
+                  {l.icon}
+                  <span>{l.label}</span>
+                </button>
+              ))
+            )}
+          </nav>
+
+          <footer style={{ marginTop: 'auto', padding: '1rem 0' }}>
+            <button 
+              onClick={handleLogout}
+              className="sidebar-link" 
+              style={{ color: 'var(--color-error)', width: '100%', justifyContent: 'flex-start' }}
+            >
+              <LogOut size={20} />
+              <span>Cerrar Sesión</span>
+            </button>
+          </footer>
+        </aside>
+      )}
 
       {/* TOP NAV */}
-      <header style={{
+      <header className="header-glass" style={{
         background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
         padding: '0.8rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         position: 'sticky', top: 0, zIndex: 100,
@@ -93,23 +151,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <div style={{ background: 'var(--color-primary)', width: '2.2rem', height: '2.2rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <GraduationCap size={20} color="var(--color-secondary-container)" strokeWidth={2.5} />
+          {/* Solo mostrar Logo en Header si es móvil */}
+          <div className="mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ background: 'var(--color-primary)', width: '2.2rem', height: '2.2rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GraduationCap size={20} color="var(--color-secondary-container)" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase', lineHeight: 1 }}>
+                EXITUS
+              </h2>
+            </div>
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase', lineHeight: 1 }}>
-              EXITUS
-            </h2>
-            {usuario && (
-              <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1 }}>
-                {isAdmin ? '👑 Admin' : isProfesor ? '👨‍🏫 Profesor' : '👨‍👩‍👦 Familia'}
-              </p>
-            )}
+          {/* En desktop el Logo ya está en el sidebar, podemos mostrar el título de la sección u otro elemento */}
+          <div className="desktop-only" style={{ display: 'none' }}>
+             <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary-container)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Sistema de Gestión Escolar
+             </p>
           </div>
         </div>
 
         {/* ACCIONES DERECHA (Notificaciones + Avatar) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+          {usuario && (
+             <div style={{ textAlign: 'right', marginRight: '0.5rem' }} className="desktop-only">
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)' }}>{usuario.nombre} {usuario.apellido}</p>
+                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-secondary)', textTransform: 'uppercase' }}>
+                  {isAdmin ? 'Administrador' : isProfesor ? 'Profesor' : 'Familia'}
+                </p>
+             </div>
+          )}
           
           {/* Campanita */}
           <div style={{ position: 'relative' }} ref={dropdownRef}>
@@ -210,13 +280,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* CONTENIDO */}
-      <main style={{ flex: 1, paddingBottom: '6.5rem' }}>
-        {children}
-      </main>
+      {/* CONTENIDO INTERACTIVO */}
+      <div className="app-container">
+        <main style={{ flex: 1, paddingBottom: '2rem' }}>
+          {children}
+        </main>
+      </div>
 
-      {/* BOTTOM NAV */}
-      <nav style={{
+      {/* BOTTOM NAV (MOBILE ONLY) */}
+      <nav className="bottom-nav-mobile" style={{
         position: 'fixed', bottom: 0, left: 0, width: '100%',
         background: 'rgba(255,255,255,0.90)', backdropFilter: 'blur(15px)',
         borderTop: '1px solid var(--color-surface-container-high)',
@@ -225,19 +297,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         zIndex: 100, boxShadow: '0 -4px 24px rgba(29,40,72,0.05)'
       }}>
         {(isAdmin && (location.pathname.startsWith('/admin') || location.pathname === '/')) ? (
-          // ── ADMIN SPECIFIC NAVIGATION ──
-          ([
-            { key: 'panel',    icon: <BarChart2 size={24}/>,  label: 'Panel' },
-            { key: 'clubes',   icon: <BookOpen size={24}/>,   label: 'Clubes' },
-            { key: 'personas', icon: <UserPlus size={24}/>,   label: 'Personas' },
-            { key: 'pagos',    icon: <CreditCard size={24}/>, label: 'Pagos' },
-            { key: 'reporte',  icon: <Download size={24}/>,   label: 'Reporte' },
-          ] as const).map(t => {
+          adminTabs.map(t => {
             const isActive = new URLSearchParams(location.search).get('tab') === t.key || (!new URLSearchParams(location.search).get('tab') && t.key === 'panel');
             return (
               <button
                 key={t.key}
-                onClick={() => navigate(`/admin?tab=${t.key}`)}
+                onClick={() => navigate(t.path)}
                 style={{
                   background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column',
                   alignItems: 'center', gap: '0.2rem', width: '20%', cursor: 'pointer',
@@ -256,53 +321,27 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             );
           })
         ) : (
-          // ── GLOBAL NAVIGATION ──
-          <>
-            {/* Inicio */}
-            <button onClick={() => navigate(homeRoute)} style={{ background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', color: location.pathname === '/' && (!new URLSearchParams(location.search).get('tab') || new URLSearchParams(location.search).get('tab') === 'inicio') ? 'var(--color-primary)' : 'var(--color-outline)' }}>
-              <div style={{ background: (location.pathname === '/' && (!new URLSearchParams(location.search).get('tab') || new URLSearchParams(location.search).get('tab') === 'inicio')) ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
-                <LayoutDashboard size={22} strokeWidth={homeActive ? 2.5 : 2} />
+          globalLinks.map(l => (
+            <button key={l.key} onClick={() => navigate(l.path)} style={{ background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', color: l.active ? 'var(--color-primary)' : 'var(--color-outline)' }}>
+              <div style={{ background: l.active ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
+                {l.icon}
               </div>
-              <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Inicio</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>{l.label}</span>
             </button>
-
-            {/* Clubes — solo Profesores */}
-            {isProfesor && (
-              <button 
-                onClick={() => navigate('/?tab=clubes')} 
-                style={{ 
-                  background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', 
-                  alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', 
-                  color: new URLSearchParams(location.search).get('tab') === 'clubes' ? 'var(--color-primary)' : 'var(--color-outline)' 
-                }}
-              >
-                <div style={{ background: new URLSearchParams(location.search).get('tab') === 'clubes' ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
-                  <BookOpen size={22} strokeWidth={new URLSearchParams(location.search).get('tab') === 'clubes' ? 2.5 : 2} />
-                </div>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Clubes</span>
-              </button>
-            )}
-
-            {/* Pagos - Solo Padres */}
-            {isPadre && (
-              <button onClick={() => navigate('/pagos')} style={{ background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', color: location.pathname === '/pagos' ? 'var(--color-primary)' : 'var(--color-outline)' }}>
-                <div style={{ background: location.pathname === '/pagos' ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
-                  <CreditCard size={22} strokeWidth={location.pathname === '/pagos' ? 2.5 : 2} />
-                </div>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Pagos</span>
-              </button>
-            )}
-
-            {/* Perfil */}
-            <button onClick={() => navigate('/perfil')} style={{ background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', width: '33.33%', cursor: 'pointer', color: location.pathname === '/perfil' ? 'var(--color-primary)' : 'var(--color-outline)' }}>
-              <div style={{ background: location.pathname === '/perfil' ? 'var(--color-primary-fixed)' : 'transparent', padding: '0.15rem 1rem', borderRadius: '99px', transition: 'all 0.2s' }}>
-                <User size={22} strokeWidth={location.pathname === '/perfil' ? 2.5 : 2} />
-              </div>
-              <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>Perfil</span>
-            </button>
-          </>
+          ))
         )}
       </nav>
+
+      {/* ESTILOS ESPECÍFICOS PARA HEADER/SIDEBAR VISIBILITY */}
+      <style>{`
+        @media (min-width: 768px) {
+          .mobile-only { display: none !important; }
+          .desktop-only { display: block !important; }
+        }
+        @media (max-width: 767px) {
+          .desktop-only { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
