@@ -69,11 +69,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const handleLogout = () => {
-    if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
-      logout();
-      navigate('/login');
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    logout();
+    navigate('/login');
+    setShowLogoutModal(false);
   };
 
   const isProfesor = usuario?.rol === 'PROFESOR';
@@ -102,7 +107,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className={usuario ? 'layout-root has-sidebar' : 'layout-root'} style={{ background: 'var(--color-surface)' }}>
 
-
+      {/* 🔮 MODAL DE CIERRE DE SESIÓN SIMPLIFICADO */}
+      {showLogoutModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem', zIndex: 99999
+        }} onClick={() => setShowLogoutModal(false)}>
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '380px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-surface-container-high)' }}>
+               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Confirmar Salida</h2>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
+                ¿Estás seguro de que deseas cerrar tu sesión actual?
+              </p>
+            </div>
+            <div style={{ padding: '1rem 1.5rem 1.5rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowLogoutModal(false)} style={{ padding: '0.6rem 1.2rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-high)', background: 'white', color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={confirmLogout} style={{ padding: '0.6rem 1.2rem', borderRadius: '0.75rem', border: 'none', background: 'var(--color-error)', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>Cerrar Sesión</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SIDEBAR DESKTOP */}
       {usuario && (
