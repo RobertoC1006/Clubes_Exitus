@@ -242,6 +242,8 @@ export default function AdminDashboard() {
 
   // Validando pago
   const [validandoPago, setValidandoPago] = useState<number | null>(null);
+  const [expandedPagoId, setExpandedPagoId] = useState<number | null>(null);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
   // Alumnos Inscritos Modal state
   const [isAlumnosInscritosModalOpen, setIsAlumnosInscritosModalOpen] = useState(false);
@@ -967,6 +969,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* 💡 ESTUDIANTE SELECCIONADO: DETALLE ESPECIAL (Si el buscador tiene un nombre exacto o muy cercano) */}
+            {/* 💡 ESTUDIANTE SELECCIONADO: DETALLE ESPECIAL (Si el buscador tiene un nombre exacto o muy cercano) */}
             {tipoFiltroPago === 'ALUMNO' && searchTerm.length >= 3 && alumnos.some(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())) && (
               (() => {
                 const matchedAlumno = alumnos.find(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -994,8 +997,8 @@ export default function AdminDashboard() {
                           <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PAGADO').length}</p>
                         </div>
                         <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '1.1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
-                          <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Realizados</p>
-                          <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-secondary)' }}>{filteredPagos.filter(p => p.estado === 'PENDIENTE').length}</p>
+                          <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pendientes</p>
+                          <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PENDIENTE').length}</p>
                         </div>
                       </div>
                     </div>
@@ -1004,43 +1007,56 @@ export default function AdminDashboard() {
               })()
             )}
 
-            {pagos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-on-surface-variant)' }}>
-                <CreditCard size={40} strokeWidth={1.5} />
-                <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>No hay comprobantes con este filtro</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {pagos
-                  .filter(p => {
-                    const search = searchTerm.toLowerCase();
-                    if (tipoFiltroPago === 'ALUMNO') {
-                      return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
-                    } else {
-                      return p.club.nombre.toLowerCase().includes(search);
-                    }
-                  })
-                  .slice((currentPagePagos - 1) * ITEMS_PER_PAGE, currentPagePagos * ITEMS_PER_PAGE)
-                  .map(pago => {
-                    const colors = estadoColor[pago.estado];
-                    return (
-                      <div key={pago.id} className="bento-card" style={{
-                        padding: '1.25rem', background: 'white'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div style={{ width: '3rem', height: '3rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <CreditCard size={20} color="var(--color-primary)" />
-                            </div>
-                            <div>
-                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
-                                {pago.alumno.nombre} {pago.alumno.apellido}
-                              </p>
-                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                                {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
-                              </p>
-                            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {pagos
+                .filter(p => {
+                  const search = searchTerm.toLowerCase();
+                  if (search.length < 3) return true;
+                  if (tipoFiltroPago === 'ALUMNO') {
+                    return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
+                  } else {
+                    return p.club.nombre.toLowerCase().includes(search);
+                  }
+                })
+                .filter(p => pagoFiltro === '' || p.estado === pagoFiltro)
+                .slice((currentPagePagos - 1) * ITEMS_PER_PAGE, currentPagePagos * ITEMS_PER_PAGE)
+                .map(pago => {
+                  const colors = estadoColor[pago.estado];
+                  const isExpanded = expandedPagoId === pago.id;
+                  return (
+                    <div 
+                      key={pago.id} 
+                      className="bento-card" 
+                      style={{
+                        padding: '1.25rem', 
+                        background: 'white',
+                        cursor: 'pointer',
+                        border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-high)',
+                        boxShadow: isExpanded ? 'var(--shadow-lg)' : 'var(--shadow-sm)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                      onClick={() => setExpandedPagoId(isExpanded ? null : pago.id)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                          <div style={{ 
+                            width: '3rem', height: '3rem', borderRadius: '1.1rem', 
+                            background: isExpanded ? 'var(--color-primary-container)' : 'var(--color-surface-container-low)', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.3s ease'
+                          }}>
+                            <CreditCard size={20} color={isExpanded ? 'white' : 'var(--color-primary)'} />
                           </div>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
+                              {pago.alumno.nombre} {pago.alumno.apellido}
+                            </p>
+                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
+                              {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
                           <span style={{
                             background: colors.bg, color: colors.fg,
                             padding: '0.4rem 0.8rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
@@ -1048,66 +1064,110 @@ export default function AdminDashboard() {
                           }}>
                             {pago.estado}
                           </span>
+                          <ChevronDown size={16} color="var(--color-outline)" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
                         </div>
+                      </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
-                          <div>
-                            {pago.monto && (
-                              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                                S/ {pago.monto.toFixed(2)}
-                              </p>
-                            )}
-                            {pago.urlComprobante && (
-                              <a href={pago.urlComprobante} target="_blank" rel="noreferrer"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-secondary)', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                <ExternalLink size={12} /> Comprobante
-                              </a>
-                            )}
-                          </div>
+                      {/* SECCIÓN EXPANDIBLE: COMPROBANTE */}
+                      {isExpanded && (
+                        <div 
+                          className="animate-enter"
+                          style={{ 
+                            marginTop: '1.25rem', 
+                            paddingTop: '1.25rem', 
+                            borderTop: '1.5px dashed var(--color-surface-container-high)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                          }}
+                          onClick={e => e.stopPropagation()}
+                        >
+                           <div style={{ 
+                             background: 'var(--color-surface-container-low)', 
+                             borderRadius: '1.25rem', 
+                             overflow: 'hidden',
+                             border: '1px solid var(--color-surface-container-high)',
+                             position: 'relative',
+                             minHeight: '200px',
+                             display: 'flex',
+                             alignItems: 'center',
+                             justifyContent: 'center'
+                           }}>
+                             {pago.urlComprobante ? (
+                               <img 
+                                 src={pago.urlComprobante.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/')} 
+                                 alt="Comprobante de pago"
+                                 style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '400px', cursor: 'zoom-in' }}
+                                 onClick={() => setViewerImage(pago.urlComprobante)}
+                                 onError={(e) => {
+                                    (e.target as any).src = 'https://placehold.co/600x400?text=Error+al+cargar+imagen';
+                                 }}
+                               />
+                             ) : (
+                               <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-outline)' }}>
+                                 <FileText size={48} opacity={0.2} style={{ marginBottom: '0.5rem' }} />
+                                 <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>Sin comprobante adjunto</p>
+                               </div>
+                             )}
+                           </div>
+                        </div>
+                      )}
 
-                          {pago.estado === 'PENDIENTE' && (
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button
-                                disabled={validandoPago === pago.id}
-                                onClick={() => handleValidarPago(pago.id, 'PAGADO')}
-                                style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                                <Check size={18} strokeWidth={3} />
-                              </button>
-                              <button
-                                disabled={validandoPago === pago.id}
-                                onClick={() => {
-                                  const obs = prompt('Motivo del rechazo (opcional):') ?? '';
-                                  handleValidarPago(pago.id, 'RECHAZADO', obs);
-                                }}
-                                style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                                <X size={18} strokeWidth={3} />
-                              </button>
-                            </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
+                        <div>
+                          {pago.monto && (
+                            <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                              S/ {pago.monto.toFixed(2)}
+                            </p>
                           )}
                         </div>
 
-                        {pago.observacion && (
-                          <p style={{ margin: '0.75rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem 0.85rem', borderRadius: '0.85rem', fontWeight: 500 }}>
-                            “{pago.observacion}”
-                          </p>
+                        {pago.estado === 'PENDIENTE' && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                            <button
+                              disabled={validandoPago === pago.id}
+                              onClick={() => handleValidarPago(pago.id, 'PAGADO')}
+                              style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                              <Check size={18} strokeWidth={3} />
+                            </button>
+                            <button
+                              disabled={validandoPago === pago.id}
+                              onClick={() => {
+                                const obs = prompt('Motivo del rechazo (opcional):') ?? '';
+                                handleValidarPago(pago.id, 'RECHAZADO', obs);
+                              }}
+                              style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                              <X size={18} strokeWidth={3} />
+                            </button>
+                          </div>
                         )}
                       </div>
-                    );
-                  })}
-                <Pagination
-                  current={currentPagePagos}
-                  total={Math.ceil(pagos.filter(p => {
-                    const search = searchTerm.toLowerCase();
-                    if (tipoFiltroPago === 'ALUMNO') {
-                      return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
-                    } else {
-                      return p.club.nombre.toLowerCase().includes(search);
-                    }
-                  }).length / ITEMS_PER_PAGE)}
-                  onChange={setCurrentPagePagos}
-                />
-              </div>
-            )}
+
+                      {pago.observacion && (
+                        <p style={{ margin: '0.75rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem 0.85rem', borderRadius: '0.85rem', fontWeight: 500 }}>
+                          “{pago.observacion}”
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+
+              <Pagination
+                current={currentPagePagos}
+                total={Math.ceil(pagos.filter(p => {
+                  const search = searchTerm.toLowerCase();
+                  if (search.length < 3) return true;
+                  if (tipoFiltroPago === 'ALUMNO') {
+                    return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
+                  } else {
+                    return p.club.nombre.toLowerCase().includes(search);
+                  }
+                })
+                .filter(p => pagoFiltro === '' || p.estado === pagoFiltro).length / ITEMS_PER_PAGE)}
+                onChange={setCurrentPagePagos}
+              />
+            </div>
+
           </>
         )}
 
@@ -1734,7 +1794,16 @@ export default function AdminDashboard() {
           clubNombre={modalPagosClub.nombre}
           pagos={pagos}
           onValidate={handleValidarPago}
+          onShowImage={setViewerImage}
           onClose={() => setModalPagosClub(false)}
+        />
+      )}
+
+      {/* ── VISOR DE IMÁGENES ────────────────────────────── */}
+      {viewerImage && (
+        <ImageViewer 
+          url={viewerImage} 
+          onClose={() => setViewerImage(null)} 
         />
       )}
 
@@ -1743,14 +1812,16 @@ export default function AdminDashboard() {
 }
 
 // ── Sub-componentes Adicionales ────────────────────────────────
-function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
+function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onShowImage, onClose }: {
   clubId: number;
   clubNombre: string;
   pagos: Pago[];
   onValidate: (id: number, estado: 'PAGADO' | 'RECHAZADO', obs?: string) => void;
+  onShowImage: (url: string) => void;
   onClose: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedPagoId, setExpandedPagoId] = useState<number | null>(null);
   const clubPagos = pagos.filter(p => p.club.nombre === clubNombre)
     .filter(p => (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -1813,39 +1884,111 @@ function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
             </div>
           ) : clubPagos.map(p => {
             const colors = estadoColor[p.estado];
+            const isExpanded = expandedPagoId === p.id;
             return (
-              <div key={p.id} style={{
-                padding: '1rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)',
-                border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
-                  <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CreditCard size={18} color={colors.fg} />
+              <div 
+                key={p.id} 
+                style={{
+                  padding: '1.25rem', 
+                  borderRadius: '1.25rem', 
+                  background: isExpanded ? 'white' : 'var(--color-surface-container-lowest)',
+                  border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  boxShadow: isExpanded ? 'var(--shadow-md)' : 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onClick={() => setExpandedPagoId(isExpanded ? null : p.id)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
+                    <div style={{ 
+                      width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', 
+                      background: isExpanded ? 'var(--color-primary-container)' : colors.bg, 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <CreditCard size={18} color={isExpanded ? 'white' : colors.fg} />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
-                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {p.estado === 'PENDIENTE' ? (
+                      <div style={{ display: 'flex', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
+                        <button onClick={() => onValidate(p.id, 'PAGADO')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                          <Check size={16} strokeWidth={3} />
+                        </button>
+                        <button onClick={() => {
+                          const obs = prompt('Motivo del rechazo:') ?? '';
+                          onValidate(p.id, 'RECHAZADO', obs);
+                        }} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                          <X size={16} strokeWidth={3} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
+                        {p.estado}
+                      </span>
+                    )}
+                    <ChevronDown size={14} color="var(--color-outline)" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {p.estado === 'PENDIENTE' ? (
-                    <>
-                      <button onClick={() => onValidate(p.id, 'PAGADO')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                        <Check size={16} strokeWidth={3} />
-                      </button>
-                      <button onClick={() => {
-                        const obs = prompt('Motivo del rechazo:') ?? '';
-                        onValidate(p.id, 'RECHAZADO', obs);
-                      }} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                        <X size={16} strokeWidth={3} />
-                      </button>
-                    </>
-                  ) : (
-                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
-                      {p.estado}
-                    </span>
-                  )}
-                </div>
+
+                {/* SECCIÓN EXPANDIBLE EN MODAL */}
+                {isExpanded && (
+                  <div 
+                    className="animate-enter"
+                    style={{ 
+                      marginTop: '0.75rem', 
+                      paddingTop: '0.75rem', 
+                      borderTop: '1px dashed var(--color-surface-container-high)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem'
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div style={{ 
+                      background: 'var(--color-surface-container-low)', 
+                      borderRadius: '1rem', 
+                      overflow: 'hidden',
+                      border: '1px solid var(--color-surface-container-high)',
+                      minHeight: '150px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {p.urlComprobante ? (
+                        <img 
+                          src={p.urlComprobante.replace('/upload/', '/upload/w_600,c_limit,q_auto,f_auto/')} 
+                          alt="Comprobante"
+                          style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '300px', cursor: 'zoom-in' }}
+                          onClick={() => onShowImage(p.urlComprobante!)}
+                          onError={(e) => {
+                            (e.target as any).src = 'https://placehold.co/400x300?text=Error+al+cargar+imagen';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-outline)' }}>
+                          <FileText size={32} opacity={0.2} style={{ marginBottom: '0.25rem' }} />
+                          <p style={{ fontSize: '0.7rem', fontWeight: 600 }}>Sin comprobante</p>
+                        </div>
+                      )}
+                    </div>
+                    {p.observacion && (
+                      <div style={{ background: 'var(--color-surface-container-low)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-high)' }}>
+                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', fontWeight: 600 }}>
+                          Motivo: “{p.observacion}”
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -2167,4 +2310,44 @@ function formatHorarioShort(horario: any): string {
   return dias.map(([dia, config]: [string, any]) => {
     return `${dia.substring(0, 2)}: ${config.start}-${config.end}`;
   }).join(' | ');
+}
+
+function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000, 
+      background: 'rgba(10,15,30,0.92)', backdropFilter: 'blur(10px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+    }} onClick={onClose}>
+      <button 
+        onClick={onClose}
+        style={{
+          position: 'absolute', top: '1.5rem', right: '1.5rem', 
+          background: 'rgba(255,255,255,0.15)', border: 'none', 
+          width: '3rem', height: '3rem', borderRadius: '1.2rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+          cursor: 'pointer', color: 'white', zIndex: 10
+        }}
+      >
+        <X size={24} />
+      </button>
+      
+      <div 
+        style={{ position: 'relative', maxWidth: '95vw', maxHeight: '90vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <img 
+          src={url.replace('/upload/', '/upload/w_1200,c_limit,q_auto,f_auto/')}
+          alt="Comprobante extendido"
+          style={{ width: 'auto', maxHeight: '90vh', borderRadius: '1.5rem', boxShadow: '0 32px 100px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}
+        />
+        <div style={{
+          position: 'absolute', bottom: '-2.5rem', left: '50%', transform: 'translateX(-50%)',
+          color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', pointerEvents: 'none'
+        }}>
+          <AlertTriangle size={14} /> Haz clic fuera para cerrar
+        </div>
+      </div>
+    </div>
+  );
 }
