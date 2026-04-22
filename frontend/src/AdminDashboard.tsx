@@ -74,13 +74,26 @@ function ClubModal({
   const [desc, setDesc] = useState(club?.descripcion ?? '');
   const [profId, setProfId] = useState<number>(club?.profesorId ?? (profesores[0]?.id ?? 0));
 
-  // Horario inicial: Lunes a Sábado desactivado por defecto
-  const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const [horario, setHorario] = useState<any>(club?.horario ?? {});
+  // Horario inicial: Lunes a Domingo desactivado por defecto
+  const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  
+  const initialHorario = (() => {
+    if (!club?.horario) return {};
+    if (typeof club.horario === 'string') {
+      try { return JSON.parse(club.horario); } catch { return {}; }
+    }
+    return club.horario;
+  })();
+
+  const [horario, setHorario] = useState<any>(initialHorario);
 
   const toggleDia = (dia: string) => {
     setHorario((prev: any) => {
-      const newHorario = { ...prev };
+      let current = prev;
+      if (typeof prev === 'string') {
+        try { current = JSON.parse(prev); } catch { current = {}; }
+      }
+      const newHorario = { ...current };
       if (newHorario[dia]) {
         delete newHorario[dia];
       } else {
@@ -91,10 +104,16 @@ function ClubModal({
   };
 
   const updateTime = (dia: string, key: 'start' | 'end', val: string) => {
-    setHorario((prev: any) => ({
-      ...prev,
-      [dia]: { ...prev[dia], [key]: val }
-    }));
+    setHorario((prev: any) => {
+      let current = prev;
+      if (typeof prev === 'string') {
+        try { current = JSON.parse(prev); } catch { current = {}; }
+      }
+      return {
+        ...current,
+        [dia]: { ...current[dia], [key]: val }
+      };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -213,7 +232,7 @@ const inputStyle: React.CSSProperties = {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte';
+  const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte' | 'horarios';
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -221,6 +240,58 @@ export default function AdminDashboard() {
   const [pagoAlumnoFiltro, setPagoAlumnoFiltro] = useState<number | string>('');
   const [pagoClubFiltro, setPagoClubFiltro] = useState<number | string>('');
   const [tipoFiltroPago, setTipoFiltroPago] = useState<'ALUMNO' | 'CLUB'>('ALUMNO');
+
+  // Horarios Filtros
+  const [filtroProfHorario, setFiltroProfHorario] = useState('');
+  const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
+
+  const DIAS_CALENDARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const HORAS_START = 8;
+  const HORAS_END = 22;
+  const ROW_HEIGHT = 65; // px per hour
+
+  const timeToMinutes = (time: string) => {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const getPosForTime = (time: string) => {
+    const min = timeToMinutes(time);
+    const startMin = HORAS_START * 60;
+    return ((min - startMin) / 60) * ROW_HEIGHT;
+  };
+
+  const getHeightForDuration = (start: string, end: string) => {
+    const startMin = timeToMinutes(start);
+    const endMin = timeToMinutes(end);
+    return ((endMin - startMin) / 60) * ROW_HEIGHT;
+  };
+
+  const normalizeDay = (dia: string) => {
+    if (!dia) return '';
+    const d = dia.toLowerCase();
+    if (d.includes('lun')) return 'Lunes';
+    if (d.includes('mar')) return 'Martes';
+    if (d.includes('mi') || d.includes('mirc')) return 'Miércoles';
+    if (d.includes('jue')) return 'Jueves';
+    if (d.includes('vie')) return 'Viernes';
+    if (d.includes('s') || d.includes('sba')) return 'Sábado';
+    if (d.includes('d') || d.includes('dom')) return 'Domingo';
+    return dia;
+  };
+
+  const getClubTheme = (clubName: string) => {
+    const name = clubName.toLowerCase();
+    if (name.includes('fút') || name.includes('fut')) return { grad: 'linear-gradient(135deg, #1e40af, #3b82f6)', main: '#3b82f6', light: '#dbeafe' };
+    if (name.includes('natar') || name.includes('nata')) return { grad: 'linear-gradient(135deg, #0369a1, #0ea5e9)', main: '#0ea5e9', light: '#e0f2fe' };
+    if (name.includes('ajed')) return { grad: 'linear-gradient(135deg, #1e293b, #475569)', main: '#475569', light: '#f1f5f9' };
+    if (name.includes('danz')) return { grad: 'linear-gradient(135deg, #7e22ce, #a855f7)', main: '#a855f7', light: '#f3e8ff' };
+    if (name.includes('rob')) return { grad: 'linear-gradient(135deg, #c2410c, #f97316)', main: '#f97316', light: '#ffedd5' };
+    // Default Fénix
+    return { grad: 'var(--grad-primary)', main: 'var(--color-primary)', light: 'var(--color-surface-container-highest)' };
+  };
+  const [filtroClubHorario, setFiltroClubHorario] = useState<number | string>('');
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -286,6 +357,8 @@ export default function AdminDashboard() {
     setCurrentPagePagos(1);
     setCurrentPageReportes(1);
     setCurrentPageRanking(1);
+    setFiltroProfHorario('');
+    setFiltroClubHorario('');
     setPagesUsuarios({ ADMINISTRADOR: 1, PROFESOR: 1, PADRE: 1 });
   }, [tab, personasTab]);
 
@@ -699,7 +772,7 @@ export default function AdminDashboard() {
                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                       <Pill icon={<UserCheck size={14} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
                       <Pill icon={<Users size={14} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
-                      {club.horario && Object.keys(club.horario).length > 0 && (
+                      {club.horario && (
                         <Pill icon={<Calendar size={14} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
                       )}
                       <Pill icon={<TrendingUp size={14} />} label={`${club.asistencia}% racha`}
@@ -1169,6 +1242,284 @@ export default function AdminDashboard() {
             </div>
 
           </>
+        )}
+
+        {/* ══════════ TAB: HORARIOS ═════════════════════════ */}
+        {tab === 'horarios' && (
+          <div className="animate-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Header / Filtros */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                  Cronograma <span style={{ background: 'var(--grad-gold)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Extracurricular</span>
+                </h3>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión centralizada de horarios y espacios</p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Disciplina</label>
+                  <select 
+                    value={filtroClubHorario} 
+                    onChange={e => setFiltroClubHorario(e.target.value)}
+                    style={{ ...inputStyle, padding: '0.5rem 0.75rem', borderRadius: '0.75rem', fontSize: '0.8rem', minWidth: '160px' }}
+                  >
+                    <option value="">Todas las disciplinas</option>
+                    {(metricas?.clubes ?? []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>Profesor</label>
+                  <select 
+                    value={filtroProfHorario} 
+                    onChange={e => setFiltroProfHorario(e.target.value)}
+                    style={{ ...inputStyle, padding: '0.5rem 0.75rem', borderRadius: '0.75rem', fontSize: '0.8rem', minWidth: '160px' }}
+                  >
+                    <option value="">Cualquier profesor</option>
+                    {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Day Selector */}
+            <div className="mobile-day-selector" style={{ 
+              display: 'none', 
+              gap: '0.5rem', 
+              overflowX: 'auto', 
+              paddingBottom: '0.5rem',
+              scrollbarWidth: 'none'
+            }}>
+              {DIAS_CALENDARIO.map(dia => (
+                <button
+                  key={dia}
+                  onClick={() => setActiveDayMobile(dia)}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '1rem',
+                    border: 'none',
+                    background: activeDayMobile === dia ? 'var(--grad-primary)' : 'var(--color-surface-container-low)',
+                    color: activeDayMobile === dia ? 'white' : 'var(--color-outline)',
+                    fontWeight: 800,
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  {dia}
+                </button>
+              ))}
+            </div>
+
+            {/* Calendar Pro Container */}
+            <div className="calendar-pro-wrapper" style={{ 
+              background: 'rgb(241, 243, 245)', // Lighter background for the container
+              borderRadius: '1.5rem', 
+              border: '1px solid var(--color-surface-container-high)',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)'
+            }}>
+              <div style={{ display: 'flex', position: 'relative' }}>
+                
+                {/* Time Axis (Left) */}
+                <div style={{ 
+                  width: '64px', 
+                  flexShrink: 0, 
+                  borderRight: '1px solid rgba(0,0,0,0.08)',
+                  background: 'rgba(255,255,255,0.8)',
+                  paddingTop: '40px' 
+                }}>
+                  {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => HORAS_START + i).map(h => (
+                    <div key={h} style={{ 
+                      height: `${ROW_HEIGHT}px`, 
+                      position: 'relative',
+                      display: 'flex',
+                      justifyContent: 'center'
+                    }}>
+                      <span style={{ 
+                        fontSize: '0.7rem', 
+                        fontWeight: 900, 
+                        color: 'var(--color-primary)', 
+                        position: 'absolute',
+                        top: '-8px',
+                        background: 'white',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        zIndex: 10
+                      }}>
+                        {h}:00
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Grid Area */}
+                <div className="calendar-grid-container" style={{ 
+                  flex: 1, 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  position: 'relative',
+                  background: 'white' // White grid for cards to stand out on
+                }}>
+                  {DIAS_CALENDARIO.map((dia, dIdx) => {
+                    const clubsDelDiaRaw = (metricas?.clubes ?? [])
+                      .map(c => {
+                        let parsed = c.horario;
+                        if (typeof c.horario === 'string') {
+                          try { parsed = JSON.parse(c.horario); } catch { parsed = null; }
+                        }
+                        
+                        // Normalizer: allow finding the day even if it has encoding issues
+                        let config = null;
+                        if (parsed) {
+                          const keys = Object.keys(parsed);
+                          const matchingKey = keys.find(k => normalizeDay(k) === dia);
+                          if (matchingKey) config = parsed[matchingKey];
+                        }
+
+                        return { ...c, horarioParsed: parsed, config };
+                      })
+                      .filter(c => {
+                        const matchesFiltro = (!filtroClubHorario || c.id === Number(filtroClubHorario)) && 
+                                              (!filtroProfHorario || c.profesorId === Number(filtroProfHorario));
+                        return matchesFiltro && c.config;
+                      });
+
+                    // Overlap Detection
+                    const processedClubs = clubsDelDiaRaw.map((club, i) => {
+                      const concurrent = clubsDelDiaRaw.filter((other, j) => {
+                        if (i === j) return false;
+                        const s1 = timeToMinutes(club.config.start);
+                        const e1 = timeToMinutes(club.config.end);
+                        const s2 = timeToMinutes(other.config.start);
+                        const e2 = timeToMinutes(other.config.end);
+                        // Check if time ranges overlap
+                        return s1 < e2 && s2 < e1;
+                      });
+                      
+                      // For a simple split, we look at position in the concurrent list
+                      // This is a basic "smart grid" approach
+                      const colIndex = concurrent.filter(other => other.id < club.id).length;
+                      const maxCols = concurrent.length + 1;
+
+                      return { ...club, colIndex, maxCols };
+                    });
+
+                    return (
+                      <div key={dia} className={`calendar-day-col ${activeDayMobile === dia ? 'is-active-mobile' : ''}`} style={{ 
+                        borderRight: dIdx < 6 ? '1px solid var(--color-surface-container-lowest)' : 'none',
+                        position: 'relative',
+                        minHeight: `${(HORAS_END - HORAS_START + 1) * ROW_HEIGHT}px`
+                      }}>
+                        {/* Day Header */}
+                        <div style={{ 
+                          height: '40px', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          borderBottom: '1px solid var(--color-surface-container-high)',
+                          background: 'rgba(255,255,255,0.3)',
+                          position: 'sticky',
+                          top: 0,
+                          zIndex: 5
+                        }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dia}</span>
+                        </div>
+
+                        {/* Hour Lines Background */}
+                        <div style={{ position: 'absolute', inset: '40px 0 0 0', pointerEvents: 'none' }}>
+                           {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => (
+                             <div key={i} style={{ height: `${ROW_HEIGHT}px`, borderBottom: '1px solid rgba(0,0,0,0.06)' }}></div>
+                           ))}
+                        </div>
+
+                        {/* Session Cards */}
+                        <div style={{ position: 'absolute', inset: '40px 4px 0 4px' }}>
+                          {processedClubs.map(club => {
+                            const width = 100 / club.maxCols;
+                            const left = club.colIndex * width;
+                            const theme = getClubTheme(club.nombre);
+
+                            return (
+                              <div key={`${club.id}-${dia}`} 
+                                className="schedule-card-pro"
+                                style={{
+                                  position: 'absolute',
+                                  left: `${left}%`,
+                                  width: `calc(${width}% - 4px)`,
+                                  top: `${getPosForTime(club.config.start)}px`,
+                                  height: `${getHeightForDuration(club.config.start, club.config.end)}px`,
+                                  padding: '0.5rem',
+                                  background: 'white',
+                                  borderRadius: '0.8rem',
+                                  zIndex: 2,
+                                  borderLeft: `4px solid ${theme.main}`,
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.15rem',
+                                  transition: 'all 0.3s',
+                                  boxSizing: 'border-box',
+                                  margin: '0 2px'
+                                }}
+                              >
+                                 <div style={{ 
+                                   position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: theme.grad, opacity: 0.8
+                                 }}></div>
+                                 <p style={{ margin: '2px 0 0', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                   {club.nombre}
+                                 </p>
+                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    <Clock size={10} color={theme.main} />
+                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: theme.main }}>{club.config.start}</span>
+                                 </div>
+                                 
+                                 <div className="card-hover-extra" style={{
+                                   position: 'absolute', inset: 0, background: theme.grad, color: 'white',
+                                   padding: '0.6rem', opacity: 0, visibility: 'hidden', transition: 'all 0.3s', zIndex: 10,
+                                   display: 'flex', flexDirection: 'column', justifyContent: 'center'
+                                 }}>
+                                    <p style={{ margin: '0 0 0.2rem', fontSize: '0.8rem', fontWeight: 900 }}>{club.nombre}</p>
+                                    <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, opacity: 0.9 }}>Prof. {club.profesor}</p>
+                                    <div style={{ marginTop: '0.4rem', background: 'rgba(255,255,255,0.25)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 900, alignSelf: 'flex-start' }}>
+                                      {club.config.start} - {club.config.end}
+                                    </div>
+                                 </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+              </div>
+            </div>
+
+            <style>{`
+              @media (max-width: 900px) {
+                .mobile-day-selector { display: flex !important; }
+                .calendar-grid-container { grid-template-columns: 1fr !important; }
+                .calendar-day-col { display: none; }
+                .calendar-day-col.is-active-mobile { display: block !important; }
+                .calendar-day-col { border-right: none !important; }
+              }
+              .schedule-card-pro:hover {
+                transform: scale(1.02);
+                z-index: 10 !important;
+                box-shadow: var(--shadow-lg);
+              }
+              .schedule-card-pro:hover .card-hover-extra {
+                opacity: 1 !important;
+                visibility: visible !important;
+              }
+              .mobile-day-selector::-webkit-scrollbar { display: none; }
+            `}</style>
+          </div>
         )}
 
         {/* ══════════ TAB: REPORTE ══════════════════════════ */}
@@ -2303,12 +2654,36 @@ function AlumnoModal({
 
 // ── Utilidades ──────────────────────────────────────────────
 function formatHorarioShort(horario: any): string {
-  if (!horario || typeof horario !== 'object') return 'Horario por definir';
-  const dias = Object.entries(horario);
-  if (dias.length === 0) return 'Sin horario';
+  if (!horario) return 'Por definir';
   
-  return dias.map(([dia, config]: [string, any]) => {
-    return `${dia.substring(0, 2)}: ${config.start}-${config.end}`;
+  let parsed = horario;
+  if (typeof horario === 'string') {
+    try { 
+      parsed = JSON.parse(horario); 
+    } catch { 
+      return 'Error horario'; 
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') return 'Por definir';
+
+  const daysOrdered = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const activeDays = daysOrdered.filter(d => parsed[d]);
+  
+  if (activeDays.length === 0) return 'Sin horario';
+
+  // Agrupar por horario idéntico
+  const groups: { hours: string, days: string[] }[] = [];
+  activeDays.forEach(day => {
+    const hours = `${parsed[day].start}-${parsed[day].end}`;
+    const group = groups.find(g => g.hours === hours);
+    if (group) group.days.push(day);
+    else groups.push({ hours, days: [day] });
+  });
+
+  return groups.map(g => {
+    const daysStr = g.days.map(d => d.substring(0, 3)).join(',');
+    return `${daysStr}: ${g.hours}`;
   }).join(' | ');
 }
 

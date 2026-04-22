@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, CreditCard, User, Users, GraduationCap, BarChart2, BookOpen, UserPlus, Download, Bell, Check, Loader2, LogOut } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, CreditCard, User, Users, GraduationCap, BarChart2, BookOpen, UserPlus, Download, Bell, Check, Loader2, LogOut, Calendar } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useState, useEffect, useRef } from 'react';
 
@@ -85,7 +85,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { key: 'clubes',   icon: <BookOpen size={22}/>,   label: 'Clubes',   path: '/admin?tab=clubes' },
     { key: 'personas', icon: <UserPlus size={22}/>,   label: 'Personas', path: '/admin?tab=personas' },
     { key: 'pagos',    icon: <CreditCard size={22}/>, label: 'Pagos',    path: '/admin?tab=pagos' },
-    { key: 'reporte',  icon: <Download size={22}/>,   label: 'Reporte',  path: '/admin?tab=reporte' },
+    { key: 'horarios', icon: <Calendar size={22}/>,   label: 'Horarios', path: '/admin?tab=horarios' },
+    { key: 'reporte',  icon: <Download size={22}/>,   label: 'Reportes', path: '/admin?tab=reporte' },
   ];
 
   const globalLinks = [

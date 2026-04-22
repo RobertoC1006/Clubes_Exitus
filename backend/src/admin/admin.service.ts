@@ -80,6 +80,7 @@ export class AdminService {
         profesor: `${club.profesor.nombre} ${club.profesor.apellido}`,
         inscritos: club._count.inscripciones,
         asistencia: tot > 0 ? Math.round((pres / tot) * 100) : 0,
+        horario: club.horario,
       };
     });
 
