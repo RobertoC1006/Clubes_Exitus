@@ -124,66 +124,95 @@ function ClubModal({
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1rem',
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem'
     }} onClick={onClose}>
       <div style={{
-        background: 'var(--color-surface)', borderRadius: '1.5rem', padding: '1.5rem',
-        width: '100%', maxWidth: '420px', boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+        width: '100%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {club?.id ? 'Editar Club' : 'Nuevo Club'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
-            <X size={20} color="var(--color-on-surface-variant)" />
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              {club?.id ? 'Editar' : 'Nuevo'} <span style={{ color: 'var(--color-secondary)' }}>Club / Disciplina</span>
+            </h3>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              {club?.id ? 'Actualiza la información y programación' : 'Crea una nueva disciplina deportiva o académica'}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
+            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <X size={20} color="var(--color-primary)" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={labelStyle}>Nombre del Club</label>
-            <input value={nombre} onChange={e => setNombre(e.target.value)}
-              placeholder="Ej: Ajedrez Avanzado" required style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Descripción (opcional)</label>
-            <input value={desc} onChange={e => setDesc(e.target.value)}
-              placeholder="Breve descripción..." style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Profesor a cargo</label>
-            <select value={profId} onChange={e => setProfId(Number(e.target.value))} required style={inputStyle}>
-              {profesores.map(p => (
-                <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
-              ))}
-            </select>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={labelStyle}>Nombre de la Disciplina</label>
+              <input value={nombre} onChange={e => setNombre(e.target.value)}
+                placeholder="Ej: Ajedrez" required 
+                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Resumen / Descripción</label>
+              <input value={desc} onChange={e => setDesc(e.target.value)}
+                placeholder="Breve descripción..." 
+                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Profesor Responsable</label>
+              <div style={{ position: 'relative' }}>
+                <select value={profId} onChange={e => setProfId(Number(e.target.value))} required 
+                  style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem', appearance: 'none', paddingRight: '3rem' }}>
+                  {profesores.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
+                  ))}
+                </select>
+                <ChevronDown size={20} color="var(--color-primary)" style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
+            </div>
           </div>
 
           <div>
-            <label style={labelStyle}>Horario Semanal</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={labelStyle}>Programación de Horarios</label>
+            <div style={{ 
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem',
+              padding: '0.25rem'
+            }}>
               {DIAS.map(dia => {
-                const activo = !!horario[dia];
+                const isActive = !!horario[dia];
                 return (
                   <div key={dia} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0.6rem 0.85rem', borderRadius: '0.75rem',
-                    background: activo ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-low)',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <input type="checkbox" checked={activo} onChange={() => toggleDia(dia)}
-                        style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer', accentColor: 'var(--color-primary)' }} />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: activo ? 'var(--color-primary)' : 'var(--color-outline)' }}>{dia}</span>
+                    padding: '0.75rem', borderRadius: '1.25rem', border: '1.5px solid',
+                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-surface-container-high)',
+                    background: isActive ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-lowest)',
+                    transition: 'all 0.2s', cursor: 'pointer'
+                  }} onClick={() => toggleDia(dia)}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.75rem', color: isActive ? 'var(--color-primary)' : 'var(--color-outline)' }}>{dia}</span>
+                      <div style={{ 
+                        width: '0.6rem', height: '0.6rem', borderRadius: '50%', 
+                        background: isActive ? 'var(--color-primary)' : 'var(--color-surface-container-high)'
+                      }}></div>
                     </div>
-                    {activo && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <input type="time" value={horario[dia].start} onChange={e => updateTime(dia, 'start', e.target.value)}
-                          style={timeInputStyle} />
-                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-primary)' }}>—</span>
-                        <input type="time" value={horario[dia].end} onChange={e => updateTime(dia, 'end', e.target.value)}
-                          style={timeInputStyle} />
+                    {isActive && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
+                        <input type="time" value={horario[dia].start} 
+                          onChange={e => updateTime(dia, 'start', e.target.value)} 
+                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
+                        <input type="time" value={horario[dia].end} 
+                          onChange={e => updateTime(dia, 'end', e.target.value)} 
+                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
                       </div>
                     )}
                   </div>
@@ -192,14 +221,24 @@ function ClubModal({
             </div>
           </div>
 
-          <button type="submit" style={{
-            background: 'var(--color-primary)', color: 'white', border: 'none',
-            borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            marginTop: '0.5rem'
-          }}>
-            <Save size={16} /> Guardar Club
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+            <button type="button" onClick={onClose} style={{
+              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+              fontWeight: 800, cursor: 'pointer'
+            }}>
+              Cancelar
+            </button>
+            <button type="submit" style={{
+              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-primary)', color: 'white',
+              fontWeight: 900, fontSize: '1rem', cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}>
+              <Save size={20} /> {club?.id ? 'Guardar Cambios' : 'Crear Disciplina'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -307,6 +346,8 @@ export default function AdminDashboard() {
   const [modalClub, setModalClub] = useState<Partial<ClubMetrica> | null | false>(false);
   const [modalPagosClub, setModalPagosClub] = useState<ClubMetrica | null | false>(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; title: string; type: 'CLUB' } | null>(null);
+
 
   // Búsqueda
   const [searchTerm, setSearchTerm] = useState('');
@@ -435,10 +476,10 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteClub = async (id: number) => {
-    if (!window.confirm('¿Eliminar este club? Esta acción es permanente.')) return;
     setDeletingId(id);
     await fetch(`${API}/admin/clubes/${id}`, { method: 'DELETE' });
     setDeletingId(null);
+    setConfirmDelete(null);
     fetchMetricas();
   };
 
@@ -726,14 +767,14 @@ export default function AdminDashboard() {
                     borderRadius: '1rem'
                   }}>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>{club.nombre}</h4>
+                    <div className="card-header-adaptive">
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em', wordBreak: 'break-word' }}>{club.nombre}</h4>
                         {club.descripcion && (
                           <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.5, fontWeight: 500 }}>{club.descripcion}</p>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '0.6rem' }}>
+                      <div className="card-actions-adaptive">
                         <button onClick={() => setModalPagosClub(club)}
                           title="Ver Pagos del Club"
                           style={{ ...iconBtnStyle('var(--color-primary-fixed)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
@@ -751,12 +792,13 @@ export default function AdminDashboard() {
                           style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
                           <Edit2 size={16} />
                         </button>
-                        <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id}
+                        <button onClick={() => setConfirmDelete({ id: club.id, title: club.nombre, type: 'CLUB' })} disabled={deletingId === club.id}
                           style={{ ...iconBtnStyle('rgba(211, 47, 47, 0.08)', 'var(--color-error)'), width: '2.5rem', height: '2.5rem' }}>
                           <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
+
                     <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
                       <Pill icon={<UserCheck size={12} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
                       <Pill icon={<Users size={12} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
@@ -1597,7 +1639,10 @@ export default function AdminDashboard() {
 
       {/* ── MODAL ALUMNOS INSCRITOS ──────────────────────── */}
       {isAlumnosInscritosModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+        }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
           <div style={{
             background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
             width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto',
@@ -1703,15 +1748,15 @@ export default function AdminDashboard() {
       {isProfesoresModalOpen && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem', animation: 'fadeIn 0.3s'
-        }}>
-          <div className="modal-content animate-pop" style={{
+          padding: '1.5rem'
+        }} onClick={() => setIsProfesoresModalOpen(false)}>
+          <div className="modal-content" style={{
             background: 'var(--color-surface)', width: '100%', maxWidth: '550px',
             borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
-          }}>
+            boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+          }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
@@ -1793,15 +1838,15 @@ export default function AdminDashboard() {
       {isRankingModalOpen && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem', animation: 'fadeIn 0.3s'
-        }}>
-          <div className="modal-content animate-pop" style={{
+          padding: '1.5rem'
+        }} onClick={() => setIsRankingModalOpen(false)}>
+          <div className="modal-content" style={{
             background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
             borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
-          }}>
+            boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+          }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setIsRankingModalOpen(false)} style={{
               position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-dim)',
               border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
@@ -1875,33 +1920,47 @@ export default function AdminDashboard() {
       {modalSesiones && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem', animation: 'fadeIn 0.3s'
-        }}>
-          <div className="modal-content animate-pop" style={{
+          padding: '1.5rem'
+        }} onClick={() => setModalSesiones(null)}>
+          <div className="modal-content" style={{
             background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
             borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflowY: 'auto', maxHeight: '90vh'
-          }}>
-            <button onClick={() => setModalSesiones(null)} style={{
-              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-dim)',
-              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-            }}>
-              <X size={20} color="var(--color-primary)" />
-            </button>
-
-            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-              <div style={{ 
-                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-secondary-container)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
-                boxShadow: '0 8px 16px rgba(var(--color-secondary-rgb), 0.2)'
-              }}>
-                <History size={24} color="var(--color-secondary)" />
+            boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)',
+            overflowY: 'auto', maxHeight: '90vh'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                  Historial <span style={{ color: 'var(--color-secondary)' }}>de Clases</span>
+                </h3>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                  Sesiones y asistencias del club: {modalSesiones.nombre}
+                </p>
               </div>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Historial</h2>
-              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>{modalSesiones.nombre}</p>
+              <button onClick={() => setModalSesiones(null)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={20} color="var(--color-primary)" />
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'var(--color-primary-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'white', textTransform: 'uppercase', opacity: 0.8 }}>Total Sesiones</p>
+                  <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>{sesionesClub.length}</p>
+                </div>
+                <History size={24} color="white" style={{ opacity: 0.4 }} />
+              </div>
+              <div style={{ background: 'var(--color-surface-container-high)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Última Clase</p>
+                  <p style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                    {sesionesClub.length > 0 ? new Date(sesionesClub[0].fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : '---'}
+                  </p>
+                </div>
+                <Calendar size={20} color="var(--color-primary)" style={{ opacity: 0.3 }} />
+              </div>
             </div>
 
             {loadingSesiones ? (
@@ -1913,25 +1972,24 @@ export default function AdminDashboard() {
                  No hay sesiones registradas aún.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {sesionesClub
-                  .slice((currentPageSesiones - 1) * ITEMS_PER_PAGE, currentPageSesiones * ITEMS_PER_PAGE)
+                  .slice((currentPageSesiones - 1) * 4, currentPageSesiones * 4)
                   .map((sesion) => {
                     const pres = sesion.asistencias.filter((a: any) => a.estado === 'PRESENTE').length;
                     const aus = sesion.asistencias.filter((a: any) => a.estado === 'AUSENTE').length;
-                    const jus = sesion.asistencias.filter((a: any) => a.estado === 'JUSTIFICADO').length;
-                    const total = sesion.asistencias.length;
                     const isExpanded = expandedSesionId === sesion.id;
 
                     return (
                       <div key={sesion.id} style={{
-                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white', 
-                        border: '1px solid var(--color-surface-container-low)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        padding: '1.1rem', borderRadius: '1.5rem', background: 'white', 
+                        border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
+                        boxShadow: isExpanded ? 'var(--shadow-md)' : '0 2px 4px rgba(0,0,0,0.02)',
+                        transition: 'all 0.3s ease'
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                               {new Date(sesion.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
                             </p>
                             <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>
@@ -1939,16 +1997,15 @@ export default function AdminDashboard() {
                             </p>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
-                              <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{pres}</span>
-                              <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{aus}</span>
-                              <span title="Justificados" style={{ background: 'var(--color-warning-container)', color: 'var(--color-warning)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{jus}</span>
+                            <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
+                              <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{pres}</span>
+                              <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{aus}</span>
                             </div>
                             <button 
                               onClick={() => setExpandedSesionId(isExpanded ? null : sesion.id)}
-                              style={{ border: 'none', background: 'none', color: 'var(--color-secondary)', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
+                              style={{ border: 'none', background: 'none', color: isExpanded ? 'var(--color-primary)' : 'var(--color-secondary)', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', padding: 0 }}
                             >
-                              {isExpanded ? 'OCULTAR DETALLE ↑' : 'VER ASISTENCIA ↓'}
+                              {isExpanded ? 'OCULTAR ↑' : 'DETALLES ↓'}
                             </button>
                           </div>
                         </div>
@@ -1958,10 +2015,10 @@ export default function AdminDashboard() {
                             {sesion.asistencias.length > 0 ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 {sesion.asistencias.map((a: any) => (
-                                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
                                     <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{a.alumno.nombre} {a.alumno.apellido}</span>
                                     <span style={{ 
-                                      padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
+                                      padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
                                       background: a.estado === 'PRESENTE' ? 'var(--color-success-container)' : a.estado === 'AUSENTE' ? 'var(--color-error-container)' : 'var(--color-warning-container)',
                                       color: a.estado === 'PRESENTE' ? 'var(--color-success)' : a.estado === 'AUSENTE' ? 'var(--color-error)' : 'var(--color-warning)'
                                     }}>
@@ -2139,6 +2196,73 @@ export default function AdminDashboard() {
           onShowImage={setViewerImage}
           onClose={() => setModalPagosClub(false)}
         />
+      )}
+
+      {/* ── DELETE CONFIRM MODAL ────────────────────────────── */}
+      {confirmDelete && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem', animation: 'fadeIn 0.2s ease'
+        }} onClick={() => setConfirmDelete(null)}>
+          <div style={{
+            background: 'var(--color-surface)', borderRadius: '2.5rem', padding: '2.5rem',
+            width: '100%', maxWidth: '400px', textAlign: 'center',
+            boxShadow: '0 32px 64px -12px rgba(0,0,0,0.5)',
+            border: '1px solid var(--color-surface-container-high)',
+            position: 'relative', overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()} className="animate-pop">
+            
+            <div style={{
+              width: '5rem', height: '5rem', borderRadius: '2rem',
+              background: 'var(--color-error-container)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 2rem', boxShadow: '0 12px 24px rgba(211,47,47,0.2)'
+            }}>
+              <Trash2 size={32} color="var(--color-error)" />
+            </div>
+
+            <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              ¿Estás seguro?
+            </h3>
+            <p style={{ margin: '1rem 0 2rem', fontSize: '0.95rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
+              Eliminarás la disciplina <span style={{ color: 'var(--color-error)', fontWeight: 800 }}>"{confirmDelete.title}"</span> de forma permanente. Esta acción no se puede deshacer.
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button 
+                onClick={() => setConfirmDelete(null)}
+                style={{
+                  flex: 1, padding: '1rem', borderRadius: '1.25rem', border: 'none',
+                  background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+                  fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => handleDeleteClub(confirmDelete.id)}
+                disabled={deletingId !== null}
+                style={{
+                  flex: 1.5, padding: '1rem', borderRadius: '1.25rem', border: 'none',
+                  background: 'var(--color-error)', color: 'white',
+                  fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: '0 8px 16px rgba(211,47,47,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                {deletingId ? <RefreshCw size={18} className="spin" /> : <Trash2 size={18} />}
+                Sí, eliminar
+              </button>
+            </div>
+
+            {/* Decorative background circle */}
+            <div style={{
+              position: 'absolute', top: '-10%', right: '-10%', width: '150px', height: '150px',
+              borderRadius: '50%', background: 'var(--color-error-container)', opacity: 0.05, zIndex: -1
+            }} />
+          </div>
+        </div>
       )}
 
       {/* ── VISOR DE IMÁGENES ────────────────────────────── */}
@@ -2433,51 +2557,94 @@ function UsuarioModal({
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={onClose}>
-      <div style={{ background: 'var(--color-surface)', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: '420px', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {usuario.id ? 'Editar Usuario' : 'Nuevo Usuario'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="var(--color-on-surface-variant)" /></button>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+        width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+      }} onClick={e => e.stopPropagation()}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              {usuario.id ? 'Perfeccionar' : 'Crear'} <span style={{ color: 'var(--color-secondary)' }}>Perfil</span>
+            </h3>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              Administra los accesos y credenciales del usuario
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
+            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <X size={20} color="var(--color-primary)" />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label style={labelStyle}>Nombre</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan" required style={inputStyle} />
+              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Roberto" required 
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
             <div>
               <label style={labelStyle}>Apellido</label>
-              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Pérez" required style={inputStyle} />
+              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Ej: Carlos" required 
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
           </div>
+
           <div>
-            <label style={labelStyle}>Rol</label>
-            <select value={rol} onChange={e => setRol(e.target.value as any)} style={inputStyle}>
-              <option value="PROFESOR">🎓 Profesor</option>
-              <option value="PADRE">👨‍👩‍👦 Padre / Tutor</option>
-              <option value="ADMINISTRADOR">👑 Administrador</option>
-            </select>
+            <label style={labelStyle}>Rol del Sistema</label>
+            <div style={{ position: 'relative' }}>
+              <select value={rol} onChange={e => setRol(e.target.value as any)} 
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem', appearance: 'none', paddingRight: '2.5rem' }}>
+                <option value="PROFESOR">🎓 Profesor</option>
+                <option value="PADRE">👨‍👩‍👦 Padre / Tutor</option>
+                <option value="ADMINISTRADOR">👑 Administrador</option>
+              </select>
+              <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            </div>
           </div>
+
           <div>
-            <label style={labelStyle}>DNI (Usuario para login)</label>
-            <input value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678" style={inputStyle} required />
+            <label style={labelStyle}>DNI (Acceso)</label>
+            <input value={dni} onChange={e => setDni(e.target.value)} placeholder="DNI del usuario" style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required />
           </div>
+
           {!usuario.id && (
             <div>
               <label style={labelStyle}>Contraseña Inicial</label>
-              <input value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" type="password" style={inputStyle} required={!usuario.id} />
+              <input value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" type="password" 
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required={!usuario.id} />
             </div>
           )}
-          <button type="submit" disabled={saving} style={{
-            background: 'var(--color-primary)', color: 'white', border: 'none',
-            borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            opacity: saving ? 0.7 : 1,
-          }}>
-            <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Usuario'}
-          </button>
+
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <button type="button" onClick={onClose} style={{
+              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+              fontWeight: 800, cursor: 'pointer'
+            }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving} style={{
+              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-primary)', color: 'white',
+              fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1,
+              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}>
+              {saving ? <RefreshCw size={20} className="spin" /> : <Save size={20} />}
+              {saving ? 'Guardando...' : 'Guardar Perfil'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -2538,104 +2705,138 @@ function AlumnoModal({
   ];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={onClose}>
-      <div style={{ background: 'var(--color-surface)', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {(alumno as any).id ? 'Editar Alumno' : 'Nuevo Alumno'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="var(--color-on-surface-variant)" /></button>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+        width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+      }} onClick={e => e.stopPropagation()}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              {(alumno as any).id ? 'Modificar' : 'Inscribir'} <span style={{ color: 'var(--color-secondary)' }}>Alumno</span>
+            </h3>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              Gestión académica y asignación de tutor
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
+            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <X size={20} color="var(--color-primary)" />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label style={labelStyle}>Nombre</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="María" required style={inputStyle} />
+              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: María" required 
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
             <div>
               <label style={labelStyle}>Apellido</label>
-              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="García" required style={inputStyle} />
+              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Ej: García" required 
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
-          </div>
-          <div>
-            <label style={labelStyle}>Grado</label>
-            <select value={grado} onChange={e => setGrado(e.target.value)} required style={inputStyle}>
-              <option value="">— Selecciona un grado —</option>
-              {GRADOS.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
           </div>
 
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={labelStyle}>Asignar Padre / Tutor</label>
-              <button
-                type="button"
-                onClick={() => setCreandoPadre(!creandoPadre)}
-                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase' }}
-              >
+            <label style={labelStyle}>Grado Escolar</label>
+            <div style={{ position: 'relative' }}>
+              <select value={grado} onChange={e => setGrado(e.target.value)} required 
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem', appearance: 'none', paddingRight: '2.5rem' }}>
+                <option value="">— Selecciona un grado —</option>
+                {GRADOS.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Padre / Tutor Responsable</label>
+              <button type="button" onClick={() => setCreandoPadre(!creandoPadre)}
+                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase' }}>
                 {creandoPadre ? '✕ Cancelar' : '+ Nuevo Padre'}
               </button>
             </div>
 
             {creandoPadre ? (
-              <div style={{ background: 'var(--color-secondary-container)', padding: '0.85rem', borderRadius: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', textTransform: 'uppercase' }}>Registro Rápido de Padre</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombre Padre" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
-                  <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellido" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                  <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombres" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
+                  <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellidos" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
                 </div>
-                <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI / ID" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI del Padre" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
               </div>
             ) : (
-              <select value={padreId} onChange={e => setPadreId(e.target.value)} style={inputStyle}>
-                <option value="">— Sin padre asignado —</option>
-                {padres.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre} {p.apellido} ({p.dni || 'Sin DNI'})</option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+                <select value={padreId} onChange={e => setPadreId(e.target.value)} 
+                  style={{ ...inputStyle, borderRadius: '0.75rem', height: '2.8rem', fontSize: '0.85rem', appearance: 'none' }}>
+                  <option value="">— Sin asignar —</option>
+                  {padres.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} color="var(--color-primary)" style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
             )}
           </div>
 
           <div>
-            <label style={labelStyle}>Inscribir en Clubes</label>
+            <label style={labelStyle}>Disciplinas Inscritas</label>
             <div style={{
               display: 'flex', flexDirection: 'column', gap: '0.5rem',
-              maxHeight: '150px', overflowY: 'auto', padding: '0.75rem',
-              background: 'var(--color-surface-container-lowest)', borderRadius: '0.75rem',
-              border: '1px solid var(--color-outline-variant)'
+              maxHeight: '140px', overflowY: 'auto', padding: '1rem',
+              background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem',
+              border: '1px solid var(--color-surface-container-high)'
             }}>
               {clubes.map(c => {
                 const isSelected = selectedClubIds.includes(c.id);
                 return (
                   <label key={c.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.6rem',
-                    cursor: 'pointer', padding: '0.4rem', borderRadius: '0.5rem',
-                    background: isSelected ? 'var(--color-secondary-container)' : 'transparent',
-                    transition: 'all 0.2s', fontSize: '0.85rem', fontWeight: 600,
-                    color: isSelected ? 'var(--color-on-secondary-container)' : 'var(--color-on-surface)'
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    cursor: 'pointer', padding: '0.6rem 0.75rem', borderRadius: '0.85rem',
+                    background: isSelected ? 'var(--color-primary-fixed)' : 'transparent',
+                    transition: 'all 0.2s', fontSize: '0.85rem', fontWeight: 700,
+                    color: isSelected ? 'var(--color-primary)' : 'var(--color-outline)'
                   }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleClub(c.id)}
-                      style={{ width: '1.1rem', height: '1.1rem', accentColor: 'var(--color-secondary)' }}
-                    />
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleClub(c.id)}
+                      style={{ width: '1.1rem', height: '1.1rem', accentColor: 'var(--color-primary)' }} />
                     {c.nombre}
                   </label>
                 );
               })}
-              {clubes.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--color-outline)', margin: 0 }}>No hay clubes disponibles</p>}
             </div>
           </div>
 
-          <button type="submit" disabled={saving} style={{
-            background: 'var(--color-secondary)', color: 'white', border: 'none',
-            borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            opacity: saving ? 0.7 : 1, marginTop: '0.5rem'
-          }}>
-            <GraduationCap size={16} /> {saving ? 'Guardando...' : 'Guardar Alumno'}
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <button type="button" onClick={onClose} style={{
+              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+              fontWeight: 800, cursor: 'pointer'
+            }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving} style={{
+              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-primary)', color: 'white',
+              fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1,
+              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}>
+              {saving ? <RefreshCw size={20} className="spin" /> : <GraduationCap size={20} />}
+              {saving ? 'Guardando...' : 'Guardar Alumno'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
