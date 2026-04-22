@@ -42,8 +42,8 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 
-# Ensure entrypoint is executable
-RUN chmod +x ./entrypoint.sh
+# Fix Windows line endings and ensure entrypoint is executable
+RUN sed -i 's/\r$//' ./entrypoint.sh && chmod +x ./entrypoint.sh
 
 EXPOSE 3000
 
