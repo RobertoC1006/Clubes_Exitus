@@ -32,7 +32,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       }
       setHasMoreNotifs(data.page < data.lastPage);
       // Contar no leídas en total (o simplemente marcar como tenemos algo)
-      setUnreadCount(data.items.filter((n: any) => !n.leida).length); 
+      setUnreadCount(data.items.filter((n: any) => !n.leida).length);
     } catch (e) {
       console.error("Error fetching notifications", e);
     } finally {
@@ -75,25 +75,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const isProfesor = usuario?.rol === 'PROFESOR';
-  const isAdmin    = usuario?.rol === 'ADMINISTRADOR';
-  const isPadre    = usuario?.rol === 'PADRE';  
-  const homeRoute  = isAdmin ? '/admin' : isPadre ? '/portal' : '/';
+  const isAdmin = usuario?.rol === 'ADMINISTRADOR';
+  const isPadre = usuario?.rol === 'PADRE';
+  const homeRoute = isAdmin ? '/admin' : isPadre ? '/portal' : '/';
   const homeActive = ['/', '/admin', '/portal'].includes(location.pathname);
 
   const adminTabs = [
-    { key: 'panel',    icon: <BarChart2 size={22}/>,  label: 'Panel',    path: '/admin?tab=panel' },
-    { key: 'clubes',   icon: <BookOpen size={22}/>,   label: 'Clubes',   path: '/admin?tab=clubes' },
-    { key: 'personas', icon: <UserPlus size={22}/>,   label: 'Personas', path: '/admin?tab=personas' },
-    { key: 'pagos',    icon: <CreditCard size={22}/>, label: 'Pagos',    path: '/admin?tab=pagos' },
-    { key: 'horarios', icon: <Calendar size={22}/>,   label: 'Horarios', path: '/admin?tab=horarios' },
-    { key: 'reporte',  icon: <Download size={22}/>,   label: 'Reportes', path: '/admin?tab=reporte' },
+    { key: 'panel', icon: <BarChart2 size={22} />, label: 'Panel', path: '/admin?tab=panel' },
+    { key: 'clubes', icon: <BookOpen size={22} />, label: 'Clubes', path: '/admin?tab=clubes' },
+    { key: 'personas', icon: <UserPlus size={22} />, label: 'Personas', path: '/admin?tab=personas' },
+    { key: 'pagos', icon: <CreditCard size={22} />, label: 'Pagos', path: '/admin?tab=pagos' },
+    { key: 'horarios', icon: <Calendar size={22} />, label: 'Horarios', path: '/admin?tab=horarios' },
+    { key: 'reporte', icon: <Download size={22} />, label: 'Reportes', path: '/admin?tab=reporte' },
   ];
 
   const globalLinks = [
-    { key: 'inicio', icon: <LayoutDashboard size={22}/>, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') },
-    ...(isProfesor ? [{ key: 'clubes', icon: <BookOpen size={22}/>, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' }] : []),
-    ...(isPadre || isAdmin ? [{ key: 'pagos', icon: <CreditCard size={22}/>, label: 'Pagos', path: '/pagos', active: location.pathname === '/pagos' }] : []),
-    { key: 'perfil', icon: <User size={22}/>, label: 'Perfil', path: '/perfil', active: location.pathname === '/perfil' },
+    { key: 'inicio', icon: <LayoutDashboard size={22} />, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') },
+    ...(isProfesor ? [{ key: 'clubes', icon: <BookOpen size={22} />, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' }] : []),
+    ...(isPadre || isAdmin ? [{ key: 'pagos', icon: <CreditCard size={22} />, label: 'Pagos', path: '/pagos', active: location.pathname === '/pagos' }] : []),
+    { key: 'perfil', icon: <User size={22} />, label: 'Perfil', path: '/perfil', active: location.pathname === '/perfil' },
   ];
 
   return (
@@ -102,11 +102,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* SIDEBAR DESKTOP */}
       {usuario && (
         <aside className="sidebar-desktop">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '2.5rem', padding: '0.5rem' }}>
-            <div style={{ background: 'var(--color-primary)', width: '2rem', height: '2rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GraduationCap size={18} color="var(--color-secondary-container)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+            <div style={{ width: '2.8rem', height: '2.8rem', background: 'white', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+              <img src={'src/assets/hero.png'} alt="Fenix Mascot" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
             </div>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.03em' }}>EXITUS</h1>
+            <span style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.05em' }}>EXITUS</span>
           </div>
 
           <nav style={{ flex: 1 }}>
@@ -131,9 +131,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <footer style={{ marginTop: 'auto', padding: '1rem 0' }}>
-            <button 
+            <button
               onClick={handleLogout}
-              className="sidebar-link" 
+              className="sidebar-link"
               style={{ color: 'var(--color-error)', width: '100%', background: 'var(--color-surface-container-low)' }}
             >
               <LogOut size={20} />
@@ -152,8 +152,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             {/* Solo mostrar Logo en Header si es móvil */}
             <div className="mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <div style={{ background: 'var(--color-primary)', width: '2.2rem', height: '2.2rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <GraduationCap size={20} color="var(--color-secondary-container)" strokeWidth={2.5} />
+              <div style={{ background: 'white', width: '2.4rem', height: '2.4rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                <img src="src/assets/hero.png" alt="Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
               </div>
               <div>
                 <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase', lineHeight: 1 }}>
@@ -163,26 +163,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
             {/* En desktop el Logo ya está en el sidebar, podemos mostrar el título de la sección u otro elemento */}
             <div className="desktop-only" style={{ display: 'none' }}>
-               <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary-container)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Sistema de Gestión Escolar
-               </p>
+              <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary-container)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Sistema de Gestión Escolar
+              </p>
             </div>
           </div>
 
           {/* ACCIONES DERECHA (Notificaciones + Avatar) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
             {usuario && (
-               <div style={{ textAlign: 'right', marginRight: '0.5rem' }} className="desktop-only">
-                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)' }}>{usuario.nombre} {usuario.apellido}</p>
-                  <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-secondary)', textTransform: 'uppercase' }}>
-                    {isAdmin ? 'Administrador' : isProfesor ? 'Profesor' : 'Familia'}
-                  </p>
-               </div>
+              <div style={{ textAlign: 'right', marginRight: '0.5rem' }} className="desktop-only">
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)' }}>{usuario.nombre} {usuario.apellido}</p>
+                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-secondary)', textTransform: 'uppercase' }}>
+                  {isAdmin ? 'Administrador' : isProfesor ? 'Profesor' : 'Familia'}
+                </p>
+              </div>
             )}
-            
+
             {/* Campanita */}
             <div style={{ position: 'relative' }} ref={dropdownRef}>
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 style={{
                   background: 'var(--color-surface-container-low)',
@@ -220,7 +220,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)' }}>Notificaciones</h4>
                     {loadingNotifs && <Loader2 size={14} className="spin" style={{ animation: 'spin 1s linear infinite' }} />}
                   </div>
-                  
+
                   <div style={{ overflowY: 'auto', flex: 1 }}>
                     {notificaciones.length === 0 ? (
                       <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-outline)' }}>
@@ -229,8 +229,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     ) : (
                       <>
                         {notificaciones.map(n => (
-                          <div 
-                            key={n.id} 
+                          <div
+                            key={n.id}
                             onClick={() => !n.leida && handleMarkAsRead(n.id)}
                             style={{
                               padding: '1rem', borderBottom: '1px solid var(--color-surface-container-lowest)',
@@ -246,7 +246,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                           </div>
                         ))}
                         {hasMoreNotifs && (
-                          <button 
+                          <button
                             onClick={() => {
                               const nextPage = notifPage + 1;
                               setNotifPage(nextPage);

@@ -1,0 +1,17 @@
+{
+  "name": "Clubes Exitus",
+  "short_name": "Exitus",
+  "description": "Innovación Educativa - Gestión de Clubes y Atletas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EDC620",
+  "theme_color": "#1e40af",
+  "icons": [
+    {
+      "src": "/mascota.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
