@@ -1622,29 +1622,28 @@ export default function AdminDashboard() {
       {/* ── MODAL ALUMNOS INSCRITOS ──────────────────────── */}
       {isAlumnosInscritosModalOpen && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
         }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
           <div style={{
-            background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
-            width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)',
-            position: 'relative'
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px', 
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
                   Alumnos <span style={{ color: 'var(--color-secondary)' }}>Inscritos</span>
                 </h3>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                  Listado global y asignación de disciplinas.
-                </p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Listado Global y Asignación</p>
               </div>
-              <button onClick={() => setIsAlumnosInscritosModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1.25rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <X size={24} color="var(--color-primary)" />
+              <button 
+                onClick={() => setIsAlumnosInscritosModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
               </button>
             </div>
+            <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
 
             <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
               <input
@@ -1724,34 +1723,34 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* MODAL: PROFESORES */}
       {isProfesoresModalOpen && (
-        <div className="modal-overlay" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem'
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
         }} onClick={() => setIsProfesoresModalOpen(false)}>
-          <div className="modal-content" style={{
-            background: 'var(--color-surface)', width: '100%', maxWidth: '550px',
-            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '550px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
                   Staff <span style={{ color: 'var(--color-secondary)' }}>Docente</span>
                 </h3>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-                  Docentes y expertos a cargo de las disciplinas.
-                </p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión de Docentes</p>
               </div>
-              <button onClick={() => setIsProfesoresModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <X size={20} color="var(--color-primary)" />
+              <button 
+                onClick={() => setIsProfesoresModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
               </button>
             </div>
+            <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {profesores.length > 0 ? (
@@ -1814,59 +1813,52 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* MODAL: RANKING DISCIPLINAS */}
       {isRankingModalOpen && (
-        <div className="modal-overlay" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '1.5rem'
         }} onClick={() => setIsRankingModalOpen(false)}>
-          <div className="modal-content" style={{
-            background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
-            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '550px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setIsRankingModalOpen(false)} style={{
-              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-dim)',
-              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-            }}>
-              <X size={20} color="var(--color-primary)" />
-            </button>
-
-            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-              <div style={{
-                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-secondary-container)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
-                boxShadow: '0 8px 16px rgba(var(--color-secondary-rgb), 0.2)'
-              }}>
-                <Award size={24} color="var(--color-secondary)" />
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Ranking de Disciplinas</h3>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Por Nivel de Asistencia</p>
               </div>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Ranking de Disciplinas</h2>
-              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>Basado en niveles de asistencia</p>
+              <button 
+                onClick={() => setIsRankingModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {clubesRanking
                 .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
                 .map((club, i) => {
                   const rank = (currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1;
                   return (
                     <div key={club.id} style={{
-                      padding: '1.25rem', borderRadius: '1.5rem', background: 'white',
+                      padding: '1.25rem', borderRadius: '1.1rem', background: 'white',
                       display: 'flex', alignItems: 'center', gap: '1rem',
                       border: '1px solid var(--color-surface-container-low)',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                    }}>
+                      transition: 'all 0.2s ease'
+                    }} className="ranking-item">
                       <div style={{
-                        width: '2.8rem', height: '2.8rem', borderRadius: '1rem',
-                        background: rank <= 3 ? 'var(--grad-gold)' : 'var(--color-surface-container-high)',
-                        color: rank <= 3 ? 'var(--color-on-secondary)' : 'var(--color-primary)',
+                        width: '2.8rem', height: '2.8rem', borderRadius: '0.9rem',
+                        background: rank <= 3 ? 'var(--grad-gold)' : 'var(--color-surface-dim)',
+                        color: rank <= 3 ? 'white' : 'var(--color-primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
-                        fontSize: '1.2rem', boxShadow: rank <= 3 ? '0 4px 12px rgba(212, 175, 55, 0.3)' : 'none'
+                        fontSize: '1.1rem'
                       }}>
                         {rank}
                       </div>
@@ -1874,16 +1866,16 @@ export default function AdminDashboard() {
                         setIsRankingModalOpen(false);
                         navigate(`/clubes/${club.id}/historial`);
                       }}>
-                        <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                           {club.nombre}
                         </p>
-                        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>{club.profesor}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 900 }}>• {club.inscritos} alumnos</span>
+                        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.1rem', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 800, opacity: 0.6 }}>• {club.inscritos} alumnos</span>
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ display: 'block', fontWeight: 900, fontSize: '1.4rem', color: club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-warning)', lineHeight: 1 }}>
+                        <span style={{ display: 'block', fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-primary)', lineHeight: 1 }}>
                           {club.asistencia}%
                         </span>
                         <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia</span>
@@ -1892,7 +1884,9 @@ export default function AdminDashboard() {
                   );
                 })}
 
-              <Pagination current={currentPageRanking} total={Math.ceil(clubesRanking.length / ITEMS_PER_PAGE)} onChange={setCurrentPageRanking} />
+              <div style={{ marginTop: '0.5rem' }}>
+                <Pagination current={currentPageRanking} total={Math.ceil(clubesRanking.length / ITEMS_PER_PAGE)} onChange={setCurrentPageRanking} />
+              </div>
             </div>
           </div>
         </div>
@@ -1900,31 +1894,34 @@ export default function AdminDashboard() {
 
       {/* MODAL: HISTORIAL DE SESIONES */}
       {modalSesiones && (
-        <div className="modal-overlay" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '1.5rem'
         }} onClick={() => setModalSesiones(null)}>
-          <div className="modal-content" style={{
-            background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
-            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)',
-            overflowY: 'auto', maxHeight: '90vh'
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '600px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-                  Historial <span style={{ color: 'var(--color-secondary)' }}>de Clases</span>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                   Historial <span style={{ color: 'var(--color-secondary)' }}>de Clases</span>
                 </h3>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-                  Sesiones y asistencias del club: {modalSesiones.nombre}
-                </p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>{modalSesiones.nombre}</p>
               </div>
-              <button onClick={() => setModalSesiones(null)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <X size={20} color="var(--color-primary)" />
+              <button 
+                onClick={() => setModalSesiones(null)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
               </button>
             </div>
+            <div style={{ padding: '1.5rem', overflowY: 'auto', maxHeight: '75vh' }}>
+                <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                  Sesiones y asistencias del club: {modalSesiones.nombre}
+                </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
               <div style={{ background: 'var(--color-primary-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2023,7 +2020,8 @@ export default function AdminDashboard() {
             )}
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
       {modalAlumno !== false && (
@@ -2039,26 +2037,26 @@ export default function AdminDashboard() {
 
       {/* ── MODAL RETENCIÓN ─────────────────────────────── */}
       {isRetencionModalOpen && metricas && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsRetencionModalOpen(false)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsRetencionModalOpen(false)}>
           <div style={{
-            background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
-            width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)'
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
                   Análisis de <span style={{ color: 'var(--color-secondary)' }}>Retención</span>
                 </h3>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                  Compromiso, asistencia y tendencias de los alumnos.
-                </p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Asistencia y Tendencias</p>
               </div>
-              <button onClick={() => setIsRetencionModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1.25rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <X size={24} color="var(--color-primary)" />
+              <button 
+                onClick={() => setIsRetencionModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
               </button>
             </div>
+            <div style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
 
             {/* Centered Pill Switcher for Rankings */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
@@ -2150,10 +2148,10 @@ export default function AdminDashboard() {
                 );
               })()}
             </div>
-
           </div>
         </div>
-      )}
+      </div>
+    )}
 
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
