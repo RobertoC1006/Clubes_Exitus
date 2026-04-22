@@ -33,10 +33,13 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: clubes_exitus_frontend
     ports:
-      - "5174:80"
+      - "5174:5174"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - backend
     networks:

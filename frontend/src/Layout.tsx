@@ -110,7 +110,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <img src={schoolLogo} alt="Fenix Mascot" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-              <span style={{ color: 'white', fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.05em' }}>EXITUS</span>
+              <span style={{ color: 'var(--color-primary)', fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.05em' }}>EXITUS</span>
               {isAdmin && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1px' }}>Administrador</span>}
             </div>
           </div>
