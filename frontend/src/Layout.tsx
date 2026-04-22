@@ -90,10 +90,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   const globalLinks = [
-    { key: 'inicio', icon: <LayoutDashboard size={22} />, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') },
+    // Solo mostramos Inicio y Pagos para NO-admins en esta lista global
+    ...(!isAdmin ? [{ key: 'inicio', icon: <LayoutDashboard size={22} />, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') }] : []),
     ...(isProfesor ? [{ key: 'clubes', icon: <BookOpen size={22} />, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' }] : []),
-    ...(isPadre || isAdmin ? [{ key: 'pagos', icon: <CreditCard size={22} />, label: 'Pagos', path: '/pagos', active: location.pathname === '/pagos' }] : []),
-    { key: 'perfil', icon: <User size={22} />, label: 'Perfil', path: '/perfil', active: location.pathname === '/perfil' },
+    ...(isPadre ? [{ key: 'pagos', icon: <CreditCard size={22} />, label: 'Pagos', path: '/pagos', active: location.pathname === '/pagos' }] : []),
+    ...(!isAdmin ? [{ key: 'perfil', icon: <User size={22} />, label: 'Perfil', path: '/perfil', active: location.pathname === '/perfil' }] : []),
   ];
 
   return (
@@ -110,7 +111,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav style={{ flex: 1 }}>
-            {(isAdmin && (location.pathname.startsWith('/admin') || location.pathname === '/')) ? (
+            {isAdmin ? (
               adminTabs.map(t => {
                 const isActive = new URLSearchParams(location.search).get('tab') === t.key || (!new URLSearchParams(location.search).get('tab') && t.key === 'panel');
                 return (
@@ -295,7 +296,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         padding: '0.6rem 0', paddingBottom: 'calc(0.6rem + env(safe-area-inset-bottom))',
         zIndex: 100, boxShadow: '0 -4px 24px rgba(29,40,72,0.05)'
       }}>
-        {(isAdmin && (location.pathname.startsWith('/admin') || location.pathname === '/')) ? (
+        {isAdmin ? (
           adminTabs.map(t => {
             const isActive = new URLSearchParams(location.search).get('tab') === t.key || (!new URLSearchParams(location.search).get('tab') && t.key === 'panel');
             return (
