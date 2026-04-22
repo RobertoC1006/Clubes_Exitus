@@ -5,6 +5,7 @@ import type { UsuarioSesion } from './UserContext';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import './index.css';
 import loginBg from './assets/login_bg.png';
+import schoolLogo from './assets/hero.png';
 
 import { API_BASE_URL } from './config';
 
@@ -81,7 +82,7 @@ export default function Login() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
                   <div style={{ width: '2.8rem', height: '2.8rem', background: 'white', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
-                    <img src="src/assets/hero.png" alt="Fenix Mascot" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+                    <img src={schoolLogo} alt="Fenix Mascot" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
                   </div>
                   <span style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.05em' }}>EXITUS</span>
                 </div>

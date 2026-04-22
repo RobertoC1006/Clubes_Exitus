@@ -535,22 +535,7 @@ export default function AdminDashboard() {
   return (
     <div className="animate-enter" style={{ paddingBottom: '7rem' }}>
 
-      <section className="hero-centered">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-          <div style={{ background: 'var(--color-primary-container)', color: 'white', padding: '0.4rem 1rem', borderRadius: '0.9rem', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            v3.0 Control Center
-          </div>
-        </div>
-        <h2>
-          Central de <span style={{ color: 'var(--color-secondary)' }}>Comando</span>
-        </h2>
-        <p style={{ margin: '1.5rem auto 0', color: 'var(--color-on-surface-variant)', fontSize: '1.1rem', fontWeight: 600, opacity: 0.8, maxWidth: '600px', lineHeight: 1.5 }}>
-          Gestión inteligente de <strong>{metricas?.totalAlumnos ?? '…'} alumnos</strong> en <strong>{metricas?.totalClubes ?? '…'} clubes</strong> activos.
-        </p>
-      </section>
-
-
-      <div className="pro-container" style={{ paddingBottom: '2.5rem' }}>
+      <div className="pro-container" style={{ paddingBottom: '2.5rem', marginTop: '2rem' }}>
 
         {/* ══════════ TAB: PANEL ════════════════════════════ */}
         {tab === 'panel' && metricas && (

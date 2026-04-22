@@ -7,6 +7,8 @@ import { API_BASE_URL } from './config';
 
 const API = API_BASE_URL;
 
+import schoolLogo from './assets/hero.png';
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,9 +107,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <aside className="sidebar-desktop">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
             <div style={{ width: '2.8rem', height: '2.8rem', background: 'white', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
-              <img src={'src/assets/hero.png'} alt="Fenix Mascot" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+              <img src={schoolLogo} alt="Fenix Mascot" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
             </div>
-            <span style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.05em' }}>EXITUS</span>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+              <span style={{ color: 'white', fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.05em' }}>EXITUS</span>
+              {isAdmin && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '1px' }}>Administrador</span>}
+            </div>
           </div>
 
           <nav style={{ flex: 1 }}>
@@ -154,12 +159,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {/* Solo mostrar Logo en Header si es móvil */}
             <div className="mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
               <div style={{ background: 'white', width: '2.4rem', height: '2.4rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                <img src="src/assets/hero.png" alt="Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+                <img src={schoolLogo} alt="Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase', lineHeight: 1 }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase', lineHeight: 1 }}>
                   EXITUS
                 </h2>
+                {isAdmin && <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Dashboard Administrador</p>}
               </div>
             </div>
             {/* En desktop el Logo ya está en el sidebar, podemos mostrar el título de la sección u otro elemento */}
