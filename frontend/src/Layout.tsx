@@ -99,7 +99,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const globalLinks = [
     // Solo mostramos Inicio y Pagos para NO-admins en esta lista global
     ...(!isAdmin ? [{ key: 'inicio', icon: <LayoutDashboard size={22} />, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') }] : []),
-    ...(isProfesor ? [{ key: 'clubes', icon: <BookOpen size={22} />, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' }] : []),
+    ...(isProfesor ? [
+      { key: 'clubes', icon: <BookOpen size={22} />, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' },
+      { key: 'horarios', icon: <Calendar size={22} />, label: 'Horarios', path: '/?tab=horarios', active: new URLSearchParams(location.search).get('tab') === 'horarios' }
+    ] : []),
     ...(isPadre ? [{ key: 'pagos', icon: <CreditCard size={22} />, label: 'Pagos', path: '/pagos', active: location.pathname === '/pagos' }] : []),
     ...(!isAdmin ? [{ key: 'perfil', icon: <User size={22} />, label: 'Perfil', path: '/perfil', active: location.pathname === '/perfil' }] : []),
   ];
