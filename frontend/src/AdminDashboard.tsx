@@ -582,7 +582,8 @@ export default function AdminDashboard() {
     : [];
 
   return (
-    <div className="animate-enter" style={{ paddingBottom: '7rem' }}>
+    <>
+      <div className="animate-enter" style={{ paddingBottom: '7rem' }}>
 
       <div className="pro-container" style={{ paddingBottom: '2.5rem', marginTop: '2rem' }}>
 
@@ -1598,8 +1599,9 @@ export default function AdminDashboard() {
         )}
 
       </div>
+    </div>
 
-      {/* ── MODAL CLUB ───────────────────────────────────── */}
+    {/* ── SECCIÓN DE MODALES (Fuera de animación para fijar posición) ── */}
       {modalClub !== false && (
         <ClubModal
           club={modalClub as Partial<ClubMetrica>}
@@ -2325,7 +2327,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-    </div>
+    </>
   );
 }
 
