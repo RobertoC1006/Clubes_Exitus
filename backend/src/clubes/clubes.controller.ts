@@ -11,6 +11,12 @@ export class ClubesController {
     return this.clubesService.getAllClubes();
   }
 
+  // GET /clubes/:id — Detalle de un club
+  @Get(':id')
+  getClubById(@Param('id', ParseIntPipe) id: number) {
+    return this.clubesService.getClubById(id);
+  }
+
   // GET /clubes/:id/alumnos
   @Get(':id/alumnos')
   getAlumnos(@Param('id', ParseIntPipe) id: number) {

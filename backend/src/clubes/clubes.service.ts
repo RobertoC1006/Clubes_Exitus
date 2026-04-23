@@ -5,6 +5,16 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ClubesService {
   constructor(private prisma: PrismaService) {}
 
+  async getClubById(id: number) {
+    return this.prisma.club.findUnique({
+      where: { id },
+      include: {
+        profesor: { select: { nombre: true, apellido: true } },
+        _count: { select: { inscripciones: true } }
+      }
+    });
+  }
+
   async getAlumnosByClub(clubId: number) {
     const inscripciones = await this.prisma.inscripcion.findMany({
       where: { clubId },

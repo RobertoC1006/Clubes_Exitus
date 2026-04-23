@@ -17,6 +17,27 @@ export class SesionesService {
       });
   }
 
+  async getSesionHoy(clubId: number) {
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+    
+    const finHoy = new Date();
+    finHoy.setHours(23, 59, 59, 999);
+
+    return this.prisma.sesion.findFirst({
+      where: {
+        clubId,
+        fecha: {
+          gte: inicioHoy,
+          lte: finHoy
+        }
+      },
+      include: {
+        asistencias: true
+      }
+    });
+  }
+
   async getSesionById(id: number) {
     return this.prisma.sesion.findUnique({
       where: { id },

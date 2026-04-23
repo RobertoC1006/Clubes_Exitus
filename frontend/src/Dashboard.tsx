@@ -404,6 +404,20 @@ export default function Dashboard() {
                                  club.nombre.toLowerCase().includes('nata') ? Activity : Users;
                 
                 const hoy = DIAS_CALENDARIO[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+                
+                // 🔹 Lógica Precisa: ¿Está en horario de clase JUSTO AHORA?
+                const estaEnVivoAhora = (() => {
+                  if (!club.horario) return false;
+                  const now = new Date();
+                  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                  const currentDay = days[now.getDay()];
+                  const dMatch = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
+                  if (!dMatch) return false;
+                  const { start, end } = club.horario[dMatch];
+                  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                  return currentTime >= start && currentTime <= end;
+                })();
+
                 const hayClaseHoy = club.horario && Object.keys(club.horario).some(d => normalizeDay(d) === hoy);
 
                 return (
@@ -441,21 +455,23 @@ export default function Dashboard() {
                           </span>
                         </div>
                       </div>
-
+ 
                       {/* Botones Institucionales (Punto 1 y 3) */}
                       <div className="discipline-actions" style={{ display: 'flex', gap: '0.75rem' }}>
                         <button
                           onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
                           className="btn-action-premium-filled"
                           style={{
-                            padding: '0.8rem 1.4rem', borderRadius: '1rem', background: 'var(--color-primary)', 
-                            color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', 
+                            padding: '0.8rem 1.4rem', borderRadius: '1rem', 
+                            background: estaEnVivoAhora ? 'var(--color-primary)' : 'var(--color-surface-container-high)', 
+                            color: estaEnVivoAhora ? 'white' : 'var(--color-primary)', 
+                            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', 
                             gap: '0.6rem', fontWeight: 900, fontSize: '0.8rem', transition: 'all 0.3s',
-                            boxShadow: '0 8px 20px rgba(29, 40, 72, 0.2)'
+                            boxShadow: estaEnVivoAhora ? '0 8px 20px rgba(29, 40, 72, 0.2)' : 'none'
                           }}
                         >
-                          <CheckCircle2 size={18} strokeWidth={2.5} />
-                          <span>Tomar Lista</span>
+                          {estaEnVivoAhora ? <CheckCircle2 size={18} strokeWidth={2.5} /> : <Users size={18} strokeWidth={2.5} />}
+                          <span>{estaEnVivoAhora ? 'Tomar Lista' : 'Ver Asistencia'}</span>
                         </button>
                         <button
                           onClick={() => navigate(`/clubes/${club.id}/historial`)}
