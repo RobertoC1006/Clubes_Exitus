@@ -33,13 +33,13 @@ function formatHorarioShort(horario: any): string {
   return `${dias[0].slice(0, 3)} ${horario[dias[0]].start}+`;
 }
 
-function getActiveClub(clubes: any[]) {
+function getActiveClubs(clubes: any[]) {
   const now = new Date();
   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const currentDay = days[now.getDay()];
   const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
-  return clubes.find(club => {
+  return clubes.filter(club => {
     if (!club.horario || !club.horario[currentDay]) return false;
     const { start, end } = club.horario[currentDay];
     return currentTime >= start && currentTime <= end;
@@ -100,7 +100,7 @@ export default function Dashboard() {
       });
   }, [usuario]);
 
-  const activeClub = useMemo(() => getActiveClub(clubes), [clubes]);
+  const activeClubs = useMemo(() => getActiveClubs(clubes), [clubes]);
 
   // ── Horarios ──
   const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
@@ -219,43 +219,58 @@ export default function Dashboard() {
       {tab === 'inicio' && (
         <>
           {/* LIVE STATUS CARD */}
-          <div style={{ marginBottom: '2.5rem' }}>
-            {activeClub ? (
-              <div className="glass-card" style={{
-                background: 'var(--grad-primary)',
-                color: 'white',
-                padding: '2rem',
-                position: 'relative',
-                overflow: 'hidden',
-                border: 'none',
-                boxShadow: '0 20px 40px rgba(29, 40, 72, 0.2)'
-              }}>
-                <div style={{ position: 'relative', zIndex: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                    <div style={{ width: '12px', height: '12px', background: '#4ade80', borderRadius: '50%', boxShadow: '0 0 15px #4ade80', animation: 'pulse 1.5s infinite' }}></div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Clase en Vivo</span>
+          {/* LIVE STATUS SECTION - Support for Multiple Live Classes */}
+          <div style={{ 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: '1.5rem', 
+            justifyContent: 'center', 
+            marginBottom: '2.5rem' 
+          }}>
+            {activeClubs.length > 0 ? (
+              activeClubs.map(club => (
+                <div key={club.id} className="glass-card" style={{
+                  background: 'var(--grad-primary)',
+                  color: 'white',
+                  padding: '2rem',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  border: 'none',
+                  boxShadow: '0 20px 40px rgba(29, 40, 72, 0.2)',
+                  flex: activeClubs.length === 1 ? '1' : '1 1 450px',
+                  maxWidth: activeClubs.length === 1 ? '1200px' : '580px',
+                  minWidth: '320px',
+                  transition: 'all 0.3s ease'
+                }}>
+                  <div style={{ position: 'relative', zIndex: 2 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                      <div style={{ width: '12px', height: '12px', background: '#4ade80', borderRadius: '50%', boxShadow: '0 0 15px #4ade80', animation: 'pulse 1.5s infinite' }}></div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Clase en Vivo</span>
+                    </div>
+                    <h3 style={{ fontSize: '2.2rem', fontWeight: 900, margin: 0, letterSpacing: '-0.03em' }}>{club.nombre}</h3>
+                    <div style={{ margin: '0.5rem 0 2rem', opacity: 0.9, fontSize: '0.95rem', fontWeight: 600 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <Users size={16} />
+                        {club._count?.inscripciones || 0} Atletas en sala · <Clock size={16} /> {formatHorarioShort(club.horario)}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
+                      style={{
+                        width: 'fit-content', minWidth: '220px', padding: '1rem 2rem', borderRadius: '1.25rem',
+                        background: 'white', color: 'var(--color-primary)', fontWeight: 900, fontSize: '1rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.15)', cursor: 'pointer'
+                      }}
+                    >
+                      <CheckCircle2 size={20} /> Tomar Lista Ahora
+                    </button>
                   </div>
-                  <h3 style={{ fontSize: '2.2rem', fontWeight: 900, margin: 0, letterSpacing: '-0.03em' }}>{activeClub.nombre}</h3>
-                  <p style={{ margin: '0.5rem 0 2rem', opacity: 0.9, fontSize: '0.95rem', fontWeight: 600 }}>
-                    <Users size={16} style={{ verticalAlign: 'middle', marginRight: '0.4rem' }} />
-                    {activeClub._count?.inscripciones || 0} Atletas en sala · <Clock size={16} style={{ verticalAlign: 'middle', margin: '0 0.4rem' }} /> {formatHorarioShort(activeClub.horario)}
-                  </p>
-                  <button
-                    onClick={() => navigate(`/clubes/${activeClub.id}/asistencia`)}
-                    style={{
-                      width: 'fit-content', minWidth: '220px', padding: '1rem 2rem', borderRadius: '1.25rem',
-                      background: 'white', color: 'var(--color-primary)', fontWeight: 900, fontSize: '1rem',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.15)', cursor: 'pointer'
-                    }}
-                  >
-                    <CheckCircle2 size={20} /> Tomar Lista Ahora
-                  </button>
+                  <Zap size={180} style={{ position: 'absolute', right: '-40px', bottom: '-40px', color: 'white', opacity: 0.08, transform: 'rotate(15deg)' }} />
                 </div>
-                <Zap size={180} style={{ position: 'absolute', right: '-40px', bottom: '-40px', color: 'white', opacity: 0.08, transform: 'rotate(15deg)' }} />
-              </div>
+              ))
             ) : (
-              <div className="glass-card" style={{ background: 'var(--color-surface-container-low)', padding: '2.5rem', textAlign: 'center', border: '2px dashed var(--color-surface-container-high)' }}>
+              <div className="glass-card" style={{ width: '100%', background: 'var(--color-surface-container-low)', padding: '2.5rem', textAlign: 'center', border: '2px dashed var(--color-surface-container-high)' }}>
                 <Clock size={40} color="var(--color-outline)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)' }}>Sin clases activas</h3>
                 <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Tu próxima clase comienza pronto. ¡Prepárate!</p>

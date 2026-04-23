@@ -36,6 +36,7 @@ async function seedSesiones(
 }
 
 async function main() {
+  /* 
   await prisma.asistencia.deleteMany();
   await prisma.sesion.deleteMany();
   await prisma.inscripcion.deleteMany();
@@ -43,6 +44,7 @@ async function main() {
   await prisma.club.deleteMany();
   await prisma.usuario.deleteMany();
   console.log('🗑️  Base de datos limpiada.');
+  */
 
   // 1. ADMINISTRADOR
   const director = await prisma.usuario.create({
