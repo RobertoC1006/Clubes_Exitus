@@ -1236,7 +1236,7 @@ export default function AdminDashboard() {
                                 </button>
                                 <button
                                   disabled={validandoPago === pago.id}
-                                  onClick={() => setPaymentActionModal({ show: true, type: 'RECHAZADO', pago, observacion: '' })}
+                                  onClick={() => setPaymentActionModal({ show: true, type: 'RECHAZAR', pago, observacion: '' })}
                                   style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
                                   <X size={16} strokeWidth={3} />
                                 </button>
@@ -2283,7 +2283,7 @@ export default function AdminDashboard() {
                 <span style={{ color: 'var(--color-primary)', fontWeight: 800 }}> {paymentActionModal.pago?.alumno.nombre}</span>?
               </p>
 
-              {paymentActionModal.type === 'RECHAZADO' && (
+              {paymentActionModal.type === 'RECHAZAR' && (
                 <div style={{ marginTop: '1.25rem' }}>
                   <label style={{ ...labelStyle, fontSize: '0.7rem' }}>MOTIVO DEL RECHAZO</label>
                   <textarea
