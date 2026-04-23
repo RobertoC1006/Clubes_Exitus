@@ -189,21 +189,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* ÁREA DE CONTENIDO (Header + Contenido de Página) */}
       <div className="content-area discrete-scroll">
         <header className="header-glass" style={{
-          padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.02)', maxHeight: '60px'
+          padding: '0.75rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.02)', maxHeight: '72px'
         }}>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
             {/* Solo mostrar Logo en Header si es móvil */}
-            <div className="mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <div style={{ background: 'white', width: '2.4rem', height: '2.4rem', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-                <img src={schoolLogo} alt="Logo" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+            <div className="mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+              <div style={{ background: 'white', width: '2.6rem', height: '2.6rem', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                <img src={schoolLogo} alt="Logo" style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.02em', textTransform: 'uppercase', lineHeight: 1 }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)', margin: 0, letterSpacing: '-0.03em', textTransform: 'uppercase', lineHeight: 1 }}>
                   EXITUS
                 </h2>
-                {isAdmin && <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Dashboard Administrador</p>}
+                {isAdmin && <p style={{ margin: 0, fontSize: '0.55rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dashboard Admin</p>}
               </div>
             </div>
             {/* En desktop el Logo ya está en el sidebar, podemos mostrar el título de la sección u otro elemento */}
@@ -215,7 +215,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* ACCIONES DERECHA (Notificaciones + Avatar) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
             {usuario && (
               <div style={{ textAlign: 'right', marginRight: '0.5rem' }} className="desktop-only">
                 <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)' }}>{usuario.nombre} {usuario.apellido}</p>
