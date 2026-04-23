@@ -13,7 +13,10 @@ export class SesionesService {
   async getSesionesByClub(clubId: number) {
       return this.prisma.sesion.findMany({
           where: { clubId },
-          orderBy: { fecha: 'desc' }
+          orderBy: { fecha: 'desc' },
+          include: {
+            asistencias: true
+          }
       });
   }
 
@@ -52,13 +55,18 @@ export class SesionesService {
     });
   }
 
-  async createSesion(clubId: number, fecha: string) {
-    return this.prisma.sesion.create({
-      data: {
-        clubId,
-        fecha: new Date(fecha),
-      },
-    });
+  async createSesion(clubId: number, fecha: string, asistencias: { alumnoId: number, estado: EstadoAsistencia, observacion?: string }[]) {
+     const sesion = await this.prisma.sesion.create({
+       data: {
+         clubId,
+         fecha: new Date(fecha),
+       },
+     });
+
+     // Guardar asistencias usando la lógica existente de upsert
+     await this.updateAsistencias(sesion.id, asistencias);
+     
+     return sesion;
   }
 
   // Permite insertar o actualizar en bloque la asistencia y el tema de la sesión

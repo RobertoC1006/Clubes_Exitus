@@ -280,7 +280,7 @@ export default function PaseLista() {
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {[
                 { label: 'PRESENTE', icon: Check, color: 'var(--color-primary)', text: 'Presente' },
-                { label: 'FALTA', icon: X, color: 'var(--color-error)', text: 'Falta' },
+                { label: 'AUSENTE', icon: X, color: 'var(--color-error)', text: 'Falta' },
                 { label: 'JUSTIFICADO', icon: StickyNote, color: 'var(--color-secondary)', text: 'Justif.' }
               ].map(status => {
                 const isS = alumno.estado === status.label;

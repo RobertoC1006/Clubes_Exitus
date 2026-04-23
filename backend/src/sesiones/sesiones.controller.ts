@@ -22,13 +22,13 @@ export class SesionesController {
     return this.sesionesService.getSesionById(id);
   }
 
-  // POST /sesiones
   @Post()
   createSesion(
     @Body('clubId', ParseIntPipe) clubId: number, 
-    @Body('fecha') fecha: string
+    @Body('fecha') fecha: string,
+    @Body('asistencias') asistencias: any[]
   ) {
-    return this.sesionesService.createSesion(clubId, fecha);
+    return this.sesionesService.createSesion(clubId, fecha, asistencias);
   }
 
   // PUT /sesiones/1/asistencia
