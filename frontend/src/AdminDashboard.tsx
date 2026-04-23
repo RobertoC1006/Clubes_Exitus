@@ -280,10 +280,6 @@ export default function AdminDashboard() {
   const [pagoClubFiltro, setPagoClubFiltro] = useState<number | string>('');
   const [tipoFiltroPago, setTipoFiltroPago] = useState<'ALUMNO' | 'CLUB'>('ALUMNO');
 
-  // Horarios Filtros
-  const [filtroProfHorario, setFiltroProfHorario] = useState('');
-  const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
-
   const DIAS_CALENDARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   const HORAS_START = 8;
   const HORAS_END = 22;
@@ -329,7 +325,22 @@ export default function AdminDashboard() {
     // Default Fénix
     return { grad: 'var(--grad-primary)', main: 'var(--color-primary)', light: 'var(--color-surface-container-highest)' };
   };
+  // Horarios & Responsive states
   const [filtroClubHorario, setFiltroClubHorario] = useState<number | string>('');
+  const [filtroProfHorario, setFiltroProfHorario] = useState<number | string>('');
+  const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setShowFilters(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -1263,37 +1274,45 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: HORARIOS ═════════════════════════ */}
         {tab === 'horarios' && (
           <div className="animate-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Header / Filtros */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-                  Cronograma <span style={{ background: 'var(--color-secondary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Extracurricular</span>
-                </h3>
-                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión centralizada de horarios y espacios</p>
+            {/* Header */}
+            <div style={{ marginBottom: isMobile ? '0.5rem' : '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '1.4rem' : '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                Cronograma <span style={{ color: 'var(--color-secondary)' }}>Extracurricular</span>
+              </h3>
+              {!isMobile && <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión centralizada de horarios y espacios</p>}
+            </div>
+
+            {/* Filtros */}
+            <div style={{ 
+              background: isMobile ? 'var(--color-surface-container-low)' : 'transparent',
+              padding: isMobile ? '0.75rem' : '0',
+              borderRadius: '1.25rem',
+              display: 'flex', 
+              flexDirection: 'row',
+              gap: '0.6rem',
+              width: '100%'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Disciplina</label>
+                <select
+                  value={filtroClubHorario}
+                  onChange={e => setFiltroClubHorario(e.target.value)}
+                  style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
+                >
+                  <option value="">Todas</option>
+                  {(metricas?.clubes ?? []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                  <label style={{ ...labelStyle, marginBottom: 0 }}>Disciplina</label>
-                  <select
-                    value={filtroClubHorario}
-                    onChange={e => setFiltroClubHorario(e.target.value)}
-                    style={{ ...inputStyle, padding: '0.5rem 0.75rem', borderRadius: '0.75rem', fontSize: '0.8rem', minWidth: '160px' }}
-                  >
-                    <option value="">Todas las disciplinas</option>
-                    {(metricas?.clubes ?? []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                  <label style={{ ...labelStyle, marginBottom: 0 }}>Profesor</label>
-                  <select
-                    value={filtroProfHorario}
-                    onChange={e => setFiltroProfHorario(e.target.value)}
-                    style={{ ...inputStyle, padding: '0.5rem 0.75rem', borderRadius: '0.75rem', fontSize: '0.8rem', minWidth: '160px' }}
-                  >
-                    <option value="">Cualquier profesor</option>
-                    {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
-                  </select>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Profesor</label>
+                <select
+                  value={filtroProfHorario}
+                  onChange={e => setFiltroProfHorario(e.target.value)}
+                  style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
+                >
+                  <option value="">Cualquier</option>
+                  {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
+                </select>
               </div>
             </div>
 
