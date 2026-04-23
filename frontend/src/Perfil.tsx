@@ -1,5 +1,7 @@
-import { User, Fingerprint, Activity, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { User, Fingerprint, Activity, ShieldCheck, LogOut } from 'lucide-react';
 import { useUser } from './UserContext';
+import { useNavigate } from 'react-router-dom';
 import './index.css';
 
 const rolLabel: Record<string, string> = {
@@ -20,7 +22,9 @@ const colors = {
 };
 
 export default function Perfil() {
-  const { usuario } = useUser();
+  const { usuario, logout } = useUser();
+  const navigate = useNavigate();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   if (!usuario) {
     return (
@@ -33,6 +37,11 @@ export default function Perfil() {
     );
   }
 
+  const confirmLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <div className="animate-enter" style={{ 
        padding: '1.5rem', 
@@ -41,6 +50,66 @@ export default function Perfil() {
        margin: '0 auto',
        background: 'transparent'
     }}>
+
+      {/* 🔮 MODAL DE CONFIRMACIÓN PREMIUM */}
+      {showConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+          animation: 'fadeIn 0.3s ease'
+        }} onClick={() => setShowConfirm(false)}>
+          <div 
+            style={{
+              background: 'white', borderRadius: '2.5rem', width: '100%', maxWidth: '400px',
+              padding: '2.5rem', boxShadow: '0 40px 100px rgba(0,0,0,0.3)', position: 'relative',
+              overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)',
+              animation: 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              textAlign: 'center'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ 
+              width: '4.5rem', height: '4.5rem', background: 'var(--color-error-container)', 
+              borderRadius: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1.5rem'
+            }}>
+              <LogOut size={32} color="var(--color-error)" strokeWidth={2.5} />
+            </div>
+            
+            <h3 style={{ margin: '0 0 0.75rem', fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>
+              ¿Cerrar Sesión?
+            </h3>
+            <p style={{ margin: '0 0 2rem', fontSize: '0.95rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.6 }}>
+              Tu sesión se cerrará de forma segura y volverás a la pantalla de acceso.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.8rem' }}>
+              <button 
+                onClick={() => setShowConfirm(false)}
+                style={{
+                  flex: 1, padding: '1.1rem', borderRadius: '1.25rem',
+                  background: 'var(--color-surface-container-low)', color: 'var(--color-primary)',
+                  fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                No, Volver
+              </button>
+              <button 
+                onClick={confirmLogout}
+                style={{
+                  flex: 1, padding: '1.1rem', borderRadius: '1.25rem',
+                  background: 'var(--color-error)', color: 'white',
+                  fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer',
+                  boxShadow: '0 8px 20px rgba(239, 68, 68, 0.25)', transition: 'all 0.2s'
+                }}
+              >
+                Sí, Salir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* 👑 CABECERA DE PERFIL SIMPLIFICADA PERO PREMIUM */}
       <section style={{ marginBottom: '2.5rem', position: 'relative' }}>
@@ -140,12 +209,48 @@ export default function Perfil() {
         </div>
       </section>
 
+      {/* 🚪 BOTÓN CERRAR SESIÓN (SOLO MÓVIL) */}
+      <section className="mobile-logout-section" style={{ marginTop: '3rem' }}>
+        <button
+          onClick={() => setShowConfirm(true)}
+          style={{
+            width: '100%',
+            padding: '1.25rem',
+            borderRadius: '1.5rem',
+            background: 'var(--color-error-container)',
+            color: 'var(--color-error)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            fontWeight: 900,
+            fontSize: '1rem',
+            cursor: 'pointer',
+            boxShadow: '0 8px 20px rgba(239, 68, 68, 0.1)'
+          }}
+        >
+          <LogOut size={20} strokeWidth={3} />
+          Cerrar Sesión
+        </button>
+      </section>
+
       {/* Footer minimalista */}
-      <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+      <div style={{ textAlign: 'center', marginTop: '2rem' }}>
         <p style={{ margin: 0, fontSize: '0.65rem', color: colors.outline, fontWeight: 800, opacity: 0.5, letterSpacing: '0.1em' }}>
           PLATAFORMA CLUBES EXITUS • V3.0
         </p>
       </div>
+
+      <style>{`
+        @media (min-width: 768px) {
+          .mobile-logout-section { display: none !important; }
+        }
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
 
     </div>
   );

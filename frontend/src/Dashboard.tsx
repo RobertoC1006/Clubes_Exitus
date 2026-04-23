@@ -197,12 +197,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="animate-enter" style={{
+    <div className="animate-enter dashboard-main-content" style={{
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '2rem 1.5rem',
+      padding: '1.5rem 1rem',
       paddingBottom: '7rem',
-      width: '100%'
+      width: '100%',
+      overflowX: 'hidden'
     }}>
 
       {/* 🔹 HEADER SECTION */}
@@ -239,7 +240,7 @@ export default function Dashboard() {
                   boxShadow: '0 20px 40px rgba(29, 40, 72, 0.2)',
                   flex: activeClubs.length === 1 ? '1' : '1 1 450px',
                   maxWidth: activeClubs.length === 1 ? '1200px' : '580px',
-                  minWidth: '320px',
+                  minWidth: '280px',
                   transition: 'all 0.3s ease'
                 }}>
                   <div style={{ position: 'relative', zIndex: 2 }}>

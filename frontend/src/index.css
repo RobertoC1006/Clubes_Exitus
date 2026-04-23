@@ -96,6 +96,11 @@
   -webkit-tap-highlight-color: transparent; /* Evita cuadros raros click en celular */
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-surface);
@@ -219,6 +224,7 @@ button {
   padding: var(--main-padding);
   position: relative;
   transition: all var(--transition-normal);
+  overflow-x: hidden;
 }
 
 #root {
