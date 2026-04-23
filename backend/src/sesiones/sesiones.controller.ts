@@ -12,6 +12,11 @@ export class SesionesController {
      return this.sesionesService.getSesionesByClub(clubId);
   }
 
+  @Get('profesor/:id')
+  getSesionesByProfesor(@Param('id', ParseIntPipe) id: number) {
+     return this.sesionesService.getSesionesByProfesor(id);
+  }
+
   @Get('hoy/:clubId')
   getSesionHoy(@Param('clubId', ParseIntPipe) clubId: number) {
     return this.sesionesService.getSesionHoy(clubId);

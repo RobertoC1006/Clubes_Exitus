@@ -20,6 +20,20 @@ export class SesionesService {
       });
   }
 
+  async getSesionesByProfesor(profesorId: number) {
+    return this.prisma.sesion.findMany({
+      where: {
+        club: { profesorId }
+      },
+      orderBy: { fecha: 'desc' },
+      include: {
+        club: { select: { nombre: true } },
+        asistencias: true
+      },
+      take: 20
+    });
+  }
+
   async getSesionHoy(clubId: number) {
     const inicioHoy = new Date();
     inicioHoy.setHours(0, 0, 0, 0);

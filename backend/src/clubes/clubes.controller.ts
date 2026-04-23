@@ -29,10 +29,14 @@ export class ClubesController {
     return this.clubesService.getClubesDeProfesor(id);
   }
 
-  // GET /clubes/profesor-dashboard/:id
   @Get('profesor-dashboard/:id')
   getDashboardMetrics(@Param('id', ParseIntPipe) id: number) {
     return this.clubesService.getProfesorDashboard(id);
+  }
+
+  @Get('performance-alumnos/:id')
+  getAlumnosPerformance(@Param('id', ParseIntPipe) id: number) {
+    return this.clubesService.getAlumnosPerformance(id);
   }
 
   // Peticion: POST /clubes/1/alumnos

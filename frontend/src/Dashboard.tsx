@@ -427,37 +427,44 @@ export default function Dashboard() {
                     background: 'white', position: 'relative', overflow: 'hidden',
                     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
+                    <div className="card-content-wrapper" style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap' }}>
                       <div style={{
                         width: '4.8rem', height: '4.8rem', borderRadius: '1.5rem',
                         background: 'var(--color-surface-container-low)', color: 'var(--color-primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        border: '1px solid var(--color-surface-container-high)'
+                        border: '1px solid var(--color-surface-container-high)',
+                        flexShrink: 0
                       }}>
                         <IconLogo size={32} strokeWidth={2.5} />
                       </div>
 
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem' }}>
+                      <div style={{ flex: '1 1 200px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                           <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 950, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{club.nombre}</h4>
                           {hayClaseHoy && (
                             <span style={{ padding: '0.3rem 0.8rem', borderRadius: '99px', background: 'var(--color-success-container)', color: 'var(--color-success)', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', animation: 'pulse 2s infinite' }}>Hoy</span>
                           )}
                         </div>
                         
-                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.8rem' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-outline)' }}>
                             <Users size={14} /> {club._count?.inscripciones || 0} Atletas
                           </span>
-                          <span style={{ opacity: 0.1 }}>|</span>
+                          <span className="divider-desktop" style={{ opacity: 0.1 }}>|</span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-outline)' }}>
                             <Clock size={14} /> {formatHorarioShort(club.horario)}
                           </span>
                         </div>
                       </div>
  
-                      {/* Botones Institucionales (Punto 1 y 3) */}
-                      <div className="discipline-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+                      <div className="discipline-actions" style={{ 
+                        display: 'flex', 
+                        gap: '0.75rem', 
+                        flexWrap: 'wrap',
+                        width: '100%',
+                        justifyContent: 'flex-start',
+                        marginTop: '0.5rem'
+                      }}>
                         <button
                           onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
                           className="btn-action-premium-filled"
@@ -467,7 +474,10 @@ export default function Dashboard() {
                             color: estaEnVivoAhora ? 'white' : 'var(--color-primary)', 
                             border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', 
                             gap: '0.6rem', fontWeight: 900, fontSize: '0.8rem', transition: 'all 0.3s',
-                            boxShadow: estaEnVivoAhora ? '0 8px 20px rgba(29, 40, 72, 0.2)' : 'none'
+                            boxShadow: estaEnVivoAhora ? '0 8px 20px rgba(29, 40, 72, 0.2)' : 'none',
+                            flex: '1 1 auto',
+                            justifyContent: 'center',
+                            minWidth: '140px'
                           }}
                         >
                           {estaEnVivoAhora ? <CheckCircle2 size={18} strokeWidth={2.5} /> : <Users size={18} strokeWidth={2.5} />}
@@ -480,7 +490,10 @@ export default function Dashboard() {
                             padding: '0.8rem 1.4rem', borderRadius: '1rem', background: 'var(--color-secondary)', 
                             color: 'var(--color-on-secondary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', 
                             gap: '0.6rem', fontWeight: 900, fontSize: '0.8rem', transition: 'all 0.3s',
-                            boxShadow: '0 8px 20px rgba(250, 204, 21, 0.2)'
+                            boxShadow: '0 8px 20px rgba(250, 204, 21, 0.2)',
+                            flex: '1 1 auto',
+                            justifyContent: 'center',
+                            minWidth: '110px'
                           }}
                         >
                           <CalendarIcon size={18} strokeWidth={2.5} />
@@ -628,6 +641,13 @@ export default function Dashboard() {
               .calendar-day-col { display: none; }
               .calendar-day-col.is-active-mobile { display: block !important; }
               .calendar-day-col { border-right: none !important; }
+            }
+            @media (min-width: 768px) {
+              .discipline-actions { width: auto !important; margin-top: 0 !important; }
+            }
+            @media (max-width: 767px) {
+              .divider-desktop { display: none; }
+              .card-discipline-premium { padding: 1.25rem !important; }
             }
             .schedule-card-pro:hover {
               transform: scale(1.02);

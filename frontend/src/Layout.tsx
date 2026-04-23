@@ -101,6 +101,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     ...(!isAdmin ? [{ key: 'inicio', icon: <LayoutDashboard size={22} />, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') }] : []),
     ...(isProfesor ? [
       { key: 'clubes', icon: <BookOpen size={22} />, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' },
+      { key: 'rendimiento', icon: <BarChart2 size={22} />, label: 'Rendimiento', path: '/rendimiento', active: location.pathname === '/rendimiento' },
       { key: 'horarios', icon: <Calendar size={22} />, label: 'Horarios', path: '/?tab=horarios', active: new URLSearchParams(location.search).get('tab') === 'horarios' }
     ] : []),
     ...(isPadre ? [{ key: 'pagos', icon: <CreditCard size={22} />, label: 'Pagos', path: '/pagos', active: location.pathname === '/pagos' }] : []),
@@ -123,7 +124,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
           }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-surface-container-high)' }}>
-               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Confirmar Salida</h2>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Confirmar Salida</h2>
             </div>
             <div style={{ padding: '1.5rem' }}>
               <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>

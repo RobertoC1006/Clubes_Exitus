@@ -224,4 +224,38 @@ export class ClubesService {
       alertas
     };
   }
+
+  async getAlumnosPerformance(profesorId: number) {
+    const inscripciones = await this.prisma.inscripcion.findMany({
+      where: { club: { profesorId } },
+      include: {
+        alumno: {
+          include: {
+            asistencias: {
+              where: { sesion: { club: { profesorId } } }
+            }
+          }
+        },
+        club: { select: { nombre: true } }
+      }
+    });
+
+    return inscripciones.map(ins => {
+      const a = ins.alumno;
+      const totalAsistencias = a.asistencias.length;
+      const presentes = a.asistencias.filter(as => as.estado === 'PRESENTE' || as.estado === 'JUSTIFICADO').length;
+      const faltas = a.asistencias.filter(as => as.estado === 'AUSENTE').length;
+
+      return {
+        id: a.id,
+        nombreCompleto: `${a.nombre} ${a.apellido}`,
+        clubNombre: ins.club.nombre,
+        grado: a.grado,
+        presentes,
+        faltas,
+        totalSesiones: totalAsistencias,
+        pct: totalAsistencias > 0 ? Math.round((presentes / totalAsistencias) * 100) : 0
+      };
+    }).sort((a, b) => b.pct - a.pct);
+  }
 }
