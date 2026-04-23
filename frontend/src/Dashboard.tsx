@@ -55,8 +55,8 @@ export default function Dashboard() {
   const [clubes, setClubes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Paginación
-  const ITEMS_PER_PAGE = 5;
+  // Paginación (Punto: 3 clubes por página)
+  const ITEMS_PER_PAGE = 3;
   const [currentPage, setCurrentPage] = useState(1);
   const [activeModal, setActiveModal] = useState<'asistencia' | 'racha' | null>(null);
 
@@ -356,67 +356,119 @@ export default function Dashboard() {
       {/* 🔹 TAB CONTENT: CLUBES */}
       {tab === 'clubes' && (
         <>
-          <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mis Disciplinas</h3>
-            <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'var(--color-secondary-container)', padding: '0.4rem 1rem', borderRadius: '99px', color: 'var(--color-on-secondary)' }}>
-              {clubes.length} Activos
-            </span>
+          <div style={{ marginBottom: '2rem' }}>
+            <div className="flex-between" style={{ marginBottom: '1.2rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 950, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>Mis Disciplinas</h3>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Administra tus clubes y el rendimiento de tus atletas</p>
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'var(--color-secondary-container)', padding: '0.5rem 1.2rem', borderRadius: '99px', color: 'var(--color-on-secondary)' }}>
+                {clubes.length} Activos
+              </span>
+            </div>
+
+            {/* Buscador de Disciplinas (Punto 4) */}
+            <div style={{ 
+              display: 'flex', gap: '1rem', background: 'white', padding: '0.6rem 1rem', 
+              borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+            }}>
+              <Users size={18} color="var(--color-outline)" />
+              <input 
+                type="text" 
+                placeholder="Buscar disciplina por nombre..." 
+                style={{ border: 'none', background: 'transparent', outline: 'none', flex: 1, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}
+              />
+            </div>
           </div>
-          <div className="flex-column" style={{ gap: '1.25rem' }}>
+          <div className="flex-column" style={{ gap: '1.5rem' }}>
             {clubes
               .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
               .map((club, index) => {
-                const icons = [Activity, Users, CalendarIcon, BookOpen];
-                const IconLogo = icons[index % icons.length];
+                const IconLogo = club.nombre.toLowerCase().includes('progra') ? BookOpen :
+                                 club.nombre.toLowerCase().includes('nata') ? Activity : Users;
+                
+                const hoy = DIAS_CALENDARIO[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+                const hayClaseHoy = club.horario && Object.keys(club.horario).some(d => normalizeDay(d) === hoy);
 
                 return (
-                  <div key={club.id} className="glass-card card-premium" style={{
-                    display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem',
+                  <div key={club.id} className="glass-card card-discipline-premium" style={{
+                    display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.8rem',
                     border: '1px solid var(--color-surface-container-high)',
-                    background: 'white',
-                    transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                    cursor: 'default'
+                    background: 'white', position: 'relative', overflow: 'hidden',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                   }}>
-                    <div style={{
-                      width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem',
-                      background: 'var(--color-surface-container-low)',
-                      color: 'var(--color-primary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: 'var(--shadow-sm)'
-                    }}>
-                      <IconLogo size={32} />
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
+                      <div style={{
+                        width: '4.8rem', height: '4.8rem', borderRadius: '1.5rem',
+                        background: 'var(--color-surface-container-low)', color: 'var(--color-primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: '1px solid var(--color-surface-container-high)'
+                      }}>
+                        <IconLogo size={32} strokeWidth={2.5} />
+                      </div>
+
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem' }}>
+                          <h4 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 950, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{club.nombre}</h4>
+                          {hayClaseHoy && (
+                            <span style={{ padding: '0.3rem 0.8rem', borderRadius: '99px', background: 'var(--color-success-container)', color: 'var(--color-success)', fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', animation: 'pulse 2s infinite' }}>Hoy</span>
+                          )}
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-outline)' }}>
+                            <Users size={14} /> {club._count?.inscripciones || 0} Atletas
+                          </span>
+                          <span style={{ opacity: 0.1 }}>|</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-outline)' }}>
+                            <Clock size={14} /> {formatHorarioShort(club.horario)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Botones Institucionales (Punto 1 y 3) */}
+                      <div className="discipline-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button
+                          onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
+                          className="btn-action-premium-filled"
+                          style={{
+                            padding: '0.8rem 1.4rem', borderRadius: '1rem', background: 'var(--color-primary)', 
+                            color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', 
+                            gap: '0.6rem', fontWeight: 900, fontSize: '0.8rem', transition: 'all 0.3s',
+                            boxShadow: '0 8px 20px rgba(29, 40, 72, 0.2)'
+                          }}
+                        >
+                          <CheckCircle2 size={18} strokeWidth={2.5} />
+                          <span>Tomar Lista</span>
+                        </button>
+                        <button
+                          onClick={() => navigate(`/clubes/${club.id}/historial`)}
+                          className="btn-action-premium-filled"
+                          style={{
+                            padding: '0.8rem 1.4rem', borderRadius: '1rem', background: 'var(--color-secondary)', 
+                            color: 'var(--color-on-secondary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', 
+                            gap: '0.6rem', fontWeight: 900, fontSize: '0.8rem', transition: 'all 0.3s',
+                            boxShadow: '0 8px 20px rgba(250, 204, 21, 0.2)'
+                          }}
+                        >
+                          <CalendarIcon size={18} strokeWidth={2.5} />
+                          <span>Historial</span>
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{club.nombre}</h4>
-                      <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-on-surface-variant)', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Users size={16} /> {club._count?.inscripciones || 0} Atletas</span>
-                        {club.horario && Object.keys(club.horario).length > 0 && (
-                          <>
-                            <span style={{ opacity: 0.3 }}>•</span>
-                            <span style={{ color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <Clock size={16} /> {formatHorarioShort(club.horario)}
-                            </span>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.8rem' }}>
-                      <button
-                        onClick={() => navigate(`/clubes/${club.id}/asistencia`)}
-                        className="btn-icon-premium"
-                        title="Pasar Lista"
-                        style={{ width: '3.2rem', height: '3.2rem', borderRadius: '1.2rem', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(29, 40, 72, 0.2)' }}
-                      >
-                        <CheckCircle2 size={22} strokeWidth={2.5} />
-                      </button>
-                      <button
-                        onClick={() => navigate(`/clubes/${club.id}/historial`)}
-                        className="btn-icon-premium"
-                        title="Ver Historial"
-                        style={{ width: '3.2rem', height: '3.2rem', borderRadius: '1.2rem', background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', border: 'none', cursor: 'pointer' }}
-                      >
-                        <CalendarIcon size={22} />
-                      </button>
+
+                    {/* Salud del Club (Punto 3) */}
+                    <div style={{ marginTop: '0.5rem', paddingTop: '1.2rem', borderTop: '1px solid var(--color-surface-container-high)', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                       <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                             <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Consistencia de Asistencia</span>
+                             <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)' }}>{club.asistenciaPct || '0%'}</span>
+                          </div>
+                          <div style={{ height: '6px', background: 'var(--color-surface-container-low)', borderRadius: '3px', overflow: 'hidden' }}>
+                             <div style={{ width: `${club.asistenciaPct || 0}%`, height: '100%', background: 'var(--color-primary)', borderRadius: '3px' }}></div>
+                          </div>
+                       </div>
                     </div>
                   </div>
                 );
@@ -599,9 +651,24 @@ export default function Dashboard() {
           box-shadow: 0 20px 30px rgba(29, 40, 72, 0.08) !important;
           border-color: var(--color-primary) !important;
         }
-        @keyframes fadeInScale {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .card-discipline-premium:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 25px 50px rgba(29,40,72,0.1) !important;
+          border-color: var(--color-primary) !important;
+        }
+        .btn-action-premium-filled:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 25px rgba(29, 40, 72, 0.3) !important;
+        }
+        .btn-action-premium-ghost:hover {
+          background: white !important;
+          border-color: var(--color-primary) !important;
+          color: var(--color-primary) !important;
         }
       `}</style>
 
