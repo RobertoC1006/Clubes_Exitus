@@ -85,7 +85,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const isAdmin = usuario?.rol === 'ADMINISTRADOR';
   const isPadre = usuario?.rol === 'PADRE';
   const homeRoute = isAdmin ? '/admin' : isPadre ? '/portal' : '/';
-  const homeActive = ['/', '/admin', '/portal'].includes(location.pathname);
+
 
   const adminTabs = [
     { key: 'panel', icon: <BarChart2 size={22} />, label: 'Panel', path: '/admin?tab=panel' },
@@ -98,7 +98,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const globalLinks = [
     // Solo mostramos Inicio y Pagos para NO-admins en esta lista global
-    ...(!isAdmin ? [{ key: 'inicio', icon: <LayoutDashboard size={22} />, label: 'Inicio', path: homeRoute, active: location.pathname === '/' || (isAdmin && location.pathname === '/admin') || (isPadre && location.pathname === '/portal') }] : []),
+    ...(!isAdmin ? [{ key: 'inicio', icon: <LayoutDashboard size={22} />, label: 'Inicio', path: homeRoute, active: (location.pathname === '/' || (isPadre && location.pathname === '/portal')) && (!new URLSearchParams(location.search).get('tab') || new URLSearchParams(location.search).get('tab') === 'inicio') }] : []),
     ...(isProfesor ? [
       { key: 'clubes', icon: <BookOpen size={22} />, label: 'Clubes', path: '/?tab=clubes', active: new URLSearchParams(location.search).get('tab') === 'clubes' },
       { key: 'rendimiento', icon: <BarChart2 size={22} />, label: 'Rendimiento', path: '/rendimiento', active: location.pathname === '/rendimiento' },
