@@ -174,7 +174,7 @@ export default function PaseLista() {
         await db.asistenciasPendientes.add({
           ...payload,
           fecha: new Date().toISOString(),
-          synced: 0
+          syncStatus: 'pending'
         });
         setSuccessInfo({ title: 'Guardado Local', message: 'Te encuentras sin conexión. La lista se sincronizará cuando recuperes internet.' });
         setShowSuccessModal(true);
