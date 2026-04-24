@@ -11,6 +11,7 @@ import Layout from './Layout';
 import HistorialAsistencia from './HistorialAsistencia';
 import DetalleSesion from './DetalleSesion';
 import GlobalAsistencia from './GlobalAsistencia';
+import CambiarContrasena from './CambiarContrasena';
 import './index.css';
 
 // ==========================================
@@ -20,6 +21,10 @@ function RequireAuth({ children, roles }: { children: React.ReactNode; roles?: s
   const { usuario } = useUser();
   if (!usuario) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(usuario.rol)) return <Navigate to="/login" replace />;
+
+  // Guard global: si mustChangePassword es true, bloquear toda la app
+  if (usuario.mustChangePassword) return <Navigate to="/cambiar-contrasena" replace />;
+
   return <>{children}</>;
 }
 
@@ -46,6 +51,18 @@ function AppRoutes() {
       <Route
         path="/login"
         element={usuario ? <Navigate to="/" replace /> : <Login />}
+      />
+
+      {/* Cambiar contraseña: ruta bloqueante, sin Layout ni RequireAuth estándar */}
+      <Route
+        path="/cambiar-contrasena"
+        element={
+          !usuario
+            ? <Navigate to="/login" replace />
+            : !usuario.mustChangePassword
+              ? <Navigate to="/" replace />
+              : <CambiarContrasena />
+        }
       />
 
       {/* Raíz → redirige según rol */}

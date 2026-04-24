@@ -35,9 +35,11 @@ model Usuario {
   nombre    String
   apellido  String
   email     String?  @unique
-  password  String?  // Se añadirá seguridad luego, es opcional por ahora
+  password  String?
   rol       RolUsuario @default(PADRE)
-  dni       String?  @unique // Útil para login rápido de padres
+  dni       String?  @unique
+  celular   String?  // Número de contacto del usuario
+  mustChangePassword Boolean @default(true) // Fuerza cambio en primer login
 
   // Un profesor puede tener varios clubes a su cargo
   clubes    Club[]   @relation("ProfesorClub")

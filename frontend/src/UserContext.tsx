@@ -5,8 +5,10 @@ export interface UsuarioSesion {
   nombre: string;
   apellido: string;
   dni: string;
+  celular?: string;
   rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE' | 'ALUMNO';
   initials: string;
+  mustChangePassword?: boolean;
 }
 
 interface UserContextType {

@@ -38,7 +38,7 @@ interface Profesor {
   email: string;
   clubes?: { id: number; nombre: string; horario: any }[];
 }
-interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; password?: string }
+interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; celular?: string; password?: string }
 interface Alumno {
   id: number; nombre: string; apellido: string; grado: string;
   padreId?: number | null;
@@ -530,6 +530,23 @@ export default function AdminDashboard() {
       else { setModalUsuario(false); fetchProfesores(); }
     } catch { alert('Error de red'); }
     finally { setSavingPersona(false); }
+  };
+
+  const handleResetPassword = async (id: number) => {
+    if (!window.confirm('¿Estás seguro de que deseas resetear la contraseña de este usuario? Se establecerá como "123456" y se le pedirá cambiarla en su próximo inicio de sesión.')) return;
+    try {
+      const res = await fetch(`${API}/admin/usuarios/${id}/reset-password`, {
+        method: 'PATCH',
+      });
+      if (res.ok) {
+        alert('Contraseña reseteada con éxito (123456)');
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Error al resetear la contraseña');
+      }
+    } catch {
+      alert('Error de red');
+    }
   };
 
   const handleSaveAlumno = async (data: { nombre: string; apellido: string; grado: string; padreId?: number; clubIds?: number[]; nuevoPadre?: any }) => {
@@ -1636,6 +1653,7 @@ export default function AdminDashboard() {
           usuario={modalUsuario as Partial<Usuario>}
           saving={savingPersona}
           onSave={handleSaveUsuario}
+          onResetPassword={handleResetPassword}
           onClose={() => setModalUsuario(false)}
         />
       )}
@@ -2608,22 +2626,23 @@ const metricaValueStyle: React.CSSProperties = {
 
 // ── Modal Usuario ──────────────────────────────────────────────
 function UsuarioModal({
-  usuario, saving, onSave, onClose,
+  usuario, saving, onSave, onResetPassword, onClose,
 }: {
   usuario: Partial<Usuario>;
   saving: boolean;
   onSave: (data: any) => void;
+  onResetPassword: (id: number) => void;
   onClose: () => void;
 }) {
   const [nombre, setNombre] = useState(usuario.nombre ?? '');
   const [apellido, setApellido] = useState(usuario.apellido ?? '');
   const [rol, setRol] = useState<'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'>(usuario.rol ?? 'PROFESOR');
   const [dni, setDni] = useState(usuario.dni ?? '');
-  const [password, setPassword] = useState('');
+  const [celular, setCelular] = useState(usuario.celular ?? '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ nombre, apellido, rol, dni, password: password || undefined });
+    onSave({ nombre, apellido, rol, dni, celular });
   };
 
   return (
@@ -2683,16 +2702,44 @@ function UsuarioModal({
             </div>
           </div>
 
-          <div>
-            <label style={labelStyle}>DNI (Acceso)</label>
-            <input value={dni} onChange={e => setDni(e.target.value)} placeholder="DNI del usuario" style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={labelStyle}>DNI (Acceso)</label>
+              <input value={dni} onChange={e => setDni(e.target.value)} placeholder="DNI del usuario" style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required />
+            </div>
+            <div>
+              <label style={labelStyle}>Celular</label>
+              <input value={celular} onChange={e => setCelular(e.target.value)} placeholder="Ej: 987654321" style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
+            </div>
           </div>
 
-          {!usuario.id && (
-            <div>
-              <label style={labelStyle}>Contraseña Inicial</label>
-              <input value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" type="password"
-                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required={!usuario.id} />
+          {!usuario.id ? (
+            <div style={{
+              background: 'rgba(var(--color-primary-rgb), 0.05)',
+              padding: '1rem', borderRadius: '1rem', border: '1px dashed var(--color-primary)',
+              textAlign: 'center'
+            }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: 700 }}>
+                🔑 Contraseña temporal asignada: <span style={{ fontWeight: 900 }}>123456</span>
+              </p>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)' }}>
+                Se le pedirá cambiarla al primer inicio de sesión.
+              </p>
+            </div>
+          ) : (
+            <div style={{ marginTop: '0.5rem' }}>
+              <button 
+                type="button" 
+                onClick={() => onResetPassword(usuario.id!)}
+                style={{
+                  width: '100%', height: '3rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-error)',
+                  background: 'transparent', color: 'var(--color-error)', fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <RefreshCw size={18} /> Resetear Contraseña a 123456
+              </button>
             </div>
           )}
 
