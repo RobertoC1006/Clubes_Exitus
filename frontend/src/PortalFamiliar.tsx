@@ -93,7 +93,7 @@ export default function PortalFamiliar() {
   const [showRachaModal, setShowRachaModal] = useState(false);
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
   const [showClubModal, setShowClubModal] = useState(false);
-  const [activeClubTab, setActiveClubTab] = useState<'pasadas' | 'programadas'>('pasadas');
+  const [activeClubTab, setActiveClubTab] = useState<'pasadas' | 'proximas'>('pasadas');
 
   // 1. Cargar Lista de Hijos
   useEffect(() => {
