@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Fingerprint, Activity, ShieldCheck, LogOut } from 'lucide-react';
+import { User, Fingerprint, Activity, ShieldCheck, LogOut, Phone } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useNavigate } from 'react-router-dom';
 import './index.css';
@@ -183,6 +183,24 @@ export default function Perfil() {
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: '0.65rem', color: colors.outline, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Número de DNI</p>
               <p style={{ margin: 0, fontWeight: 900, color: colors.primary, fontSize: '1.3rem', letterSpacing: '0.02em' }}>{usuario.dni}</p>
+            </div>
+          </div>
+          
+          <div style={{ height: '1.5px', background: 'var(--color-surface-container-low)', margin: '0 1rem' }} />
+          
+          {/* CELULAR */}
+          <div style={{ padding: '1.1rem', display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+            <div style={{ 
+              width: '3.2rem', height: '3.2rem', borderRadius: '1.2rem', 
+              background: 'var(--color-primary-container)', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0
+            }}>
+               <Phone size={24} color="var(--color-primary)" strokeWidth={2.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: '0.65rem', color: colors.outline, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Número Celular</p>
+              <p style={{ margin: 0, fontWeight: 900, color: colors.primary, fontSize: '1.3rem', letterSpacing: '0.02em' }}>{usuario.celular || 'No registrado'}</p>
             </div>
           </div>
           
