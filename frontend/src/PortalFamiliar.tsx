@@ -570,49 +570,102 @@ export default function PortalFamiliar() {
                   </div>
 
                   <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1.5rem' }}>
-                    {listaMostrada.length === 0 ? (
-                      <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-                         <Calendar size={40} color="var(--color-outline-variant)" style={{ marginBottom: '1rem', opacity: 0.4 }} />
-                         <p style={{ color: 'var(--color-outline)', fontWeight: 500, fontSize: '0.9rem' }}>No hay clases {activeClubTab} registradas.</p>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {listaMostrada.map((s: any) => {
-                            let bg = 'var(--color-surface-container-high)';
-                            let fg = 'var(--color-primary)';
-                            let text = s.estado;
-                            if (s.asistio) {
-                                bg = '#DCFCE7'; fg = '#166534'; text = 'ASISTIÓ';
-                            } else if (s.estado === 'FALTO' || s.estado === 'FALTÓ' || s.estado === 'AUSENTE') {
-                                bg = '#FEE2E2'; fg = '#991B1B'; text = 'FALTÓ';
-                            } else if (s.estado === 'JUSTIFICADO' || s.estado === 'EXCUSADO') {
-                                bg = '#FEF9C3'; fg = '#854D0E'; text = 'JUSTIFICADO';
-                            } else if (s.estado === 'PROGRAMADO') {
-                                bg = 'var(--color-surface-container-high)'; fg = 'var(--color-outline)'; text = 'PROGRAMADO';
-                            }
+                    {(() => {
+                      // Calendario Grid
+                      const now = new Date();
+                      const currentMonth = now.getMonth();
+                      const currentYear = now.getFullYear();
+                      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                      const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun, 1=Mon...
+                      
+                      // Ajustar a Lunes como primer día (0=Lun, 6=Dom)
+                      const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+                      
+                      const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+                      const days = [];
+                      for (let i = 0; i < adjustedFirstDay; i++) days.push(null);
+                      for (let i = 1; i <= daysInMonth; i++) days.push(i);
 
-                            return (
-                              <div key={s.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-container-low)', borderRadius: '0.75rem' }}>
-                                <div style={{ width: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                  <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
-                                  <p style={{ margin: '0.1rem 0 0', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
-                                    {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
-                                  </p>
-                                </div>
-                                <div style={{ flex: 1, borderLeft: '1px solid var(--color-surface-container-high)', paddingLeft: '1rem' }}>
-                                  <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{s.tema || 'Sesión Realizada'}</p>
-                                </div>
-                                <div style={{ 
-                                  padding: '0.25rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700,
-                                  background: bg, color: fg
-                                }}>
-                                  {text}
-                                </div>
+                      return (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <div style={{ textAlign: 'center', marginBottom: '1.5rem', background: 'var(--color-surface-container-lowest)', padding: '0.8rem', borderRadius: '1rem', border: '1px solid var(--color-surface-container-high)' }}>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)', textTransform: 'capitalize' }}>
+                              {now.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                            {dayLabels.map(label => (
+                              <div key={label} style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)', paddingBottom: '0.5rem' }}>
+                                {label}
                               </div>
-                            );
-                        })}
-                      </div>
-                    )}
+                            ))}
+                            {days.map((day, idx) => {
+                              if (day === null) return <div key={`empty-${idx}`} />;
+                              
+                              const session = calendarioClub.find(s => {
+                                const d = new Date(s.fecha);
+                                return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                              });
+
+                              let bgColor = 'transparent';
+                              let textColor = 'var(--color-on-surface)';
+                              let border = '1px solid var(--color-surface-container-high)';
+                              let fontWeight = 500;
+
+                              if (session) {
+                                fontWeight = 800;
+                                if (session.asistio) {
+                                  bgColor = '#DCFCE7'; textColor = '#166534'; border = '1px solid #BBF7D0';
+                                } else if (session.estado === 'FALTO' || session.estado === 'FALTÓ' || session.estado === 'AUSENTE') {
+                                  bgColor = '#FEE2E2'; textColor = '#991B1B'; border = '1px solid #FECACA';
+                                } else if (session.estado === 'JUSTIFICADO' || session.estado === 'EXCUSADO') {
+                                  bgColor = '#FEF9C3'; textColor = '#854D0E'; border = '1px solid #FEF08A';
+                                } else if (session.estado === 'PROGRAMADO') {
+                                  bgColor = 'var(--color-surface-container-high)'; textColor = 'var(--color-primary)'; border = 'none';
+                                }
+                              }
+
+                              const isToday = day === now.getDate();
+
+                              return (
+                                <div 
+                                  key={day} 
+                                  title={session ? `${session.estado}: ${session.tema || 'Sesión'}` : ''}
+                                  style={{ 
+                                    aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight,
+                                    background: bgColor, color: textColor, border: isToday && !session ? '2px solid var(--color-primary)' : border,
+                                    position: 'relative', cursor: session ? 'help' : 'default'
+                                  }}
+                                >
+                                  {day}
+                                  {isToday && (
+                                    <div style={{ position: 'absolute', bottom: '2px', width: '4px', height: '4px', borderRadius: '50%', background: 'var(--color-primary)' }} />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* LEYENDA */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', padding: '1rem', background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#DCFCE7', border: '1px solid #BBF7D0' }} /> Asistió
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#FEE2E2', border: '1px solid #FECACA' }} /> Faltó
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#FEF9C3', border: '1px solid #FEF08A' }} /> Justificado
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '4px', background: 'var(--color-surface-container-high)' }} /> Programado
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
