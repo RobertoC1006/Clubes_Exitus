@@ -5,7 +5,7 @@ import {
   Download, ChevronRight, X, Save,
   BarChart2, BookOpen, CreditCard, RefreshCw,
   GraduationCap, Search, ChevronDown, FileText, ExternalLink,
-  Check, Calendar, Clock, History
+  Check, Calendar, Clock, History, CheckCircle
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './index.css';
@@ -31,11 +31,11 @@ interface ClubMetrica {
   profesorId: number; profesor: string; inscritos: number; asistencia: number;
   horario: any | null;
 }
-interface Profesor { 
-  id: number; 
-  nombre: string; 
-  apellido: string; 
-  email: string; 
+interface Profesor {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
   clubes?: { id: number; nombre: string; horario: any }[];
 }
 interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; password?: string }
@@ -74,13 +74,26 @@ function ClubModal({
   const [desc, setDesc] = useState(club?.descripcion ?? '');
   const [profId, setProfId] = useState<number>(club?.profesorId ?? (profesores[0]?.id ?? 0));
 
-  // Horario inicial: Lunes a Sábado desactivado por defecto
-  const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const [horario, setHorario] = useState<any>(club?.horario ?? {});
+  // Horario inicial: Lunes a Domingo desactivado por defecto
+  const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+  const initialHorario = (() => {
+    if (!club?.horario) return {};
+    if (typeof club.horario === 'string') {
+      try { return JSON.parse(club.horario); } catch { return {}; }
+    }
+    return club.horario;
+  })();
+
+  const [horario, setHorario] = useState<any>(initialHorario);
 
   const toggleDia = (dia: string) => {
     setHorario((prev: any) => {
-      const newHorario = { ...prev };
+      let current = prev;
+      if (typeof prev === 'string') {
+        try { current = JSON.parse(prev); } catch { current = {}; }
+      }
+      const newHorario = { ...current };
       if (newHorario[dia]) {
         delete newHorario[dia];
       } else {
@@ -91,10 +104,16 @@ function ClubModal({
   };
 
   const updateTime = (dia: string, key: 'start' | 'end', val: string) => {
-    setHorario((prev: any) => ({
-      ...prev,
-      [dia]: { ...prev[dia], [key]: val }
-    }));
+    setHorario((prev: any) => {
+      let current = prev;
+      if (typeof prev === 'string') {
+        try { current = JSON.parse(prev); } catch { current = {}; }
+      }
+      return {
+        ...current,
+        [dia]: { ...current[dia], [key]: val }
+      };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -105,66 +124,95 @@ function ClubModal({
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1rem',
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem'
     }} onClick={onClose}>
       <div style={{
-        background: 'var(--color-surface)', borderRadius: '1.5rem', padding: '1.5rem',
-        width: '100%', maxWidth: '420px', boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+        width: '100%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {club?.id ? 'Editar Club' : 'Nuevo Club'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
-            <X size={20} color="var(--color-on-surface-variant)" />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              {club?.id ? 'Editar' : 'Nuevo'} <span style={{ color: 'var(--color-secondary)' }}>Club / Disciplina</span>
+            </h3>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              {club?.id ? 'Actualiza la información y programación' : 'Crea una nueva disciplina deportiva o académica'}
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
+            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <X size={20} color="var(--color-primary)" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={labelStyle}>Nombre del Club</label>
-            <input value={nombre} onChange={e => setNombre(e.target.value)}
-              placeholder="Ej: Ajedrez Avanzado" required style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Descripción (opcional)</label>
-            <input value={desc} onChange={e => setDesc(e.target.value)}
-              placeholder="Breve descripción..." style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Profesor a cargo</label>
-            <select value={profId} onChange={e => setProfId(Number(e.target.value))} required style={inputStyle}>
-              {profesores.map(p => (
-                <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
-              ))}
-            </select>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={labelStyle}>Nombre de la Disciplina</label>
+              <input value={nombre} onChange={e => setNombre(e.target.value)}
+                placeholder="Ej: Ajedrez" required
+                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Resumen / Descripción</label>
+              <input value={desc} onChange={e => setDesc(e.target.value)}
+                placeholder="Breve descripción..."
+                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Profesor Responsable</label>
+              <div style={{ position: 'relative' }}>
+                <select value={profId} onChange={e => setProfId(Number(e.target.value))} required
+                  style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem', appearance: 'none', paddingRight: '3rem' }}>
+                  {profesores.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
+                  ))}
+                </select>
+                <ChevronDown size={20} color="var(--color-primary)" style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
+            </div>
           </div>
 
           <div>
-            <label style={labelStyle}>Horario Semanal</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={labelStyle}>Programación de Horarios</label>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem',
+              padding: '0.25rem'
+            }}>
               {DIAS.map(dia => {
-                const activo = !!horario[dia];
+                const isActive = !!horario[dia];
                 return (
                   <div key={dia} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '0.6rem 0.85rem', borderRadius: '0.75rem',
-                    background: activo ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-low)',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <input type="checkbox" checked={activo} onChange={() => toggleDia(dia)}
-                        style={{ width: '1.1rem', height: '1.1rem', cursor: 'pointer', accentColor: 'var(--color-primary)' }} />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: activo ? 'var(--color-primary)' : 'var(--color-outline)' }}>{dia}</span>
+                    padding: '0.75rem', borderRadius: '1.25rem', border: '1.5px solid',
+                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-surface-container-high)',
+                    background: isActive ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-lowest)',
+                    transition: 'all 0.2s', cursor: 'pointer'
+                  }} onClick={() => toggleDia(dia)}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.75rem', color: isActive ? 'var(--color-primary)' : 'var(--color-outline)' }}>{dia}</span>
+                      <div style={{
+                        width: '0.6rem', height: '0.6rem', borderRadius: '50%',
+                        background: isActive ? 'var(--color-primary)' : 'var(--color-surface-container-high)'
+                      }}></div>
                     </div>
-                    {activo && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <input type="time" value={horario[dia].start} onChange={e => updateTime(dia, 'start', e.target.value)}
-                          style={timeInputStyle} />
-                        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-primary)' }}>—</span>
-                        <input type="time" value={horario[dia].end} onChange={e => updateTime(dia, 'end', e.target.value)}
-                          style={timeInputStyle} />
+                    {isActive && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
+                        <input type="time" value={horario[dia].start}
+                          onChange={e => updateTime(dia, 'start', e.target.value)}
+                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
+                        <input type="time" value={horario[dia].end}
+                          onChange={e => updateTime(dia, 'end', e.target.value)}
+                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
                       </div>
                     )}
                   </div>
@@ -173,14 +221,24 @@ function ClubModal({
             </div>
           </div>
 
-          <button type="submit" style={{
-            background: 'var(--color-primary)', color: 'white', border: 'none',
-            borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            marginTop: '0.5rem'
-          }}>
-            <Save size={16} /> Guardar Club
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+            <button type="button" onClick={onClose} style={{
+              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+              fontWeight: 800, cursor: 'pointer'
+            }}>
+              Cancelar
+            </button>
+            <button type="submit" style={{
+              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-primary)', color: 'white',
+              fontWeight: 900, fontSize: '1rem', cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}>
+              <Save size={20} /> {club?.id ? 'Guardar Cambios' : 'Crear Disciplina'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -213,7 +271,7 @@ const inputStyle: React.CSSProperties = {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte';
+  const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte' | 'horarios';
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -221,13 +279,76 @@ export default function AdminDashboard() {
   const [pagoAlumnoFiltro, setPagoAlumnoFiltro] = useState<number | string>('');
   const [pagoClubFiltro, setPagoClubFiltro] = useState<number | string>('');
   const [tipoFiltroPago, setTipoFiltroPago] = useState<'ALUMNO' | 'CLUB'>('ALUMNO');
+
+  const DIAS_CALENDARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const HORAS_START = 8;
+  const HORAS_END = 22;
+  const ROW_HEIGHT = 65; // px per hour
+
+  const timeToMinutes = (time: string) => {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const getPosForTime = (time: string) => {
+    const min = timeToMinutes(time);
+    const startMin = HORAS_START * 60;
+    return ((min - startMin) / 60) * ROW_HEIGHT;
+  };
+
+  const getHeightForDuration = (start: string, end: string) => {
+    const startMin = timeToMinutes(start);
+    const endMin = timeToMinutes(end);
+    return ((endMin - startMin) / 60) * ROW_HEIGHT;
+  };
+
+  const normalizeDay = (dia: string) => {
+    if (!dia) return '';
+    const d = dia.toLowerCase();
+    if (d.includes('lun')) return 'Lunes';
+    if (d.includes('mar')) return 'Martes';
+    if (d.includes('mi') || d.includes('mirc')) return 'Miércoles';
+    if (d.includes('jue')) return 'Jueves';
+    if (d.includes('vie')) return 'Viernes';
+    if (d.includes('s') || d.includes('sba')) return 'Sábado';
+    if (d.includes('d') || d.includes('dom')) return 'Domingo';
+    return dia;
+  };
+
+  const getClubTheme = (clubName: string) => {
+    const name = clubName.toLowerCase();
+    if (name.includes('fút') || name.includes('fut')) return { grad: 'linear-gradient(135deg, #1e40af, #3b82f6)', main: '#3b82f6', light: '#dbeafe' };
+    if (name.includes('natar') || name.includes('nata')) return { grad: 'linear-gradient(135deg, #0369a1, #0ea5e9)', main: '#0ea5e9', light: '#e0f2fe' };
+    if (name.includes('ajed')) return { grad: 'linear-gradient(135deg, #1e293b, #475569)', main: '#475569', light: '#f1f5f9' };
+    if (name.includes('danz')) return { grad: 'linear-gradient(135deg, #7e22ce, #a855f7)', main: '#a855f7', light: '#f3e8ff' };
+    if (name.includes('rob')) return { grad: 'linear-gradient(135deg, #c2410c, #f97316)', main: '#f97316', light: '#ffedd5' };
+    // Default Fénix
+    return { grad: 'var(--grad-primary)', main: 'var(--color-primary)', light: 'var(--color-surface-container-highest)' };
+  };
+  // Horarios & Responsive states
+  const [filtroClubHorario, setFiltroClubHorario] = useState<number | string>('');
+  const [filtroProfHorario, setFiltroProfHorario] = useState<number | string>('');
+  const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setShowFilters(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   // Personas state
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
-  const [personasTab, setPersonasTab] = useState<'profesores' | 'alumnos'>('profesores');
+  const [personasTab, setPersonasTab] = useState<'administradores' | 'profesores' | 'padres' | 'alumnos'>('administradores');
   const [modalUsuario, setModalUsuario] = useState<Partial<Usuario> | false>(false);
   const [modalAlumno, setModalAlumno] = useState<Partial<Alumno> | false>(false);
   const [savingPersona, setSavingPersona] = useState(false);
@@ -236,12 +357,16 @@ export default function AdminDashboard() {
   const [modalClub, setModalClub] = useState<Partial<ClubMetrica> | null | false>(false);
   const [modalPagosClub, setModalPagosClub] = useState<ClubMetrica | null | false>(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; title: string; type: 'CLUB' } | null>(null);
+
 
   // Búsqueda
   const [searchTerm, setSearchTerm] = useState('');
 
   // Validando pago
   const [validandoPago, setValidandoPago] = useState<number | null>(null);
+  const [expandedPagoId, setExpandedPagoId] = useState<number | null>(null);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
   // Alumnos Inscritos Modal state
   const [isAlumnosInscritosModalOpen, setIsAlumnosInscritosModalOpen] = useState(false);
@@ -255,7 +380,7 @@ export default function AdminDashboard() {
   const [currentPagePagos, setCurrentPagePagos] = useState(1);
   const [currentPageReportes, setCurrentPageReportes] = useState(1);
   const [currentPageRanking, setCurrentPageRanking] = useState(1);
-  
+
   // Retención Modal state
   const [isRetencionModalOpen, setIsRetencionModalOpen] = useState(false);
   const [rankingSubTab, setRankingSubTab] = useState<'asistencias' | 'ausencias' | 'justificaciones'>('asistencias');
@@ -268,7 +393,7 @@ export default function AdminDashboard() {
     PROFESOR: 1,
     PADRE: 1
   });
-  
+
   // Sesiones Modal state
   const [modalSesiones, setModalSesiones] = useState<any | null>(null);
   const [sesionesClub, setSesionesClub] = useState<any[]>([]);
@@ -284,8 +409,18 @@ export default function AdminDashboard() {
     setCurrentPagePagos(1);
     setCurrentPageReportes(1);
     setCurrentPageRanking(1);
+    setFiltroProfHorario('');
+    setFiltroClubHorario('');
     setPagesUsuarios({ ADMINISTRADOR: 1, PROFESOR: 1, PADRE: 1 });
   }, [tab, personasTab]);
+
+  // Payment Validation Modal state
+  const [paymentActionModal, setPaymentActionModal] = useState<{
+    show: boolean,
+    pago: any | null,
+    type: 'VALIDAR' | 'RECHAZAR',
+    observacion: string
+  }>({ show: false, pago: null, type: 'VALIDAR', observacion: '' });
 
   // ── Fetch ────────────────────────────────────────────────────
   const fetchMetricas = useCallback(async () => {
@@ -360,10 +495,10 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteClub = async (id: number) => {
-    if (!window.confirm('¿Eliminar este club? Esta acción es permanente.')) return;
     setDeletingId(id);
     await fetch(`${API}/admin/clubes/${id}`, { method: 'DELETE' });
     setDeletingId(null);
+    setConfirmDelete(null);
     fetchMetricas();
   };
 
@@ -458,35 +593,20 @@ export default function AdminDashboard() {
     : [];
 
   return (
-    <div className="app-container animate-enter" style={{ paddingBottom: '7rem' }}>
+    <>
+      <div className="animate-enter" style={{ paddingBottom: '7rem' }}>
 
-      <section style={{ padding: '2.5rem 1.5rem 1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
-          <div style={{ background: 'var(--color-primary-container)', color: 'white', padding: '0.4rem 1rem', borderRadius: '0.9rem', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            v2.5 Enterprise
-          </div>
-          <span style={{ height: 2, width: 24, background: 'var(--color-secondary)' }}></span>
-        </div>
-        <h2 style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.07em', lineHeight: 0.9, margin: 0 }}>
-          Central de <br /><span style={{ color: 'var(--color-secondary)' }}>Comando</span>
-        </h2>
-        <p style={{ margin: '1rem 0 0', color: 'var(--color-on-surface-variant)', fontSize: '1rem', fontWeight: 600, opacity: 0.8, maxWidth: '300px', lineHeight: 1.4 }}>
-          Control global de <strong>{metricas?.totalAlumnos ?? '…'} alumnos</strong> en <strong>{metricas?.totalClubes ?? '…'} clubes</strong> activos.
-        </p>
-      </section>
-
-
-      <div style={{ padding: '1.25rem' }}>
+      <div className="pro-container" style={{ paddingBottom: '2.5rem', marginTop: '2rem' }}>
 
         {/* ══════════ TAB: PANEL ════════════════════════════ */}
         {tab === 'panel' && metricas && (
           <>
             {/* BENTO MÉTRICAS (Premium) */}
             <div className="bento-grid" style={{ marginBottom: '2.5rem' }}>
-              <div className="bento-card" 
-                onClick={async () => { 
+              <div className="bento-card"
+                onClick={async () => {
                   if (alumnos.length === 0) await fetchAlumnos();
-                  setIsAlumnosInscritosModalOpen(true); 
+                  setIsAlumnosInscritosModalOpen(true);
                 }}
                 style={{
                   gridColumn: '1 / -1',
@@ -524,8 +644,8 @@ export default function AdminDashboard() {
 
               <div className="bento-card"
                 onClick={() => setIsRetencionModalOpen(true)}
-                style={{ 
-                  cursor: 'pointer', 
+                style={{
+                  cursor: 'pointer',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative',
                   overflow: 'hidden'
@@ -553,7 +673,7 @@ export default function AdminDashboard() {
                   if (profesores.length === 0) await fetchProfesores();
                   setIsProfesoresModalOpen(true);
                 }}
-                style={{ 
+                style={{
                   cursor: 'pointer',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative',
@@ -575,7 +695,7 @@ export default function AdminDashboard() {
 
               <div className="bento-card"
                 onClick={() => setIsRankingModalOpen(true)}
-                style={{ 
+                style={{
                   gridColumn: '1 / -1',
                   cursor: 'pointer',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -614,8 +734,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ 
-                    width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem', background: 'white', 
+                  <div style={{
+                    width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem', background: 'white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 0 1rem auto',
                     boxShadow: '0 12px 24px rgba(0,0,0,0.08)', fontSize: '2rem', fontWeight: 900, color: 'var(--color-secondary)'
                   }}>
@@ -633,54 +753,57 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: CLUBES ═══════════════════════════ */}
         {tab === 'clubes' && (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                Disciplinas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', verticalAlign: 'middle', marginLeft: '0.5rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px' }}>{metricas?.clubes.length ?? 0}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                Disciplinas <span style={{ color: 'var(--color-primary)', fontSize: '0.75rem', verticalAlign: 'middle', marginLeft: '0.4rem', background: 'var(--color-secondary-container)', padding: '0.15rem 0.5rem', borderRadius: '99px' }}>{metricas?.clubes.length ?? 0}</span>
               </h3>
-              <button onClick={() => setModalClub({})} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-                <PlusCircle size={15} /> Nuevo
+              <button onClick={() => setModalClub({})} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}>
+                <PlusCircle size={14} /> Nuevo
               </button>
             </div>
 
+
             {/* SEARCH BAR */}
-            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+            <div style={{ marginBottom: '0.8rem', position: 'relative' }}>
               <input
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="Buscar disciplina o profesor..."
-                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }}
+                style={{ ...inputStyle, paddingLeft: '2.5rem', paddingTop: '0.65rem', paddingBottom: '0.65rem', borderRadius: '1rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.85rem' }}
               />
-              <BarChart2 size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <BarChart2 size={16} color="var(--color-outline)" style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {(metricas?.clubes ?? [])
                 .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
                 .slice((currentPageClubes - 1) * ITEMS_PER_PAGE, currentPageClubes * ITEMS_PER_PAGE)
                 .map(club => (
                   <div key={club.id} className="bento-card" style={{
-                    padding: '1.75rem',
-                    borderLeft: '6px solid var(--color-primary)',
+                    padding: '1.1rem',
+                    borderLeft: '5px solid var(--color-primary)',
                     background: 'white',
-                    borderRadius: '1.2rem'
+                    borderRadius: '1rem'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>{club.nombre}</h4>
+
+                    <div className="card-header-adaptive">
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em', wordBreak: 'break-word' }}>{club.nombre}</h4>
                         {club.descripcion && (
                           <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.5, fontWeight: 500 }}>{club.descripcion}</p>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '0.6rem' }}>
+                      <div className="card-actions-adaptive">
                         <button onClick={() => setModalPagosClub(club)}
                           title="Ver Pagos del Club"
                           style={{ ...iconBtnStyle('var(--color-primary-fixed)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
                           <CreditCard size={16} />
                         </button>
                         <button onClick={() => {
-                            setModalSesiones(club);
-                            fetchSesiones(club.id);
-                          }}
+                          setModalSesiones(club);
+                          fetchSesiones(club.id);
+                        }}
                           title="Ver Asistencia"
                           style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
                           <History size={16} />
@@ -689,22 +812,24 @@ export default function AdminDashboard() {
                           style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
                           <Edit2 size={16} />
                         </button>
-                        <button onClick={() => handleDeleteClub(club.id)} disabled={deletingId === club.id}
+                        <button onClick={() => setConfirmDelete({ id: club.id, title: club.nombre, type: 'CLUB' })} disabled={deletingId === club.id}
                           style={{ ...iconBtnStyle('rgba(211, 47, 47, 0.08)', 'var(--color-error)'), width: '2.5rem', height: '2.5rem' }}>
                           <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-                      <Pill icon={<UserCheck size={14} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
-                      <Pill icon={<Users size={14} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
-                      {club.horario && Object.keys(club.horario).length > 0 && (
-                        <Pill icon={<Calendar size={14} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
+
+                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
+                      <Pill icon={<UserCheck size={12} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
+                      <Pill icon={<Users size={12} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
+                      {club.horario && (
+                        <Pill icon={<Calendar size={12} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
                       )}
-                      <Pill icon={<TrendingUp size={14} />} label={`${club.asistencia}% racha`}
+                      <Pill icon={<TrendingUp size={12} />} label={`${club.asistencia}%`}
                         color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
                         bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
                     </div>
+
                   </div>
                 ))}
             </div>
@@ -720,97 +845,107 @@ export default function AdminDashboard() {
         {/* ══════════ TAB: PERSONAS ════════════════════════ */}
         {tab === 'personas' && (
           <>
-            {/* Sub-tabs Profesores / Alumnos */}
-            <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.5rem', background: 'var(--color-surface-container-low)', padding: '0.4rem', borderRadius: '1.25rem' }}>
-              {(['profesores', 'alumnos'] as const).map(st => (
-                <button key={st} onClick={() => setPersonasTab(st)} style={{
-                  flex: 1, padding: '0.75rem', borderRadius: '0.9rem', border: 'none', cursor: 'pointer',
-                  fontWeight: 800, fontSize: '0.85rem',
-                  background: personasTab === st ? 'white' : 'transparent',
-                  color: personasTab === st ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
-                  boxShadow: personasTab === st ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            {/* Sub-tabs Admin / Profesores / Padres / Alumnos */}
+            <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', background: 'var(--color-surface-container-low)', padding: '0.2rem', borderRadius: '1.25rem', overflowX: 'auto' }}>
+              {[
+                { id: 'administradores', label: 'Admin', icon: <UserCheck size={16} /> },
+                { id: 'profesores', label: 'Profesores', icon: <GraduationCap size={16} /> },
+                { id: 'padres', label: 'Padres', icon: <Users size={16} /> },
+                { id: 'alumnos', label: 'Alumnos', icon: <BookOpen size={16} /> }
+              ].map(st => (
+                <button key={st.id} onClick={() => setPersonasTab(st.id as any)} style={{
+                  flex: 1, padding: '0.6rem 0.4rem', borderRadius: '1rem', border: 'none', cursor: 'pointer',
+                  fontWeight: 800, fontSize: '0.75rem', whiteSpace: 'nowrap',
+                  background: personasTab === st.id ? 'white' : 'transparent',
+                  color: personasTab === st.id ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
+                  boxShadow: personasTab === st.id ? '0 4px 8px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.3s ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
                 }}>
-                  {st === 'profesores' ? <GraduationCap size={18} /> : <Users size={18} />}
-                  {st === 'profesores' ? 'Profesores' : 'Alumnos'}
+                  {st.icon}
+                  {st.label}
                 </button>
               ))}
             </div>
 
             {/* SEARCH BAR PERSONAS */}
-            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+            <div style={{ marginBottom: '1rem', position: 'relative' }}>
               <input
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder={personasTab === 'profesores' ? "Buscar por nombre, email o DNI..." : "Buscar por nombre o club..."}
+                placeholder="Buscar por nombre, DNI o datos..."
                 style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }}
               />
               <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
-            {/* ─── Sub-tab: PROFESOR ─── */}
-            {personasTab === 'profesores' && (
+            {/* ─── Secciones de Usuarios (Admin, Profesores, Padres) ─── */}
+            {['administradores', 'profesores', 'padres'].includes(personasTab) && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                    Usuarios registrados ({usuarios.length})
-                  </h3>
-                  <button onClick={() => setModalUsuario({ rol: 'PROFESOR' })} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                    background: 'var(--color-primary)', color: 'white', border: 'none',
-                    borderRadius: '99px', padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
-                  }}>
-                    <PlusCircle size={15} /> Nuevo Usuario
-                  </button>
-                </div>
-
-                {(['ADMINISTRADOR', 'PROFESOR', 'PADRE'] as const).map(rol => {
+                {(() => {
+                  const rolMap: Record<string, 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'> = {
+                    administradores: 'ADMINISTRADOR',
+                    profesores: 'PROFESOR',
+                    padres: 'PADRE'
+                  };
+                  const rol = rolMap[personasTab];
                   const itemsFiltered = usuarios.filter(u => u.rol === rol)
                     .filter(u => (`${u.nombre ?? ''} ${u.apellido ?? ''} ${u.email ?? ''} ${u.dni ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()));
 
-                  if (itemsFiltered.length === 0) return null;
-
-                  const paginatedItems = itemsFiltered.slice((pagesUsuarios[rol] - 1) * ITEMS_PER_PAGE, pagesUsuarios[rol] * ITEMS_PER_PAGE);
-                  const rolLabel = { ADMINISTRADOR: 'Administradores', PROFESOR: 'Docentes', PADRE: 'Padres de Familia' }[rol];
+                  const rolLabel = { ADMINISTRADOR: 'Administradores', PROFESOR: 'Profesores', PADRE: 'Padres de Familia' }[rol];
                   const rolColor = { ADMINISTRADOR: 'var(--color-primary)', PROFESOR: 'var(--color-secondary)', PADRE: 'var(--color-outline)' }[rol];
+                  const rolIcon = { ADMINISTRADOR: <UserCheck size={15} />, PROFESOR: <GraduationCap size={15} />, PADRE: <Users size={15} /> }[rol];
 
                   return (
-                    <div key={rol} style={{ marginBottom: '2rem' }}>
-                      <p style={{ margin: '0 0 0.75rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: rolColor, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: 12, height: 2, background: rolColor, borderRadius: 2 }}></div>
-                        {rolLabel} ({itemsFiltered.length})
-                      </p>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                        {paginatedItems.map(u => (
-                          <div key={u.id} className="bento-card animate-enter" style={{
-                            padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem', background: 'white',
-                            borderLeft: `5px solid ${rolColor}`
-                          }}>
-                            <div style={{
-                              width: '3.5rem', height: '3.5rem', borderRadius: '1.25rem', flexShrink: 0,
-                              background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center',
-                              justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem', color: 'var(--color-primary)',
-                              boxShadow: 'var(--shadow-sm)'
+                    <div className="animate-enter">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                          {rolLabel} registrados ({itemsFiltered.length})
+                        </h3>
+                        <button onClick={() => setModalUsuario({ rol })} style={{
+                          display: 'flex', alignItems: 'center', gap: '0.4rem',
+                          background: rolColor, color: 'white', border: 'none',
+                          borderRadius: '99px', padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                        }}>
+                          <PlusCircle size={15} /> Nuevo {rol === 'PADRE' ? 'Padre' : rol === 'PROFESOR' ? 'Profesor' : 'Admin'}
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        {itemsFiltered.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--color-on-surface-variant)' }}>
+                            <Users size={48} strokeWidth={1} style={{ opacity: 0.2 }} />
+                            <p style={{ marginTop: '1rem', fontWeight: 600 }}>No hay {rolLabel.toLowerCase()} registrados</p>
+                          </div>
+                        ) : (
+                          itemsFiltered.slice((pagesUsuarios[rol] - 1) * ITEMS_PER_PAGE, pagesUsuarios[rol] * ITEMS_PER_PAGE).map(u => (
+                            <div key={u.id} className="bento-card" style={{
+                              padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.1rem', background: 'white',
+                              borderLeft: `4px solid ${rolColor}`
                             }}>
-                              {(u.nombre[0] + (u.apellido[0] ?? '')).toUpperCase()}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                                {u.nombre} {u.apellido}
-                              </p>
-                              <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                                {u.email ?? (u.dni ? `DNI: ${u.dni}` : 'Sin correo registrado')}
-                              </p>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.6rem' }}>
-                              <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)')}>
-                                <Edit2 size={16} />
+                              <div style={{
+                                width: '3.2rem', height: '3.2rem', borderRadius: '1rem', flexShrink: 0,
+                                background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)',
+                              }}>
+                                {(u.nombre[0] + (u.apellido[0] ?? '')).toUpperCase()}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                                  {u.nombre} {u.apellido}
+                                </p>
+                                <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                                  {u.email ?? (u.dni ? `DNI: ${u.dni}` : 'Sin correo registrado')}
+                                </p>
+                              </div>
+                              <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
+                                <Edit2 size={15} />
                               </button>
                             </div>
-                          </div>
-                        ))}
+                          ))
+                        )}
                       </div>
+
                       <Pagination
                         current={pagesUsuarios[rol]}
                         total={Math.ceil(itemsFiltered.length / ITEMS_PER_PAGE)}
@@ -818,16 +953,16 @@ export default function AdminDashboard() {
                       />
                     </div>
                   );
-                })}
+                })()}
               </>
             )}
 
             {/* ─── Sub-tab: ALUMNOS ─── */}
             {personasTab === 'alumnos' && (
-              <>
+              <div className="animate-enter">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                    Alumnos ({alumnos.length})
+                    Alumnos registrados ({alumnos.length})
                   </h3>
                   <button onClick={() => setModalAlumno({})} style={{
                     display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -856,9 +991,9 @@ export default function AdminDashboard() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                           <div style={{
                             width: '3rem', height: '3rem', borderRadius: '1.2rem', flexShrink: 0,
-                            background: 'var(--color-secondary-container)', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-secondary)',
-                            boxShadow: '0 6px 15px rgba(237, 198, 32, 0.2)'
+                            background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)',
+                            boxShadow: 'var(--shadow-sm)'
                           }}>
                             {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
                           </div>
@@ -902,72 +1037,74 @@ export default function AdminDashboard() {
                   total={Math.ceil(alumnos.filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase())).length / ITEMS_PER_PAGE)}
                   onChange={setCurrentPageAlumnos}
                 />
-              </>
+              </div>
             )}
           </>
         )}
 
         {/* ══════════ TAB: PAGOS ════════════════════════════ */}
         {tab === 'pagos' && (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                  Finanzas <span style={{ color: 'var(--color-secondary)', fontSize: '0.8rem', background: 'var(--color-secondary-container)', padding: '0.2rem 0.6rem', borderRadius: '99px', marginLeft: '0.5rem' }}>{pagos.length}</span>
-                </h3>
+          <div className="animate-enter">
+            <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                    Gestión <span style={{ color: 'var(--color-secondary)' }}>Financiera</span>
+                  </h2>
+                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                    Seguimiento de pagos y comprobantes ({pagos.length})
+                  </p>
+                </div>
 
-                {/* SELECTOR DE MODO */}
-                <div style={{ background: 'var(--color-surface-container-high)', padding: '0.25rem', borderRadius: '1rem', display: 'flex', gap: '0.25rem' }}>
-                  <button
-                    onClick={() => { setTipoFiltroPago('ALUMNO'); setPagoClubFiltro(''); }}
-                    style={{
-                      padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
-                      background: tipoFiltroPago === 'ALUMNO' ? 'white' : 'transparent',
-                      color: tipoFiltroPago === 'ALUMNO' ? 'var(--color-primary)' : 'var(--color-outline)',
-                      boxShadow: tipoFiltroPago === 'ALUMNO' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
-                    }}>
-                    👤 POR ALUMNO
-                  </button>
-                  <button
-                    onClick={() => { setTipoFiltroPago('CLUB'); setPagoAlumnoFiltro(''); setSearchTerm(''); }}
-                    style={{
-                      padding: '0.4rem 1rem', borderRadius: '0.8rem', border: 'none', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
-                      background: tipoFiltroPago === 'CLUB' ? 'white' : 'transparent',
-                      color: tipoFiltroPago === 'CLUB' ? 'var(--color-primary)' : 'var(--color-outline)',
-                      boxShadow: tipoFiltroPago === 'CLUB' ? 'var(--shadow-sm)' : 'none', transition: 'all 0.2s'
-                    }}>
-                    🏆 POR CLUB
-                  </button>
+                <div style={{ background: 'var(--color-surface-container-high)', padding: '0.3rem', borderRadius: '1.1rem', display: 'flex', gap: '0.2rem' }}>
+                  {[
+                    { id: 'ALUMNO', label: 'Por Alumno', icon: <Users size={14} /> },
+                    { id: 'CLUB', label: 'Por Club', icon: <Award size={14} /> }
+                  ].map(mode => (
+                    <button
+                      key={mode.id}
+                      onClick={() => { setTipoFiltroPago(mode.id as any); if (mode.id === 'ALUMNO') setPagoClubFiltro(''); else { setPagoAlumnoFiltro(''); setSearchTerm(''); } }}
+                      style={{
+                        padding: '0.5rem 1rem', borderRadius: '0.9rem', border: 'none', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                        background: tipoFiltroPago === mode.id ? 'white' : 'transparent',
+                        color: tipoFiltroPago === mode.id ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
+                        boxShadow: tipoFiltroPago === mode.id ? 'var(--shadow-sm)' : 'none',
+                        transition: 'all 0.3s ease',
+                        display: 'flex', alignItems: 'center', gap: '0.4rem'
+                      }}>
+                      {mode.icon} {mode.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 2, minWidth: '250px' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: 2, minWidth: '280px' }}>
                   <input
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    placeholder={tipoFiltroPago === 'ALUMNO' ? "Buscar por nombre de alumno..." : "Buscar por nombre de club..."}
-                    style={{ ...inputStyle, paddingLeft: '2.5rem', borderRadius: '1.2rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.9rem', height: '3rem' }}
+                    placeholder={tipoFiltroPago === 'ALUMNO' ? "Buscar por nombre del alumno..." : "Buscar por nombre del club..."}
+                    style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', height: '3.2rem' }}
                   />
-                  <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
 
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: '160px' }}>
                   <select value={pagoFiltro} onChange={e => setPagoFiltro(e.target.value)} style={{
-                    ...inputStyle, width: 'auto', padding: '0.5rem 2.8rem 0.5rem 1.2rem', fontSize: '0.85rem', fontWeight: 700,
-                    borderRadius: '1.2rem', background: 'white', border: '1.5px solid var(--color-surface-container-high)', appearance: 'none', height: '3rem'
+                    ...inputStyle, padding: '0.5rem 2.8rem 0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 750,
+                    borderRadius: '1.25rem', background: 'white', appearance: 'none', height: '3.2rem'
                   }}>
-                    <option value="">Estado: Todos</option>
-                    <option value="PENDIENTE">⏳ Realizados</option>
+                    <option value="">Todos los Estados</option>
+                    <option value="PENDIENTE">⏳ Pendientes</option>
                     <option value="PAGADO">✅ Pagados</option>
                     <option value="RECHAZADO">❌ Rechazados</option>
                   </select>
-                  <ChevronDown size={16} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1.1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 </div>
               </div>
             </div>
 
-            {/* 💡 ESTUDIANTE SELECCIONADO: DETALLE ESPECIAL (Si el buscador tiene un nombre exacto o muy cercano) */}
+            {/* 💡 ESTUDIANTE SELECCIONADO: DETALLE ESPECIAL */}
             {tipoFiltroPago === 'ALUMNO' && searchTerm.length >= 3 && alumnos.some(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())) && (
               (() => {
                 const matchedAlumno = alumnos.find(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -976,27 +1113,27 @@ export default function AdminDashboard() {
                 if (filteredPagos.length === 0) return null;
 
                 return (
-                  <div className="bento-card animate-enter" style={{ padding: '1.5rem', background: 'var(--grad-primary)', color: 'white', marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', right: '-5%', top: '-20%', opacity: 0.1 }}>
+                  <div className="bento-card animate-enter" style={{ padding: '1.25rem', background: 'var(--grad-primary)', color: 'white', marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', right: '-2rem', top: '-2rem', opacity: 0.1 }}>
                       <Users size={120} color="white" />
                     </div>
                     <div style={{ position: 'relative', zIndex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.15em' }}>Estatus Financiero del Alumno</span>
-                          <h3 style={{ margin: '0.25rem 0 0', fontSize: '1.6rem', fontWeight: 900, letterSpacing: '-0.03em' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.1em' }}>Estatus del Alumno</span>
+                          <h3 style={{ margin: '0.15rem 0 0', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
                             {matchedAlumno.nombre} {matchedAlumno.apellido}
                           </h3>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '1.1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
-                          <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pagados</p>
-                          <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PAGADO').length}</p>
+                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
+                          <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pagados</p>
+                          <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PAGADO').length}</p>
                         </div>
-                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '1.1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
-                          <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Realizados</p>
-                          <p style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-secondary)' }}>{filteredPagos.filter(p => p.estado === 'PENDIENTE').length}</p>
+                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
+                          <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pendientes</p>
+                          <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PENDIENTE').length}</p>
                         </div>
                       </div>
                     </div>
@@ -1005,111 +1142,419 @@ export default function AdminDashboard() {
               })()
             )}
 
-            {pagos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-on-surface-variant)' }}>
-                <CreditCard size={40} strokeWidth={1.5} />
-                <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>No hay comprobantes con este filtro</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {pagos
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {(() => {
+                const results = pagos
                   .filter(p => {
                     const search = searchTerm.toLowerCase();
+                    if (search.length < 3) return true;
                     if (tipoFiltroPago === 'ALUMNO') {
                       return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
                     } else {
                       return p.club.nombre.toLowerCase().includes(search);
                     }
                   })
-                  .slice((currentPagePagos - 1) * ITEMS_PER_PAGE, currentPagePagos * ITEMS_PER_PAGE)
-                  .map(pago => {
-                    const colors = estadoColor[pago.estado];
-                    return (
-                      <div key={pago.id} className="bento-card" style={{
-                        padding: '1.25rem', background: 'white'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div style={{ width: '3rem', height: '3rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <CreditCard size={20} color="var(--color-primary)" />
+                  .filter(p => pagoFiltro === '' || p.estado === pagoFiltro);
+
+                const pageResults = results.slice((currentPagePagos - 1) * 4, currentPagePagos * 4);
+
+                return (
+                  <>
+                    {pageResults.map(pago => {
+                      const colors = estadoColor[pago.estado];
+                      const isExpanded = expandedPagoId === pago.id;
+                      return (
+                        <div
+                          key={pago.id}
+                          className="bento-card"
+                          style={{
+                            padding: '1rem 1.25rem',
+                            background: 'white',
+                            cursor: 'pointer',
+                            border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-high)',
+                            boxShadow: isExpanded ? 'var(--shadow-lg)' : 'var(--shadow-sm)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }}
+                          onClick={() => setExpandedPagoId(isExpanded ? null : pago.id)}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                              <div style={{
+                                width: '2.8rem', height: '2.8rem', borderRadius: '0.85rem',
+                                background: isExpanded ? 'var(--color-primary-container)' : 'var(--color-surface-dim)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.3s ease', flexShrink: 0
+                              }}>
+                                <CreditCard size={18} color={isExpanded ? 'white' : 'var(--color-primary)'} />
+                              </div>
+                              <div>
+                                <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
+                                  {pago.alumno.nombre} {pago.alumno.apellido}
+                                </p>
+                                <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                                  {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
-                                {pago.alumno.nombre} {pago.alumno.apellido}
-                              </p>
-                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                                {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
-                              </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <span style={{
+                                background: colors.bg, color: colors.fg,
+                                padding: '0.3rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
+                                textTransform: 'uppercase', letterSpacing: '0.05em'
+                              }}>
+                                {pago.estado}
+                              </span>
+                              <ChevronDown size={14} color="var(--color-outline)" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
                             </div>
                           </div>
-                          <span style={{
-                            background: colors.bg, color: colors.fg,
-                            padding: '0.4rem 0.8rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
-                            textTransform: 'uppercase', letterSpacing: '0.05em'
-                          }}>
-                            {pago.estado}
-                          </span>
-                        </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
-                          <div>
+                          {isExpanded && (
+                            <div className="animate-enter" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1.5px dashed var(--color-surface-container-high)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }} onClick={e => e.stopPropagation()}>
+                              <div style={{
+                                background: 'var(--color-surface-container-low)', borderRadius: '1rem', overflow: 'hidden', border: '1px solid var(--color-surface-container-high)',
+                                position: 'relative', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}>
+                                {pago.urlComprobante ? (
+                                  <img src={pago.urlComprobante.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/')} alt="Comprobante" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '350px', cursor: 'zoom-in' }} onClick={() => setViewerImage(pago.urlComprobante)} />
+                                ) : (
+                                  <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-outline)' }}>
+                                    <FileText size={40} opacity={0.2} style={{ marginBottom: '0.5rem' }} />
+                                    <p style={{ fontSize: '0.75rem', fontWeight: 600 }}>Sin comprobante</p>
+                                  </div>
+                                )}
+                              </div>
+                              {pago.observacion && (
+                                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem', borderRadius: '0.6rem', fontWeight: 500 }}>
+                                  “{pago.observacion}”
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.85rem' }}>
                             {pago.monto && (
-                              <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                              <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
                                 S/ {pago.monto.toFixed(2)}
                               </p>
                             )}
-                            {pago.urlComprobante && (
-                              <a href={pago.urlComprobante} target="_blank" rel="noreferrer"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.4rem', fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-secondary)', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                <ExternalLink size={12} /> Comprobante
-                              </a>
+
+                            {pago.estado === 'PENDIENTE' && (
+                              <div style={{ display: 'flex', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                                <button
+                                  disabled={validandoPago === pago.id}
+                                  onClick={() => setPaymentActionModal({ show: true, type: 'VALIDAR', pago, observacion: '' })}
+                                  style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                                  <Check size={16} strokeWidth={3} />
+                                </button>
+                                <button
+                                  disabled={validandoPago === pago.id}
+                                  onClick={() => setPaymentActionModal({ show: true, type: 'RECHAZAR', pago, observacion: '' })}
+                                  style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                                  <X size={16} strokeWidth={3} />
+                                </button>
+                              </div>
                             )}
                           </div>
+                        </div>
+                      );
+                    })}
 
-                          {pago.estado === 'PENDIENTE' && (
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button
-                                disabled={validandoPago === pago.id}
-                                onClick={() => handleValidarPago(pago.id, 'PAGADO')}
-                                style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                                <Check size={18} strokeWidth={3} />
-                              </button>
-                              <button
-                                disabled={validandoPago === pago.id}
-                                onClick={() => {
-                                  const obs = prompt('Motivo del rechazo (opcional):') ?? '';
-                                  handleValidarPago(pago.id, 'RECHAZADO', obs);
-                                }}
-                                style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                                <X size={18} strokeWidth={3} />
-                              </button>
-                            </div>
-                          )}
+                    <Pagination
+                      current={currentPagePagos}
+                      total={Math.ceil(results.length / 4)}
+                      onChange={setCurrentPagePagos}
+                    />
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════ TAB: HORARIOS ═════════════════════════ */}
+        {tab === 'horarios' && (
+          <div className="animate-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Header */}
+            <div style={{ marginBottom: isMobile ? '0.5rem' : '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: isMobile ? '1.4rem' : '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                Cronograma <span style={{ color: 'var(--color-secondary)' }}>Extracurricular</span>
+              </h3>
+              {!isMobile && <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión centralizada de horarios y espacios</p>}
+            </div>
+
+            {/* Filtros */}
+            <div style={{ 
+              background: isMobile ? 'var(--color-surface-container-low)' : 'transparent',
+              padding: isMobile ? '0.75rem' : '0',
+              borderRadius: '1.25rem',
+              display: 'flex', 
+              flexDirection: 'row',
+              gap: '0.6rem',
+              width: '100%'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Disciplina</label>
+                <select
+                  value={filtroClubHorario}
+                  onChange={e => setFiltroClubHorario(e.target.value)}
+                  style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
+                >
+                  <option value="">Todas</option>
+                  {(metricas?.clubes ?? []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Profesor</label>
+                <select
+                  value={filtroProfHorario}
+                  onChange={e => setFiltroProfHorario(e.target.value)}
+                  style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
+                >
+                  <option value="">Cualquier</option>
+                  {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Mobile Day Selector */}
+            <div className="mobile-day-selector" style={{
+              display: 'none',
+              gap: '0.5rem',
+              overflowX: 'auto',
+              paddingBottom: '0.5rem',
+              scrollbarWidth: 'none'
+            }}>
+              {DIAS_CALENDARIO.map(dia => (
+                <button
+                  key={dia}
+                  onClick={() => setActiveDayMobile(dia)}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    borderRadius: '1rem',
+                    border: 'none',
+                    background: activeDayMobile === dia ? 'var(--grad-primary)' : 'var(--color-surface-container-low)',
+                    color: activeDayMobile === dia ? 'white' : 'var(--color-outline)',
+                    fontWeight: 800,
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  {dia}
+                </button>
+              ))}
+            </div>
+
+            {/* Calendar Pro Container */}
+            <div className="calendar-pro-wrapper" style={{
+              background: 'rgb(241, 243, 245)', // Lighter background for the container
+              borderRadius: '1.5rem',
+              border: '1px solid var(--color-surface-container-high)',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)'
+            }}>
+              <div style={{ display: 'flex', position: 'relative' }}>
+
+                {/* Time Axis (Left) */}
+                <div style={{
+                  width: '64px',
+                  flexShrink: 0,
+                  borderRight: '1px solid rgba(0,0,0,0.08)',
+                  background: 'rgba(255,255,255,0.8)',
+                  paddingTop: '40px'
+                }}>
+                  {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => HORAS_START + i).map(h => (
+                    <div key={h} style={{
+                      height: `${ROW_HEIGHT}px`,
+                      position: 'relative',
+                      display: 'flex',
+                      justifyContent: 'center'
+                    }}>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        color: 'var(--color-primary)',
+                        position: 'absolute',
+                        top: '-8px',
+                        background: 'white',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        zIndex: 10
+                      }}>
+                        {h}:00
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Grid Area */}
+                <div className="calendar-grid-container" style={{
+                  flex: 1,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  position: 'relative',
+                  background: 'white' // White grid for cards to stand out on
+                }}>
+                  {DIAS_CALENDARIO.map((dia, dIdx) => {
+                    const clubsDelDiaRaw = (metricas?.clubes ?? [])
+                      .map(c => {
+                        let parsed = c.horario;
+                        if (typeof c.horario === 'string') {
+                          try { parsed = JSON.parse(c.horario); } catch { parsed = null; }
+                        }
+
+                        // Normalizer: allow finding the day even if it has encoding issues
+                        let config = null;
+                        if (parsed) {
+                          const keys = Object.keys(parsed);
+                          const matchingKey = keys.find(k => normalizeDay(k) === dia);
+                          if (matchingKey) config = parsed[matchingKey];
+                        }
+
+                        return { ...c, horarioParsed: parsed, config };
+                      })
+                      .filter(c => {
+                        const matchesFiltro = (!filtroClubHorario || c.id === Number(filtroClubHorario)) &&
+                          (!filtroProfHorario || c.profesorId === Number(filtroProfHorario));
+                        return matchesFiltro && c.config;
+                      });
+
+                    // Overlap Detection
+                    const processedClubs = clubsDelDiaRaw.map((club, i) => {
+                      const concurrent = clubsDelDiaRaw.filter((other, j) => {
+                        if (i === j) return false;
+                        const s1 = timeToMinutes(club.config.start);
+                        const e1 = timeToMinutes(club.config.end);
+                        const s2 = timeToMinutes(other.config.start);
+                        const e2 = timeToMinutes(other.config.end);
+                        // Check if time ranges overlap
+                        return s1 < e2 && s2 < e1;
+                      });
+
+                      // For a simple split, we look at position in the concurrent list
+                      // This is a basic "smart grid" approach
+                      const colIndex = concurrent.filter(other => other.id < club.id).length;
+                      const maxCols = concurrent.length + 1;
+
+                      return { ...club, colIndex, maxCols };
+                    });
+
+                    return (
+                      <div key={dia} className={`calendar-day-col ${activeDayMobile === dia ? 'is-active-mobile' : ''}`} style={{
+                        borderRight: dIdx < 6 ? '1px solid var(--color-surface-container-lowest)' : 'none',
+                        position: 'relative',
+                        minHeight: `${(HORAS_END - HORAS_START + 1) * ROW_HEIGHT}px`
+                      }}>
+                        {/* Day Header */}
+                        <div style={{
+                          height: '40px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderBottom: '1px solid var(--color-surface-container-high)',
+                          background: 'rgba(255,255,255,0.3)',
+                          position: 'sticky',
+                          top: 0,
+                          zIndex: 5
+                        }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dia}</span>
                         </div>
 
-                        {pago.observacion && (
-                          <p style={{ margin: '0.75rem 0 0', fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem 0.85rem', borderRadius: '0.85rem', fontWeight: 500 }}>
-                            “{pago.observacion}”
-                          </p>
-                        )}
+                        {/* Hour Lines Background */}
+                        <div style={{ position: 'absolute', inset: '40px 0 0 0', pointerEvents: 'none' }}>
+                          {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => (
+                            <div key={i} style={{ height: `${ROW_HEIGHT}px`, borderBottom: '1px solid rgba(0,0,0,0.06)' }}></div>
+                          ))}
+                        </div>
+
+                        {/* Session Cards */}
+                        <div style={{ position: 'absolute', inset: '40px 4px 0 4px' }}>
+                          {processedClubs.map(club => {
+                            const width = 100 / club.maxCols;
+                            const left = club.colIndex * width;
+                            const theme = getClubTheme(club.nombre);
+
+                            return (
+                              <div key={`${club.id}-${dia}`}
+                                className="schedule-card-pro"
+                                style={{
+                                  position: 'absolute',
+                                  left: `${left}%`,
+                                  width: `calc(${width}% - 4px)`,
+                                  top: `${getPosForTime(club.config.start)}px`,
+                                  height: `${getHeightForDuration(club.config.start, club.config.end)}px`,
+                                  padding: '0.5rem',
+                                  background: 'white',
+                                  borderRadius: '0.8rem',
+                                  zIndex: 2,
+                                  borderLeft: `4px solid ${theme.main}`,
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.15rem',
+                                  transition: 'all 0.3s',
+                                  boxSizing: 'border-box',
+                                  margin: '0 2px'
+                                }}
+                              >
+                                <div style={{
+                                  position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: theme.grad, opacity: 0.8
+                                }}></div>
+                                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {club.nombre}
+                                </p>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <Clock size={10} color={theme.main} />
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: theme.main }}>{club.config.start}</span>
+                                </div>
+
+                                <div className="card-hover-extra" style={{
+                                  position: 'absolute', inset: 0, background: theme.grad, color: 'white',
+                                  padding: '0.6rem', opacity: 0, visibility: 'hidden', transition: 'all 0.3s', zIndex: 10,
+                                  display: 'flex', flexDirection: 'column', justifyContent: 'center'
+                                }}>
+                                  <p style={{ margin: '0 0 0.2rem', fontSize: '0.8rem', fontWeight: 900 }}>{club.nombre}</p>
+                                  <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, opacity: 0.9 }}>Prof. {club.profesor}</p>
+                                  <div style={{ marginTop: '0.4rem', background: 'rgba(255,255,255,0.25)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 900, alignSelf: 'flex-start' }}>
+                                    {club.config.start} - {club.config.end}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}
-                <Pagination
-                  current={currentPagePagos}
-                  total={Math.ceil(pagos.filter(p => {
-                    const search = searchTerm.toLowerCase();
-                    if (tipoFiltroPago === 'ALUMNO') {
-                      return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
-                    } else {
-                      return p.club.nombre.toLowerCase().includes(search);
-                    }
-                  }).length / ITEMS_PER_PAGE)}
-                  onChange={setCurrentPagePagos}
-                />
+                </div>
+
               </div>
-            )}
-          </>
+            </div>
+
+            <style>{`
+              @media (max-width: 900px) {
+                .mobile-day-selector { display: flex !important; }
+                .calendar-grid-container { grid-template-columns: 1fr !important; }
+                .calendar-day-col { display: none; }
+                .calendar-day-col.is-active-mobile { display: block !important; }
+                .calendar-day-col { border-right: none !important; }
+              }
+              .schedule-card-pro:hover {
+                transform: scale(1.02);
+                z-index: 10 !important;
+                box-shadow: var(--shadow-lg);
+              }
+              .schedule-card-pro:hover .card-hover-extra {
+                opacity: 1 !important;
+                visibility: visible !important;
+              }
+              .mobile-day-selector::-webkit-scrollbar { display: none; }
+            `}</style>
+          </div>
         )}
 
         {/* ══════════ TAB: REPORTE ══════════════════════════ */}
@@ -1173,8 +1618,9 @@ export default function AdminDashboard() {
         )}
 
       </div>
+    </div>
 
-      {/* ── MODAL CLUB ───────────────────────────────────── */}
+    {/* ── SECCIÓN DE MODALES (Fuera de animación para fijar posición) ── */}
       {modalClub !== false && (
         <ClubModal
           club={modalClub as Partial<ClubMetrica>}
@@ -1196,27 +1642,29 @@ export default function AdminDashboard() {
 
       {/* ── MODAL ALUMNOS INSCRITOS ──────────────────────── */}
       {isAlumnosInscritosModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
+        }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
           <div style={{
-            background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
-            width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)',
-            position: 'relative'
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px', 
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
                   Alumnos <span style={{ color: 'var(--color-secondary)' }}>Inscritos</span>
                 </h3>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                  Listado global y asignación de disciplinas.
-                </p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Listado Global y Asignación</p>
               </div>
-              <button onClick={() => setIsAlumnosInscritosModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1.25rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
-                <X size={24} color="var(--color-primary)" />
+              <button 
+                onClick={() => setIsAlumnosInscritosModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
               </button>
             </div>
+            <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
 
             <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
               <input
@@ -1228,11 +1676,12 @@ export default function AdminDashboard() {
               <Search size={22} color="var(--color-outline)" style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {(() => {
                 const filtered = alumnos.filter(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTermAlumnosModal.toLowerCase()));
-                const paginated = filtered.slice((currentPageAlumnosModal - 1) * 5, currentPageAlumnosModal * 5);
-                const totalPages = Math.ceil(filtered.length / 5);
+                const paginated = filtered.slice((currentPageAlumnosModal - 1) * 4, currentPageAlumnosModal * 4);
+                const totalPages = Math.ceil(filtered.length / 4);
+
 
                 if (filtered.length === 0) return (
                   <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-outline)' }}>
@@ -1245,31 +1694,33 @@ export default function AdminDashboard() {
                   <>
                     {paginated.map(alumno => (
                       <div key={alumno.id} style={{
-                        padding: '1.25rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
+                        padding: '1.1rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
                         border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         transition: 'transform 0.2s ease'
                       }}>
-                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                          <div style={{ 
-                            width: '3.5rem', height: '3.5rem', borderRadius: '1.2rem', 
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                          <div style={{
+                            width: '3.2rem', height: '3.2rem', borderRadius: '1rem',
                             background: 'var(--grad-secondary)', color: 'var(--color-on-secondary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem'
                           }}>
                             {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
                           </div>
+
                           <div>
-                            <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                               {alumno.nombre} {alumno.apellido}
                             </p>
-                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                            <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
                               {alumno.grado} • {alumno.padre ? `Padre: ${alumno.padre.nombre}` : 'Sin tutor'}
                             </p>
                           </div>
+
                         </div>
                         <div style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
                           {alumno.inscripciones.length > 0 ? alumno.inscripciones.map((ins, idx) => (
-                            <span key={idx} style={{ 
-                              fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-primary-container)', 
+                            <span key={idx} style={{
+                              fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-primary-container)',
                               color: 'white', padding: '0.25rem 0.6rem', borderRadius: '99px', textTransform: 'uppercase'
                             }}>
                               {ins.club.nombre}
@@ -1282,7 +1733,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ))}
-                    <Pagination 
+                    <Pagination
                       current={currentPageAlumnosModal}
                       total={totalPages}
                       onChange={setCurrentPageAlumnosModal}
@@ -1293,77 +1744,71 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* MODAL: PROFESORES */}
       {isProfesoresModalOpen && (
-        <div className="modal-overlay" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem', animation: 'fadeIn 0.3s'
-        }}>
-          <div className="modal-content animate-pop" style={{
-            background: 'var(--color-surface)', width: '100%', maxWidth: '550px',
-            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
-          }}>
-            <button onClick={() => setIsProfesoresModalOpen(false)} style={{
-              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-container-high)',
-              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-            }}>
-              <X size={20} color="var(--color-primary)" />
-            </button>
-
-            <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
-              <div style={{ 
-                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-primary-container)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
-                boxShadow: '0 8px 16px rgba(var(--color-primary-rgb), 0.2)'
-              }}>
-                <Award size={24} color="var(--color-primary)" />
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
+        }} onClick={() => setIsProfesoresModalOpen(false)}>
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '550px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                  Staff <span style={{ color: 'var(--color-secondary)' }}>Docente</span>
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión de Docentes</p>
               </div>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Staff Docente</h2>
-              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Gestión de Expertos</p>
+              <button 
+                onClick={() => setIsProfesoresModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
+              </button>
             </div>
+            <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {profesores.length > 0 ? (
                 <>
                   {profesores
-                    .slice((currentPageProfesores - 1) * 5, currentPageProfesores * 5)
+                    .slice((currentPageProfesores - 1) * 4, currentPageProfesores * 4)
                     .map((prof, i) => (
-                      <div key={prof.id} style={{ 
-                        padding: '1.5rem', borderRadius: '1.75rem', background: 'white', 
+                      <div key={prof.id} style={{
+                        padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
                         border: '1px solid var(--color-surface-container-low)',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.25rem' }}>
-                          <div style={{ 
-                            width: '3.2rem', height: '3.2rem', borderRadius: '1.1rem', background: 'var(--color-surface-dim)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem', color: 'var(--color-primary)'
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                          <div style={{
+                            width: '3rem', height: '3rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)'
                           }}>
                             {prof.nombre.charAt(0)}{prof.apellido.charAt(0)}
                           </div>
                           <div>
-                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>{prof.email || 'Sin correo registrado'}</p>
+                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{prof.email || 'Sin correo registrado'}</p>
                           </div>
                         </div>
-                        
-                        <div style={{ 
-                          background: 'var(--color-surface-container-lowest)', padding: '1rem 1.25rem', 
-                          borderRadius: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+
+                        <div style={{
+                          background: 'var(--color-surface-container-lowest)', padding: '0.8rem 1rem',
+                          borderRadius: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
                           border: '1px solid var(--color-surface-container-low)'
                         }}>
                           {prof.clubes && prof.clubes.length > 0 ? prof.clubes.map((c: any) => (
                             <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-secondary)' }}></div>
-                                <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
+                                <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
                               </div>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: '1px solid var(--color-surface-container-high)' }}>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-surface-container-high)' }}>
                                 {formatHorarioShort(c.horario)}
                               </span>
                             </div>
@@ -1373,11 +1818,12 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ))}
-                  <Pagination 
-                    current={currentPageProfesores} 
-                    total={Math.ceil(profesores.length / 5)} 
-                    onChange={setCurrentPageProfesores} 
+                  <Pagination
+                    current={currentPageProfesores}
+                    total={Math.ceil(profesores.length / 4)}
+                    onChange={setCurrentPageProfesores}
                   />
+
                 </>
               ) : (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
@@ -1388,85 +1834,80 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* MODAL: RANKING DISCIPLINAS */}
       {isRankingModalOpen && (
-        <div className="modal-overlay" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem', animation: 'fadeIn 0.3s'
-        }}>
-          <div className="modal-content animate-pop" style={{
-            background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
-            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
-          }}>
-            <button onClick={() => setIsRankingModalOpen(false)} style={{
-              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-dim)',
-              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-            }}>
-              <X size={20} color="var(--color-primary)" />
-            </button>
-
-            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-              <div style={{ 
-                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-secondary-container)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
-                boxShadow: '0 8px 16px rgba(var(--color-secondary-rgb), 0.2)'
-              }}>
-                <Award size={24} color="var(--color-secondary)" />
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem'
+        }} onClick={() => setIsRankingModalOpen(false)}>
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '550px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Ranking de Disciplinas</h3>
+                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Por Nivel de Asistencia</p>
               </div>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Ranking de Disciplinas</h2>
-              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>Basado en niveles de asistencia</p>
+              <button 
+                onClick={() => setIsRankingModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {clubesRanking
-                  .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
-                  .map((club, i) => {
-                    const rank = (currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1;
-                    return (
-                      <div key={club.id} style={{
-                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white', 
-                        display: 'flex', alignItems: 'center', gap: '1rem',
-                        border: '1px solid var(--color-surface-container-low)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {clubesRanking
+                .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
+                .map((club, i) => {
+                  const rank = (currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1;
+                  return (
+                    <div key={club.id} style={{
+                      padding: '1.25rem', borderRadius: '1.1rem', background: 'white',
+                      display: 'flex', alignItems: 'center', gap: '1rem',
+                      border: '1px solid var(--color-surface-container-low)',
+                      transition: 'all 0.2s ease'
+                    }} className="ranking-item">
+                      <div style={{
+                        width: '2.8rem', height: '2.8rem', borderRadius: '0.9rem',
+                        background: rank <= 3 ? 'var(--grad-gold)' : 'var(--color-surface-dim)',
+                        color: rank <= 3 ? 'white' : 'var(--color-primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
+                        fontSize: '1.1rem'
                       }}>
-                        <div style={{
-                          width: '2.8rem', height: '2.8rem', borderRadius: '1rem',
-                          background: rank <= 3 ? 'var(--grad-gold)' : 'var(--color-surface-container-high)',
-                          color: rank <= 3 ? 'var(--color-on-secondary)' : 'var(--color-primary)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
-                          fontSize: '1.2rem', boxShadow: rank <= 3 ? '0 4px 12px rgba(212, 175, 55, 0.3)' : 'none'
-                        }}>
-                          {rank}
-                        </div>
-                        <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => {
-                          setIsRankingModalOpen(false);
-                          navigate(`/clubes/${club.id}/historial`);
-                        }}>
-                          <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                            {club.nombre}
-                          </p>
-                          <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.15rem', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>{club.profesor}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 900 }}>• {club.inscritos} alumnos</span>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ display: 'block', fontWeight: 900, fontSize: '1.4rem', color: club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-warning)', lineHeight: 1 }}>
-                            {club.asistencia}%
-                          </span>
-                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia</span>
+                        {rank}
+                      </div>
+                      <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => {
+                        setIsRankingModalOpen(false);
+                        navigate(`/clubes/${club.id}/historial`);
+                      }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                          {club.nombre}
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.1rem', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 800, opacity: 0.6 }}>• {club.inscritos} alumnos</span>
                         </div>
                       </div>
-                    );
-                  })}
-                
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ display: 'block', fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-primary)', lineHeight: 1 }}>
+                          {club.asistencia}%
+                        </span>
+                        <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia</span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              <div style={{ marginTop: '0.5rem' }}>
                 <Pagination current={currentPageRanking} total={Math.ceil(clubesRanking.length / ITEMS_PER_PAGE)} onChange={setCurrentPageRanking} />
+              </div>
             </div>
           </div>
         </div>
@@ -1474,35 +1915,52 @@ export default function AdminDashboard() {
 
       {/* MODAL: HISTORIAL DE SESIONES */}
       {modalSesiones && (
-        <div className="modal-overlay" style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-          padding: '1.5rem', animation: 'fadeIn 0.3s'
-        }}>
-          <div className="modal-content animate-pop" style={{
-            background: 'var(--color-surface)', width: '100%', maxWidth: '600px',
-            borderRadius: '2.5rem', padding: '2.5rem', position: 'relative',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflowY: 'auto', maxHeight: '90vh'
-          }}>
-            <button onClick={() => setModalSesiones(null)} style={{
-              position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'var(--color-surface-dim)',
-              border: 'none', width: '3rem', height: '3rem', borderRadius: '50%', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-            }}>
-              <X size={20} color="var(--color-primary)" />
-            </button>
-
-            <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-              <div style={{ 
-                width: '4rem', height: '4rem', borderRadius: '1.25rem', background: 'var(--color-secondary-container)', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
-                boxShadow: '0 8px 16px rgba(var(--color-secondary-rgb), 0.2)'
-              }}>
-                <History size={24} color="var(--color-secondary)" />
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem'
+        }} onClick={() => setModalSesiones(null)}>
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '600px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                   Historial <span style={{ color: 'var(--color-secondary)' }}>de Clases</span>
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>{modalSesiones.nombre}</p>
               </div>
-              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--color-primary)', margin: '0 0 0.5rem', letterSpacing: '-0.04em' }}>Historial</h2>
-              <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase' }}>{modalSesiones.nombre}</p>
+              <button 
+                onClick={() => setModalSesiones(null)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ padding: '1.5rem', overflowY: 'auto', maxHeight: '75vh' }}>
+                <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                  Sesiones y asistencias del club: {modalSesiones.nombre}
+                </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'var(--color-primary-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'white', textTransform: 'uppercase', opacity: 0.8 }}>Total Sesiones</p>
+                  <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>{sesionesClub.length}</p>
+                </div>
+                <History size={24} color="white" style={{ opacity: 0.4 }} />
+              </div>
+              <div style={{ background: 'var(--color-surface-container-high)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Última Clase</p>
+                  <p style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                    {sesionesClub.length > 0 ? new Date(sesionesClub[0].fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : '---'}
+                  </p>
+                </div>
+                <Calendar size={20} color="var(--color-primary)" style={{ opacity: 0.3 }} />
+              </div>
             </div>
 
             {loadingSesiones ? (
@@ -1511,28 +1969,27 @@ export default function AdminDashboard() {
               </div>
             ) : sesionesClub.length === 0 ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-outline)' }}>
-                 No hay sesiones registradas aún.
+                No hay sesiones registradas aún.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {sesionesClub
-                  .slice((currentPageSesiones - 1) * ITEMS_PER_PAGE, currentPageSesiones * ITEMS_PER_PAGE)
+                  .slice((currentPageSesiones - 1) * 4, currentPageSesiones * 4)
                   .map((sesion) => {
                     const pres = sesion.asistencias.filter((a: any) => a.estado === 'PRESENTE').length;
                     const aus = sesion.asistencias.filter((a: any) => a.estado === 'AUSENTE').length;
-                    const jus = sesion.asistencias.filter((a: any) => a.estado === 'JUSTIFICADO').length;
-                    const total = sesion.asistencias.length;
                     const isExpanded = expandedSesionId === sesion.id;
 
                     return (
                       <div key={sesion.id} style={{
-                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white', 
-                        border: '1px solid var(--color-surface-container-low)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
+                        border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
+                        boxShadow: isExpanded ? 'var(--shadow-md)' : '0 2px 4px rgba(0,0,0,0.02)',
+                        transition: 'all 0.3s ease'
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
                               {new Date(sesion.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
                             </p>
                             <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>
@@ -1540,16 +1997,15 @@ export default function AdminDashboard() {
                             </p>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
-                              <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{pres}</span>
-                              <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{aus}</span>
-                              <span title="Justificados" style={{ background: 'var(--color-warning-container)', color: 'var(--color-warning)', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 900 }}>{jus}</span>
+                            <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
+                              <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{pres}</span>
+                              <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{aus}</span>
                             </div>
-                            <button 
+                            <button
                               onClick={() => setExpandedSesionId(isExpanded ? null : sesion.id)}
-                              style={{ border: 'none', background: 'none', color: 'var(--color-secondary)', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', padding: 0 }}
+                              style={{ border: 'none', background: 'none', color: isExpanded ? 'var(--color-primary)' : 'var(--color-secondary)', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', padding: 0 }}
                             >
-                              {isExpanded ? 'OCULTAR DETALLE ↑' : 'VER ASISTENCIA ↓'}
+                              {isExpanded ? 'OCULTAR ↑' : 'DETALLES ↓'}
                             </button>
                           </div>
                         </div>
@@ -1559,10 +2015,10 @@ export default function AdminDashboard() {
                             {sesion.asistencias.length > 0 ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 {sesion.asistencias.map((a: any) => (
-                                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
                                     <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{a.alumno.nombre} {a.alumno.apellido}</span>
-                                    <span style={{ 
-                                      padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
+                                    <span style={{
+                                      padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
                                       background: a.estado === 'PRESENTE' ? 'var(--color-success-container)' : a.estado === 'AUSENTE' ? 'var(--color-error-container)' : 'var(--color-warning-container)',
                                       color: a.estado === 'PRESENTE' ? 'var(--color-success)' : a.estado === 'AUSENTE' ? 'var(--color-error)' : 'var(--color-warning)'
                                     }}>
@@ -1579,13 +2035,14 @@ export default function AdminDashboard() {
                       </div>
                     );
                   })}
-                
+
                 <Pagination current={currentPageSesiones} total={Math.ceil(sesionesClub.length / ITEMS_PER_PAGE)} onChange={setCurrentPageSesiones} />
               </div>
             )}
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
       {modalAlumno !== false && (
@@ -1601,31 +2058,31 @@ export default function AdminDashboard() {
 
       {/* ── MODAL RETENCIÓN ─────────────────────────────── */}
       {isRetencionModalOpen && metricas && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsRetencionModalOpen(false)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsRetencionModalOpen(false)}>
           <div style={{
-            background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
-            width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)'
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
                   Análisis de <span style={{ color: 'var(--color-secondary)' }}>Retención</span>
                 </h3>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '0.9rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>
-                  Compromiso, asistencia y tendencias de los alumnos.
-                </p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Asistencia y Tendencias</p>
               </div>
-              <button onClick={() => setIsRetencionModalOpen(false)} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1.25rem', width: '3rem', height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <X size={24} color="var(--color-primary)" />
+              <button 
+                onClick={() => setIsRetencionModalOpen(false)}
+                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
+              >
+                <X size={18} />
               </button>
             </div>
+            <div style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
 
             {/* Centered Pill Switcher for Rankings */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
-              <div style={{ 
-                display: 'flex', background: 'var(--color-surface-container-low)', 
+              <div style={{
+                display: 'flex', background: 'var(--color-surface-container-low)',
                 padding: '0.3rem', borderRadius: '1.5rem', gap: '0.2rem',
                 border: '1px solid var(--color-surface-container-high)',
                 boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
@@ -1635,8 +2092,8 @@ export default function AdminDashboard() {
                   { id: 'ausencias', label: 'Ausencias', color: 'var(--color-error)', icon: <AlertTriangle size={16} /> },
                   { id: 'justificaciones', label: 'Justificaciones', color: '#EAB308', icon: <History size={16} /> }
                 ].map(st => (
-                  <button 
-                    key={st.id} 
+                  <button
+                    key={st.id}
                     onClick={() => { setRankingSubTab(st.id as any); setCurrentPageRetencion(1); }}
                     title={st.label}
                     style={{
@@ -1657,13 +2114,14 @@ export default function AdminDashboard() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {(() => {
-                const dataKey = rankingSubTab === 'asistencias' ? 'rankingAsistencias' : 
-                              rankingSubTab === 'ausencias' ? 'rankingAusencias' : 'rankingJustificaciones';
+                const dataKey = rankingSubTab === 'asistencias' ? 'rankingAsistencias' :
+                  rankingSubTab === 'ausencias' ? 'rankingAusencias' : 'rankingJustificaciones';
                 const list = metricas[dataKey] || [];
-                const paginated = list.slice((currentPageRetencion - 1) * 5, currentPageRetencion * 5);
-                const totalPages = Math.ceil(list.length / 5);
-                const currentThemeColor = rankingSubTab === 'asistencias' ? 'var(--color-success)' : 
-                                        rankingSubTab === 'ausencias' ? 'var(--color-error)' : '#EAB308';
+                const paginated = list.slice((currentPageRetencion - 1) * 4, currentPageRetencion * 4);
+                const totalPages = Math.ceil(list.length / 4);
+
+                const currentThemeColor = rankingSubTab === 'asistencias' ? 'var(--color-success)' :
+                  rankingSubTab === 'ausencias' ? 'var(--color-error)' : '#EAB308';
 
                 if (list.length === 0) return (
                   <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--color-surface-container-lowest)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-surface-container-high)' }}>
@@ -1674,19 +2132,20 @@ export default function AdminDashboard() {
                 return (
                   <>
                     {paginated.map((item, i) => (
-                      <div key={i} className="ranking-item" style={{ 
-                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white', 
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                      <div key={i} className="ranking-item" style={{
+                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         border: '1px solid var(--color-surface-container-low)',
                         transition: 'all 0.3s',
                         boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
                       }}>
                         <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                          <div style={{ 
+                          <div style={{
                             width: '2.8rem', height: '2.8rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem',
                             color: currentThemeColor, border: `2px solid ${currentThemeColor}11`
-                          }}>{(currentPageRetencion - 1) * 5 + i + 1}</div>
+                          }}>{(currentPageRetencion - 1) * 4 + i + 1}</div>
+
                           <div>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{item.alumno}</p>
                             <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{item.club}</p>
@@ -1710,10 +2169,10 @@ export default function AdminDashboard() {
                 );
               })()}
             </div>
-
           </div>
         </div>
-      )}
+      </div>
+    )}
 
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
@@ -1734,24 +2193,174 @@ export default function AdminDashboard() {
           clubId={modalPagosClub.id}
           clubNombre={modalPagosClub.nombre}
           pagos={pagos}
-          onValidate={handleValidarPago}
+          onAction={(pago, type) => setPaymentActionModal({ show: true, type, pago, observacion: '' })}
+          onShowImage={setViewerImage}
           onClose={() => setModalPagosClub(false)}
         />
       )}
 
-    </div>
+      {/* ── DELETE CONFIRM MODAL ────────────────────────────── */}
+      {confirmDelete && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem', animation: 'fadeIn 0.2s ease'
+        }} onClick={() => setConfirmDelete(null)}>
+          <div style={{
+            background: 'var(--color-surface)', borderRadius: '2.5rem', padding: '2.5rem',
+            width: '100%', maxWidth: '400px', textAlign: 'center',
+            boxShadow: '0 32px 64px -12px rgba(0,0,0,0.5)',
+            border: '1px solid var(--color-surface-container-high)',
+            position: 'relative', overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()} className="animate-pop">
+
+            <div style={{
+              width: '5rem', height: '5rem', borderRadius: '2rem',
+              background: 'var(--color-error-container)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 2rem', boxShadow: '0 12px 24px rgba(211,47,47,0.2)'
+            }}>
+              <Trash2 size={32} color="var(--color-error)" />
+            </div>
+
+            <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              ¿Estás seguro?
+            </h3>
+            <p style={{ margin: '1rem 0 2rem', fontSize: '0.95rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
+              Eliminarás la disciplina <span style={{ color: 'var(--color-error)', fontWeight: 800 }}>"{confirmDelete.title}"</span> de forma permanente. Esta acción no se puede deshacer.
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                style={{
+                  flex: 1, padding: '1rem', borderRadius: '1.25rem', border: 'none',
+                  background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+                  fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDeleteClub(confirmDelete.id)}
+                disabled={deletingId !== null}
+                style={{
+                  flex: 1.5, padding: '1rem', borderRadius: '1.25rem', border: 'none',
+                  background: 'var(--color-error)', color: 'white',
+                  fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: '0 8px 16px rgba(211,47,47,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                {deletingId ? <RefreshCw size={18} className="spin" /> : <Trash2 size={18} />}
+                Sí, eliminar
+              </button>
+            </div>
+
+            {/* Decorative background circle */}
+            <div style={{
+              position: 'absolute', top: '-10%', right: '-10%', width: '150px', height: '150px',
+              borderRadius: '50%', background: 'var(--color-error-container)', opacity: 0.05, zIndex: -1
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── VISOR DE IMÁGENES ────────────────────────────── */}
+      {viewerImage && (
+        <ImageViewer
+          url={viewerImage}
+          onClose={() => setViewerImage(null)}
+        />
+      )}
+
+      {/* 🔮 MODAL DE ACCIÓN DE PAGO SIMPLIFICADO */}
+      {paymentActionModal.show && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem'
+        }} onClick={() => setPaymentActionModal(prev => ({ ...prev, show: false }))}>
+          <div style={{
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '420px',
+            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                {paymentActionModal.type === 'VALIDAR' ? 'Validar Pago' : 'Rechazar Pago'}
+              </h2>
+              <button
+                onClick={() => setPaymentActionModal(prev => ({ ...prev, show: false }))}
+                style={{ background: 'none', border: 'none', color: 'var(--color-outline)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
+                ¿Deseas {paymentActionModal.type === 'VALIDAR' ? 'validar' : 'rechazar'} el pago de
+                <span style={{ color: 'var(--color-primary)', fontWeight: 800 }}> {paymentActionModal.pago?.alumno.nombre}</span>?
+              </p>
+
+              {paymentActionModal.type === 'RECHAZAR' && (
+                <div style={{ marginTop: '1.25rem' }}>
+                  <label style={{ ...labelStyle, fontSize: '0.7rem' }}>MOTIVO DEL RECHAZO</label>
+                  <textarea
+                    value={paymentActionModal.observacion}
+                    onChange={e => setPaymentActionModal(prev => ({ ...prev, observacion: e.target.value }))}
+                    placeholder="Ej: El comprobante no es legible..."
+                    style={{ ...inputStyle, height: '80px', padding: '0.75rem', borderRadius: '0.75rem', resize: 'none', fontSize: '0.85rem' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '1rem 1.5rem 1.5rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setPaymentActionModal(prev => ({ ...prev, show: false }))}
+                style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-high)', background: 'white', color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  handleValidarPago(
+                    paymentActionModal.pago.id,
+                    paymentActionModal.type === 'VALIDAR' ? 'PAGADO' : 'RECHAZADO',
+                    paymentActionModal.observacion
+                  );
+                  setPaymentActionModal(prev => ({ ...prev, show: false }));
+                }}
+                style={{
+                  padding: '0.6rem 1.25rem', borderRadius: '0.75rem', border: 'none',
+                  background: paymentActionModal.type === 'VALIDAR' ? 'var(--color-success)' : 'var(--color-error)',
+                  color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer'
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </>
   );
 }
 
 // ── Sub-componentes Adicionales ────────────────────────────────
-function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
+function PagosClubModal({ clubId, clubNombre, pagos, onAction, onShowImage, onClose }: {
   clubId: number;
   clubNombre: string;
   pagos: Pago[];
-  onValidate: (id: number, estado: 'PAGADO' | 'RECHAZADO', obs?: string) => void;
+  onAction: (pago: Pago, type: 'VALIDAR' | 'RECHAZAR') => void;
+  onShowImage: (url: string) => void;
   onClose: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedPagoId, setExpandedPagoId] = useState<number | null>(null);
   const clubPagos = pagos.filter(p => p.club.nombre === clubNombre)
     .filter(p => (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -1814,39 +2423,108 @@ function PagosClubModal({ clubId, clubNombre, pagos, onValidate, onClose }: {
             </div>
           ) : clubPagos.map(p => {
             const colors = estadoColor[p.estado];
+            const isExpanded = expandedPagoId === p.id;
             return (
-              <div key={p.id} style={{
-                padding: '1rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)',
-                border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
-                  <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <CreditCard size={18} color={colors.fg} />
+              <div
+                key={p.id}
+                style={{
+                  padding: '1.25rem',
+                  borderRadius: '1.25rem',
+                  background: isExpanded ? 'white' : 'var(--color-surface-container-lowest)',
+                  border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  boxShadow: isExpanded ? 'var(--shadow-md)' : 'none',
+                  transition: 'all 0.3s ease'
+                }}
+                onClick={() => setExpandedPagoId(isExpanded ? null : p.id)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
+                    <div style={{
+                      width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem',
+                      background: isExpanded ? 'var(--color-primary-container)' : colors.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <CreditCard size={18} color={isExpanded ? 'white' : colors.fg} />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
-                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {p.estado === 'PENDIENTE' ? (
+                      <div style={{ display: 'flex', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
+                        <button onClick={() => onAction(p, 'VALIDAR')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                          <Check size={16} strokeWidth={3} />
+                        </button>
+                        <button onClick={() => onAction(p, 'RECHAZAR')} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                          <X size={16} strokeWidth={3} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
+                        {p.estado}
+                      </span>
+                    )}
+                    <ChevronDown size={14} color="var(--color-outline)" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {p.estado === 'PENDIENTE' ? (
-                    <>
-                      <button onClick={() => onValidate(p.id, 'PAGADO')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                        <Check size={16} strokeWidth={3} />
-                      </button>
-                      <button onClick={() => {
-                        const obs = prompt('Motivo del rechazo:') ?? '';
-                        onValidate(p.id, 'RECHAZADO', obs);
-                      }} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                        <X size={16} strokeWidth={3} />
-                      </button>
-                    </>
-                  ) : (
-                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
-                      {p.estado}
-                    </span>
-                  )}
-                </div>
+
+                {/* SECCIÓN EXPANDIBLE EN MODAL */}
+                {isExpanded && (
+                  <div
+                    className="animate-enter"
+                    style={{
+                      marginTop: '0.75rem',
+                      paddingTop: '0.75rem',
+                      borderTop: '1px dashed var(--color-surface-container-high)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem'
+                    }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div style={{
+                      background: 'var(--color-surface-container-low)',
+                      borderRadius: '1rem',
+                      overflow: 'hidden',
+                      border: '1px solid var(--color-surface-container-high)',
+                      minHeight: '150px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {p.urlComprobante ? (
+                        <img
+                          src={p.urlComprobante.replace('/upload/', '/upload/w_600,c_limit,q_auto,f_auto/')}
+                          alt="Comprobante"
+                          style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '300px', cursor: 'zoom-in' }}
+                          onClick={() => onShowImage(p.urlComprobante!)}
+                          onError={(e) => {
+                            (e.target as any).src = 'https://placehold.co/400x300?text=Error+al+cargar+imagen';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-outline)' }}>
+                          <FileText size={32} opacity={0.2} style={{ marginBottom: '0.25rem' }} />
+                          <p style={{ fontSize: '0.7rem', fontWeight: 600 }}>Sin comprobante</p>
+                        </div>
+                      )}
+                    </div>
+                    {p.observacion && (
+                      <div style={{ background: 'var(--color-surface-container-low)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-high)' }}>
+                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', fontWeight: 600 }}>
+                          Motivo: “{p.observacion}”
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1949,51 +2627,94 @@ function UsuarioModal({
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={onClose}>
-      <div style={{ background: 'var(--color-surface)', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: '420px', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {usuario.id ? 'Editar Usuario' : 'Nuevo Usuario'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="var(--color-on-surface-variant)" /></button>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+        width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+      }} onClick={e => e.stopPropagation()}>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              {usuario.id ? 'Perfeccionar' : 'Crear'} <span style={{ color: 'var(--color-secondary)' }}>Perfil</span>
+            </h3>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              Administra los accesos y credenciales del usuario
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
+            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <X size={20} color="var(--color-primary)" />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label style={labelStyle}>Nombre</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan" required style={inputStyle} />
+              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Roberto" required
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
             <div>
               <label style={labelStyle}>Apellido</label>
-              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Pérez" required style={inputStyle} />
+              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Ej: Carlos" required
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
           </div>
+
           <div>
-            <label style={labelStyle}>Rol</label>
-            <select value={rol} onChange={e => setRol(e.target.value as any)} style={inputStyle}>
-              <option value="PROFESOR">🎓 Profesor</option>
-              <option value="PADRE">👨‍👩‍👦 Padre / Tutor</option>
-              <option value="ADMINISTRADOR">👑 Administrador</option>
-            </select>
+            <label style={labelStyle}>Rol del Sistema</label>
+            <div style={{ position: 'relative' }}>
+              <select value={rol} onChange={e => setRol(e.target.value as any)}
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem', appearance: 'none', paddingRight: '2.5rem' }}>
+                <option value="PROFESOR">🎓 Profesor</option>
+                <option value="PADRE">👨‍👩‍👦 Padre / Tutor</option>
+                <option value="ADMINISTRADOR">👑 Administrador</option>
+              </select>
+              <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            </div>
           </div>
+
           <div>
-            <label style={labelStyle}>DNI (Usuario para login)</label>
-            <input value={dni} onChange={e => setDni(e.target.value)} placeholder="12345678" style={inputStyle} required />
+            <label style={labelStyle}>DNI (Acceso)</label>
+            <input value={dni} onChange={e => setDni(e.target.value)} placeholder="DNI del usuario" style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required />
           </div>
+
           {!usuario.id && (
             <div>
               <label style={labelStyle}>Contraseña Inicial</label>
-              <input value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" type="password" style={inputStyle} required={!usuario.id} />
+              <input value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" type="password"
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required={!usuario.id} />
             </div>
           )}
-          <button type="submit" disabled={saving} style={{
-            background: 'var(--color-primary)', color: 'white', border: 'none',
-            borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            opacity: saving ? 0.7 : 1,
-          }}>
-            <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Usuario'}
-          </button>
+
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <button type="button" onClick={onClose} style={{
+              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+              fontWeight: 800, cursor: 'pointer'
+            }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving} style={{
+              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-primary)', color: 'white',
+              fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1,
+              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}>
+              {saving ? <RefreshCw size={20} className="spin" /> : <Save size={20} />}
+              {saving ? 'Guardando...' : 'Guardar Perfil'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -2054,104 +2775,138 @@ function AlumnoModal({
   ];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={onClose}>
-      <div style={{ background: 'var(--color-surface)', borderRadius: '1.5rem', padding: '1.5rem', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {(alumno as any).id ? 'Editar Alumno' : 'Nuevo Alumno'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} color="var(--color-on-surface-variant)" /></button>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
+        width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
+      }} onClick={e => e.stopPropagation()}>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              {(alumno as any).id ? 'Modificar' : 'Inscribir'} <span style={{ color: 'var(--color-secondary)' }}>Alumno</span>
+            </h3>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              Gestión académica y asignación de tutor
+            </p>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
+            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <X size={20} color="var(--color-primary)" />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label style={labelStyle}>Nombre</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="María" required style={inputStyle} />
+              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: María" required
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
             <div>
               <label style={labelStyle}>Apellido</label>
-              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="García" required style={inputStyle} />
+              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Ej: García" required
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
             </div>
-          </div>
-          <div>
-            <label style={labelStyle}>Grado</label>
-            <select value={grado} onChange={e => setGrado(e.target.value)} required style={inputStyle}>
-              <option value="">— Selecciona un grado —</option>
-              {GRADOS.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
           </div>
 
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-              <label style={labelStyle}>Asignar Padre / Tutor</label>
-              <button
-                type="button"
-                onClick={() => setCreandoPadre(!creandoPadre)}
-                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase' }}
-              >
+            <label style={labelStyle}>Grado Escolar</label>
+            <div style={{ position: 'relative' }}>
+              <select value={grado} onChange={e => setGrado(e.target.value)} required
+                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem', appearance: 'none', paddingRight: '2.5rem' }}>
+                <option value="">— Selecciona un grado —</option>
+                {GRADOS.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Padre / Tutor Responsable</label>
+              <button type="button" onClick={() => setCreandoPadre(!creandoPadre)}
+                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase' }}>
                 {creandoPadre ? '✕ Cancelar' : '+ Nuevo Padre'}
               </button>
             </div>
 
             {creandoPadre ? (
-              <div style={{ background: 'var(--color-secondary-container)', padding: '0.85rem', borderRadius: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', textTransform: 'uppercase' }}>Registro Rápido de Padre</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombre Padre" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
-                  <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellido" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                  <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombres" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
+                  <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellidos" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
                 </div>
-                <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI / ID" style={{ ...inputStyle, padding: '0.5rem', fontSize: '0.8rem' }} />
+                <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI del Padre" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
               </div>
             ) : (
-              <select value={padreId} onChange={e => setPadreId(e.target.value)} style={inputStyle}>
-                <option value="">— Sin padre asignado —</option>
-                {padres.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre} {p.apellido} ({p.dni || 'Sin DNI'})</option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+                <select value={padreId} onChange={e => setPadreId(e.target.value)}
+                  style={{ ...inputStyle, borderRadius: '0.75rem', height: '2.8rem', fontSize: '0.85rem', appearance: 'none' }}>
+                  <option value="">— Sin asignar —</option>
+                  {padres.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} color="var(--color-primary)" style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
             )}
           </div>
 
           <div>
-            <label style={labelStyle}>Inscribir en Clubes</label>
+            <label style={labelStyle}>Disciplinas Inscritas</label>
             <div style={{
               display: 'flex', flexDirection: 'column', gap: '0.5rem',
-              maxHeight: '150px', overflowY: 'auto', padding: '0.75rem',
-              background: 'var(--color-surface-container-lowest)', borderRadius: '0.75rem',
-              border: '1px solid var(--color-outline-variant)'
+              maxHeight: '140px', overflowY: 'auto', padding: '1rem',
+              background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem',
+              border: '1px solid var(--color-surface-container-high)'
             }}>
               {clubes.map(c => {
                 const isSelected = selectedClubIds.includes(c.id);
                 return (
                   <label key={c.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.6rem',
-                    cursor: 'pointer', padding: '0.4rem', borderRadius: '0.5rem',
-                    background: isSelected ? 'var(--color-secondary-container)' : 'transparent',
-                    transition: 'all 0.2s', fontSize: '0.85rem', fontWeight: 600,
-                    color: isSelected ? 'var(--color-on-secondary-container)' : 'var(--color-on-surface)'
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    cursor: 'pointer', padding: '0.6rem 0.75rem', borderRadius: '0.85rem',
+                    background: isSelected ? 'var(--color-primary-fixed)' : 'transparent',
+                    transition: 'all 0.2s', fontSize: '0.85rem', fontWeight: 700,
+                    color: isSelected ? 'var(--color-primary)' : 'var(--color-outline)'
                   }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleClub(c.id)}
-                      style={{ width: '1.1rem', height: '1.1rem', accentColor: 'var(--color-secondary)' }}
-                    />
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleClub(c.id)}
+                      style={{ width: '1.1rem', height: '1.1rem', accentColor: 'var(--color-primary)' }} />
                     {c.nombre}
                   </label>
                 );
               })}
-              {clubes.length === 0 && <p style={{ fontSize: '0.75rem', color: 'var(--color-outline)', margin: 0 }}>No hay clubes disponibles</p>}
             </div>
           </div>
 
-          <button type="submit" disabled={saving} style={{
-            background: 'var(--color-secondary)', color: 'white', border: 'none',
-            borderRadius: '1rem', padding: '0.85rem', fontWeight: 800, fontSize: '0.95rem',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-            opacity: saving ? 0.7 : 1, marginTop: '0.5rem'
-          }}>
-            <GraduationCap size={16} /> {saving ? 'Guardando...' : 'Guardar Alumno'}
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <button type="button" onClick={onClose} style={{
+              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+              fontWeight: 800, cursor: 'pointer'
+            }}>
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving} style={{
+              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
+              background: 'var(--color-primary)', color: 'white',
+              fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1,
+              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}>
+              {saving ? <RefreshCw size={20} className="spin" /> : <GraduationCap size={20} />}
+              {saving ? 'Guardando...' : 'Guardar Alumno'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -2161,11 +2916,75 @@ function AlumnoModal({
 
 // ── Utilidades ──────────────────────────────────────────────
 function formatHorarioShort(horario: any): string {
-  if (!horario || typeof horario !== 'object') return 'Horario por definir';
-  const dias = Object.entries(horario);
-  if (dias.length === 0) return 'Sin horario';
-  
-  return dias.map(([dia, config]: [string, any]) => {
-    return `${dia.substring(0, 2)}: ${config.start}-${config.end}`;
+  if (!horario) return 'Por definir';
+
+  let parsed = horario;
+  if (typeof horario === 'string') {
+    try {
+      parsed = JSON.parse(horario);
+    } catch {
+      return 'Error horario';
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') return 'Por definir';
+
+  const daysOrdered = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const activeDays = daysOrdered.filter(d => parsed[d]);
+
+  if (activeDays.length === 0) return 'Sin horario';
+
+  // Agrupar por horario idéntico
+  const groups: { hours: string, days: string[] }[] = [];
+  activeDays.forEach(day => {
+    const hours = `${parsed[day].start}-${parsed[day].end}`;
+    const group = groups.find(g => g.hours === hours);
+    if (group) group.days.push(day);
+    else groups.push({ hours, days: [day] });
+  });
+
+  return groups.map(g => {
+    const daysStr = g.days.map(d => d.substring(0, 3)).join(',');
+    return `${daysStr}: ${g.hours}`;
   }).join(' | ');
+}
+
+function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2000,
+      background: 'rgba(10,15,30,0.92)', backdropFilter: 'blur(10px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+    }} onClick={onClose}>
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute', top: '1.5rem', right: '1.5rem',
+          background: 'rgba(255,255,255,0.15)', border: 'none',
+          width: '3rem', height: '3rem', borderRadius: '1.2rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'white', zIndex: 10
+        }}
+      >
+        <X size={24} />
+      </button>
+
+      <div
+        style={{ position: 'relative', maxWidth: '95vw', maxHeight: '90vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <img
+          src={url.replace('/upload/', '/upload/w_1200,c_limit,q_auto,f_auto/')}
+          alt="Comprobante extendido"
+          style={{ width: 'auto', maxHeight: '90vh', borderRadius: '1.5rem', boxShadow: '0 32px 100px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}
+        />
+        <div style={{
+          position: 'absolute', bottom: '-2.5rem', left: '50%', transform: 'translateX(-50%)',
+          color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', pointerEvents: 'none'
+        }}>
+          <AlertTriangle size={14} /> Haz clic fuera para cerrar
+        </div>
+      </div>
+    </div>
+  );
 }

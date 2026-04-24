@@ -5,6 +5,7 @@ import type { UsuarioSesion } from './UserContext';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import './index.css';
 import loginBg from './assets/login_bg.png';
+import schoolLogo from './assets/hero.png';
 
 import { API_BASE_URL } from './config';
 
@@ -54,7 +55,7 @@ export default function Login() {
       if (user.rol === 'ADMINISTRADOR') navigate('/admin');
       else if (user.rol === 'PROFESOR') navigate('/');
       else navigate('/portal');
-      
+
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -64,26 +65,26 @@ export default function Login() {
 
   return (
     <div style={{ height: '100vh', width: '100vw', overflow: 'hidden', position: 'relative', background: 'black', fontFamily: 'Inter, sans-serif' }}>
-      
+
       {/* Background Container */}
       <div className="login-bg-container" style={{ backgroundImage: `url(${loginBg})` }} />
       <div className="login-overlay" />
 
       {/* Login Form Container */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        
+
         <div style={{ width: '100%', maxWidth: '420px', padding: '0 1.5rem', animation: 'fadeInSlideUp 0.7s forwards' }}>
-          
+
           <div className="login-card-glass">
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem', padding: '2.5rem' }}>
-              
+
               {/* Header */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-                   <div style={{ width: '2.5rem', height: '2.5rem', background: '#EDC620', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(237, 198, 32, 0.3)' }}>
-                      <span style={{ color: 'white', fontWeight: 900, fontSize: '1.25rem', fontStyle: 'italic' }}>E</span>
-                   </div>
-                   <span style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.05em' }}>EXITUS</span>
+                  <div style={{ width: '2.8rem', height: '2.8rem', background: 'white', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+                    <img src={schoolLogo} alt="Fenix Mascot" style={{ width: '90%', height: '90%', objectFit: 'contain' }} />
+                  </div>
+                  <span style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', letterSpacing: '-0.05em' }}>EXITUS</span>
                 </div>
                 <h1 style={{ margin: 0, color: 'white', fontSize: '1.875rem', fontWeight: 800 }}>Bienvenido</h1>
                 <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>Gestiona tus clubes con alto impacto</p>
@@ -98,7 +99,7 @@ export default function Login() {
 
               {/* Form Fields */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                
+
                 {/* DNI Input */}
                 <div className="login-input-group">
                   <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', width: '1.25rem', height: '1.25rem', color: 'rgba(255,255,255,0.4)' }}>

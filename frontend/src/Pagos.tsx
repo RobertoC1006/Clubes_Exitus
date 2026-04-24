@@ -21,6 +21,7 @@ export default function Pagos() {
   const [showModal, setShowModal] = useState(false);
   const [selectedDeuda, setSelectedDeuda] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const isProfesor = usuario?.rol === 'PROFESOR';
   const isPadre = usuario?.rol === 'PADRE';
@@ -47,11 +48,29 @@ export default function Pagos() {
     setShowModal(true);
   };
 
-  const handleSimulateUpload = async () => {
-    if (!selectedDeuda) return;
+  const handleRealUpload = async () => {
+    if (!selectedDeuda || !selectedFile) {
+        alert('Por favor selecciona un archivo primero.');
+        return;
+    }
     setUploading(true);
 
     try {
+      // 1. Subida a Cloudinary
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('upload_preset', 'Clubes Exitus'); // Tu Unsigned Upload Preset
+
+      const cloudResp = await fetch(`https://api.cloudinary.com/v1_1/dgkkf5lmx/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!cloudResp.ok) throw new Error('Error al subir a Cloudinary');
+      const cloudData = await cloudResp.json();
+      const urlComprobante = cloudData.secure_url;
+
+      // 2. Registro en nuestra DB
       const resp = await fetch(`${API}/pagos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,19 +79,20 @@ export default function Pagos() {
           clubId: selectedDeuda.clubId,
           mes: selectedDeuda.mes,
           monto: selectedDeuda.monto,
-          urlComprobante: 'https://img.freepik.com/vector-premium/recibo-pago-pago-exitoso-o-comprobante-transferencia-dinero-estilo-dibujos-animados-3d_165488-4663.jpg' // Imagen de ejemplo
+          urlComprobante: urlComprobante
         })
       });
 
-      if (!resp.ok) throw new Error('Error al subir');
+      if (!resp.ok) throw new Error('Error al registrar pago');
 
       setUploading(false);
       setShowModal(false);
+      setSelectedFile(null);
       alert('¡Comprobante enviado con éxito! El administrador lo revisará pronto.');
       window.location.reload(); 
     } catch (err) {
       console.error(err);
-      alert('Error al conectar con el servidor.');
+      alert('Error al procesar el pago. Por favor intenta de nuevo.');
       setUploading(false);
     }
   };
@@ -90,7 +110,7 @@ export default function Pagos() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
+    <div className="animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
 
       {/* HERO SECTION */}
       <section style={{ marginBottom: '2rem' }}>
@@ -206,25 +226,45 @@ export default function Pagos() {
                     Confirmando pago para <strong>{selectedDeuda?.alumnoNombre}</strong> en <strong>{selectedDeuda?.clubNombre}</strong>.
                   </p>
 
-                  <div style={{ 
-                      border: '2px dashed var(--color-outline-variant)', borderRadius: '1.5rem', 
-                      padding: '3rem 1rem', textAlign: 'center', marginBottom: '1.5rem',
-                      cursor: 'pointer', transition: 'all 0.2s', background: 'var(--color-surface)'
-                  }}>
-                      <div style={{ background: 'var(--color-primary-container)', width: '4rem', height: '4rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
-                          <Image size={24} color="var(--color-primary)" />
+                   <div 
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      style={{ 
+                          border: `2px dashed ${selectedFile ? 'var(--color-primary)' : 'var(--color-outline-variant)'}`, 
+                          borderRadius: '1.5rem', 
+                          padding: '2.5rem 1rem', textAlign: 'center', marginBottom: '1.5rem',
+                          cursor: 'pointer', transition: 'all 0.2s', 
+                          background: selectedFile ? 'var(--color-primary-container)' : 'var(--color-surface)',
+                          opacity: uploading ? 0.6 : 1
+                      }}>
+                      <input 
+                        type="file" 
+                        id="file-upload" 
+                        hidden 
+                        accept="image/*" 
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      />
+                      <div style={{ 
+                        background: selectedFile ? 'white' : 'var(--color-primary-container)', 
+                        width: '4rem', height: '4rem', borderRadius: '50%', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' 
+                      }}>
+                          {selectedFile ? <CheckCircle2 size={24} color="var(--color-primary)" /> : <Image size={24} color="var(--color-primary)" />}
                       </div>
-                      <p style={{ margin: 0, fontWeight: 800, color: 'var(--color-primary)' }}>Toca para seleccionar imagen</p>
-                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)' }}>PNG, JPG hasta 5MB</p>
+                      <p style={{ margin: 0, fontWeight: 800, color: selectedFile ? 'white' : 'var(--color-primary)' }}>
+                        {selectedFile ? selectedFile.name : 'Toca para seleccionar imagen'}
+                      </p>
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: selectedFile ? 'rgba(255,255,255,0.8)' : 'var(--color-outline)' }}>
+                        {selectedFile ? '¡Imagen lista!' : 'PNG, JPG hasta 5MB'}
+                      </p>
                   </div>
 
                   <button 
-                    disabled={uploading}
-                    onClick={handleSimulateUpload}
+                    disabled={uploading || !selectedFile}
+                    onClick={handleRealUpload}
                     className="btn btn-primary" 
-                    style={{ width: '100%', padding: '1.15rem', fontSize: '1rem', fontWeight: 900 }}
+                    style={{ width: '100%', padding: '1.15rem', fontSize: '1rem', fontWeight: 900, opacity: (!selectedFile || uploading) ? 0.6 : 1 }}
                   >
-                    {uploading ? <><RefreshCw size={18} className="spin" /> Procesando...</> : 'Confirmar Envío'}
+                    {uploading ? <><RefreshCw size={18} className="spin" /> Subiendo...</> : 'Confirmar Envío'}
                   </button>
               </div>
           </div>

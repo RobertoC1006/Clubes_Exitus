@@ -12,18 +12,28 @@ export class SesionesController {
      return this.sesionesService.getSesionesByClub(clubId);
   }
 
+  @Get('profesor/:id')
+  getSesionesByProfesor(@Param('id', ParseIntPipe) id: number) {
+     return this.sesionesService.getSesionesByProfesor(id);
+  }
+
+  @Get('hoy/:clubId')
+  getSesionHoy(@Param('clubId', ParseIntPipe) clubId: number) {
+    return this.sesionesService.getSesionHoy(clubId);
+  }
+
   @Get(':id')
   getSesion(@Param('id', ParseIntPipe) id: number) {
     return this.sesionesService.getSesionById(id);
   }
 
-  // POST /sesiones
   @Post()
   createSesion(
     @Body('clubId', ParseIntPipe) clubId: number, 
-    @Body('fecha') fecha: string
+    @Body('fecha') fecha: string,
+    @Body('asistencias') asistencias: any[]
   ) {
-    return this.sesionesService.createSesion(clubId, fecha);
+    return this.sesionesService.createSesion(clubId, fecha, asistencias);
   }
 
   // PUT /sesiones/1/asistencia

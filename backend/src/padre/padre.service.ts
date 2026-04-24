@@ -47,7 +47,7 @@ export class PadreService {
 
         const total = asistencias.length;
         const presentes = asistencias.filter(a => a.estado === 'PRESENTE').length;
-        const asistenciaPct = total > 0 ? Math.round((presentes / total) * 100) : 100;
+        const asistenciaPct = total > 0 ? Math.round((presentes / total) * 100) : 0;
 
         // Ultimas 5 asistencias para el "mini heatmap" por club
         const ultimas5 = asistencias
@@ -214,6 +214,23 @@ export class PadreService {
       avisos.push({ id: 2, titulo: 'Bienvenido', desc: 'Explora tus clubes y mantente al día con tus clases.', icono: '📣', tipo: 'info' });
     }
 
+    // 6. Calcular Racha (Asistencias consecutivas)
+    const todasAsistencias = await this.prisma.asistencia.findMany({
+      where: { alumnoId },
+      include: { sesion: true },
+      orderBy: { sesion: { fecha: 'desc' } }
+    });
+
+    let racha = 0;
+    for (const asis of todasAsistencias) {
+      if (asis.estado === 'PRESENTE') {
+        racha++;
+      } else {
+        // Si faltó (AUSENTE) o fue JUSTIFICADO, se rompe la racha de asistencias consecutivas
+        break;
+      }
+    }
+
     return {
       alumno: {
         id: alumno.id,
@@ -228,6 +245,7 @@ export class PadreService {
       avisos,
       performance: {
          totalAsistencias,
+         racha,
          puntuacion: Math.min(100, (totalAsistencias * 10) + (ultimoPago?.estado === 'PAGADO' ? 20 : 0)),
          nivel: totalAsistencias > 8 ? 'Excelente' : 'Promedio'
       }

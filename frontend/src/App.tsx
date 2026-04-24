@@ -10,6 +10,7 @@ import Login from './Login';
 import Layout from './Layout';
 import HistorialAsistencia from './HistorialAsistencia';
 import DetalleSesion from './DetalleSesion';
+import GlobalAsistencia from './GlobalAsistencia';
 import './index.css';
 
 // ==========================================
@@ -64,6 +65,12 @@ function AppRoutes() {
       <Route path="/clubes/:clubId/historial" element={
         <RequireAuth roles={['PROFESOR', 'ADMINISTRADOR']}>
           <Layout><HistorialAsistencia /></Layout>
+        </RequireAuth>
+      } />
+
+      <Route path="/rendimiento" element={
+        <RequireAuth roles={['PROFESOR']}>
+          <Layout><GlobalAsistencia /></Layout>
         </RequireAuth>
       } />
 

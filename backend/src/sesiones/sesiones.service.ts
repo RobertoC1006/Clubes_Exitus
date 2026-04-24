@@ -13,8 +13,44 @@ export class SesionesService {
   async getSesionesByClub(clubId: number) {
       return this.prisma.sesion.findMany({
           where: { clubId },
-          orderBy: { fecha: 'desc' }
+          orderBy: { fecha: 'desc' },
+          include: {
+            asistencias: true
+          }
       });
+  }
+
+  async getSesionesByProfesor(profesorId: number) {
+    return this.prisma.sesion.findMany({
+      where: {
+        club: { profesorId }
+      },
+      orderBy: { fecha: 'desc' },
+      include: {
+        club: { select: { nombre: true } },
+        asistencias: true
+      },
+      take: 20
+    });
+  }
+
+  async getSesionHoy(clubId: number) {
+    const hoyDateStr = new Date().toISOString().split('T')[0];
+    const inicioHoy = new Date(`${hoyDateStr}T00:00:00.000Z`);
+    const finHoy = new Date(`${hoyDateStr}T23:59:59.999Z`);
+
+    return this.prisma.sesion.findFirst({
+      where: {
+        clubId,
+        fecha: {
+          gte: inicioHoy,
+          lte: finHoy
+        }
+      },
+      include: {
+        asistencias: true
+      }
+    });
   }
 
   async getSesionById(id: number) {
@@ -31,13 +67,18 @@ export class SesionesService {
     });
   }
 
-  async createSesion(clubId: number, fecha: string) {
-    return this.prisma.sesion.create({
-      data: {
-        clubId,
-        fecha: new Date(fecha),
-      },
-    });
+  async createSesion(clubId: number, fecha: string, asistencias: { alumnoId: number, estado: EstadoAsistencia, observacion?: string }[]) {
+     const sesion = await this.prisma.sesion.create({
+       data: {
+         clubId,
+         fecha: new Date(fecha),
+       },
+     });
+
+     // Guardar asistencias usando la lógica existente de upsert
+     await this.updateAsistencias(sesion.id, asistencias);
+     
+     return sesion;
   }
 
   // Permite insertar o actualizar en bloque la asistencia y el tema de la sesión

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, Users, Loader2, ChevronRight, Clock, Trophy } from 'lucide-react';
 import { useUser } from './UserContext';
@@ -23,9 +23,7 @@ export default function HistorialAsistencia() {
     setLoading(true);
     Promise.all([
       fetch(`${API}/sesiones?clubId=${clubId}`).then(res => res.json()),
-      fetch(`${API}/admin/clubes`).then(res => res.json()).then(clubes => 
-        clubes.find((c: any) => c.id === Number(clubId))
-      ).catch(() => null)
+      fetch(`${API}/clubes/${clubId}`).then(res => res.json())
     ])
       .then(([sesionesData, clubData]) => {
         setSesiones(Array.isArray(sesionesData) ? sesionesData : []);
@@ -36,6 +34,30 @@ export default function HistorialAsistencia() {
       })
       .finally(() => setLoading(false));
   }, [clubId]);
+
+  const asistenciaPromedio = useMemo(() => {
+    if (!Array.isArray(sesiones) || sesiones.length === 0) return '0%';
+    
+    let globalPresentes = 0;
+    let globalTotalMarked = 0;
+
+    sesiones.forEach(s => {
+      if (Array.isArray(s.asistencias)) {
+        s.asistencias.forEach((as: any) => {
+          const est = String(as.estado || '').toUpperCase();
+          if (est === 'PRESENTE' || est === 'JUSTIFICADO') {
+            globalPresentes++;
+          }
+          if (est !== '') {
+            globalTotalMarked++;
+          }
+        });
+      }
+    });
+
+    if (globalTotalMarked === 0) return '0%';
+    return Math.round((globalPresentes / globalTotalMarked) * 100) + '%';
+  }, [sesiones]);
 
   const handleBack = () => {
     if (usuario?.rol === 'ADMINISTRADOR') {
@@ -54,7 +76,7 @@ export default function HistorialAsistencia() {
   }
 
   return (
-    <div className="app-container animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
+    <div className="animate-enter" style={{ padding: '1.25rem', paddingBottom: '7rem' }}>
       
       {/* HEADER PREMIUM */}
       <section style={{ marginBottom: '2rem' }}>
@@ -86,8 +108,8 @@ export default function HistorialAsistencia() {
                 <p style={{ margin: '0.2rem 0 0', fontSize: '1.75rem', fontWeight: 900 }}>{sesiones.length}</p>
             </div>
             <div className="bento-card" style={{ padding: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
-                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>Asistencia</p>
-                <p style={{ margin: '0.2rem 0 0', fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)' }}>92%</p>
+                <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>Asistencia Promedio</p>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '1.75rem', fontWeight: 900, color: 'var(--color-primary)' }}>{asistenciaPromedio}</p>
             </div>
         </div>
       </section>
