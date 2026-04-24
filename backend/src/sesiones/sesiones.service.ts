@@ -35,11 +35,9 @@ export class SesionesService {
   }
 
   async getSesionHoy(clubId: number) {
-    const inicioHoy = new Date();
-    inicioHoy.setHours(0, 0, 0, 0);
-    
-    const finHoy = new Date();
-    finHoy.setHours(23, 59, 59, 999);
+    const hoyDateStr = new Date().toISOString().split('T')[0];
+    const inicioHoy = new Date(`${hoyDateStr}T00:00:00.000Z`);
+    const finHoy = new Date(`${hoyDateStr}T23:59:59.999Z`);
 
     return this.prisma.sesion.findFirst({
       where: {

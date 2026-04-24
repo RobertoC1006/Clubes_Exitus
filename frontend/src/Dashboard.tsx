@@ -33,6 +33,22 @@ function formatHorarioShort(horario: any): string {
   return `${dias[0].slice(0, 3)} ${horario[dias[0]].start}+`;
 }
 
+function formatHorarioFull(horario: any): string {
+  if (!horario) return 'Sin horario';
+  let h = horario;
+  if (typeof h === 'string') {
+    try { h = JSON.parse(h); } catch { return 'Horario inválido'; }
+  }
+  const dias = Object.keys(h);
+  if (dias.length === 0) return 'Sin horario';
+  
+  return dias.map(d => {
+    const s = h[d].start || '';
+    const e = h[d].end || '';
+    return `${d.slice(0, 3)} ${s}-${e}`;
+  }).join(' • ');
+}
+
 function getActiveClubs(clubes: any[]) {
   const now = new Date();
   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -252,7 +268,16 @@ export default function Dashboard() {
                     <div style={{ margin: '0.5rem 0 2rem', opacity: 0.9, fontSize: '0.95rem', fontWeight: 600 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                         <Users size={16} />
-                        {club._count?.inscripciones || 0} Atletas en sala · <Clock size={16} /> {formatHorarioShort(club.horario)}
+                        {club._count?.inscripciones || 0} Atletas en sala · <Clock size={16} /> {(() => {
+                          const now = new Date();
+                          const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                          const currentDay = days[now.getDay()];
+                          const dMatch = Object.keys(club.horario || {}).find(d => normalizeDay(d) === currentDay);
+                          if (dMatch && club.horario[dMatch]) {
+                            return `Hoy ${club.horario[dMatch].start} - ${club.horario[dMatch].end}`;
+                          }
+                          return formatHorarioShort(club.horario);
+                        })()}
                       </span>
                     </div>
                     <button
@@ -453,7 +478,7 @@ export default function Dashboard() {
                           </span>
                           <span className="divider-desktop" style={{ opacity: 0.1 }}>|</span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-outline)' }}>
-                            <Clock size={14} /> {formatHorarioShort(club.horario)}
+                            <Clock size={14} /> {formatHorarioFull(club.horario)}
                           </span>
                         </div>
                       </div>

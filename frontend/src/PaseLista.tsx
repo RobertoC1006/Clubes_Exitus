@@ -56,7 +56,15 @@ export default function PaseLista() {
         
         // 3. Traer sesión de hoy si ya fue marcada
         const resSesionHoy = await fetch(`${API}/sesiones/hoy/${clubId}`);
-        const sesionHoy = await resSesionHoy.json();
+        const textSesionHoy = await resSesionHoy.text();
+        let sesionHoy = null;
+        if (textSesionHoy) {
+          try {
+            sesionHoy = JSON.parse(textSesionHoy);
+          } catch (e) {
+            console.error("Error parsing sesionHoy", e);
+          }
+        }
         
         let asistenciasHoy: any[] = [];
         if (sesionHoy && sesionHoy.asistencias) {
@@ -103,37 +111,37 @@ export default function PaseLista() {
     return dia;
   };
 
-  const isActuallyLive = useMemo(() => {
-    // Seguridad absoluta: si no hay club cargado, false.
-    if (!club?.horario) return false;
-    
-    const timeToMinutes = (t: string) => {
-      if (!t) return 0;
-      const [h, m] = t.split(':').map(Number);
-      return (Number(h) || 0) * 60 + (Number(m) || 0);
-    };
+  let isActuallyLive = false;
+  try {
+    if (club && club.horario) {
+      const now = new Date();
+      const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+      const currentDay = days[now.getDay()];
+      
+      let h = club.horario;
+      if (typeof h === 'string') {
+        h = JSON.parse(h);
+      }
 
-    const now = new Date();
-    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const currentDay = days[now.getDay()];
-    
-    let h = club.horario;
-    if (typeof h === 'string') {
-      try { h = JSON.parse(h); } catch { return false; }
+      const dMatchKey = Object.keys(h).find(d => normalizeDay(d) === currentDay);
+      if (dMatchKey) {
+        const sessionData = h[dMatchKey];
+        const sessions = Array.isArray(sessionData) ? sessionData : [sessionData];
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        
+        isActuallyLive = sessions.some((s: any) => {
+          if (!s || !s.start || !s.end) return false;
+          const [startH, startM] = s.start.split(':').map(Number);
+          const [endH, endM] = s.end.split(':').map(Number);
+          const sMins = startH * 60 + startM;
+          const eMins = endH * 60 + endM;
+          return currentMins >= sMins && currentMins <= eMins;
+        });
+      }
     }
-
-    const dMatchKey = Object.keys(h).find(d => normalizeDay(d) === currentDay);
-    if (!dMatchKey) return false;
-
-    const sessions = Array.isArray(h[dMatchKey]) ? h[dMatchKey] : [h[dMatchKey]];
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    
-    return sessions.some((s: any) => {
-      const startM = timeToMinutes(s.start);
-      const endM = timeToMinutes(s.end);
-      return currentMinutes >= startM && currentMinutes <= endM;
-    });
-  }, [club]);
+  } catch (err) {
+    console.error("Error evaluating live status", err);
+  }
 
   // Bloqueo total: es Solo Lectura SI es Admin O SI NO está en vivo.
   const isReadOnly = isAdmin || !isActuallyLive;
@@ -163,6 +171,7 @@ export default function PaseLista() {
     try {
       const payload = {
         clubId: Number(clubId),
+        fecha: new Date().toLocaleDateString('sv-SE'), // Formato YYYY-MM-DD local
         asistencias: alumnos.map(a => ({
           alumnoId: a.id,
           estado: a.estado,
@@ -191,6 +200,11 @@ export default function PaseLista() {
         });
 
         if (res.ok) {
+          // Si era una sesión nueva, guardamos el ID para futuras ediciones sin recargar
+          if (!existingSessionId) {
+            const data = await res.json();
+            if (data && data.id) setExistingSessionId(data.id);
+          }
           setSuccessInfo({ title: '¡Asistencia Registrada!', message: 'La lista se ha guardado correctamente y los padres han sido notificados.' });
           setShowSuccessModal(true);
         } else {
