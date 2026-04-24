@@ -608,25 +608,33 @@ export default function PortalFamiliar() {
                                 return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                               });
 
+                              const isToday = day === now.getDate();
+                              
                               let bgColor = 'transparent';
                               let textColor = 'var(--color-on-surface)';
                               let border = '1px solid var(--color-surface-container-high)';
                               let fontWeight = 500;
 
                               if (session) {
-                                fontWeight = 800;
-                                if (session.asistio) {
-                                  bgColor = '#DCFCE7'; textColor = '#166534'; border = '1px solid #BBF7D0';
-                                } else if (session.estado === 'FALTO' || session.estado === 'FALTÓ' || session.estado === 'AUSENTE') {
-                                  bgColor = '#FEE2E2'; textColor = '#991B1B'; border = '1px solid #FECACA';
-                                } else if (session.estado === 'JUSTIFICADO' || session.estado === 'EXCUSADO') {
-                                  bgColor = '#FEF9C3'; textColor = '#854D0E'; border = '1px solid #FEF08A';
-                                } else if (session.estado === 'PROGRAMADO') {
-                                  bgColor = 'var(--color-surface-container-high)'; textColor = 'var(--color-primary)'; border = 'none';
+                                // Filtrar visibilidad según pestaña
+                                const isPast = session.asistio || ['FALTO', 'FALTÓ', 'AUSENTE', 'JUSTIFICADO', 'EXCUSADO'].includes(session.estado);
+                                const isFuture = session.estado === 'PROGRAMADO';
+                                
+                                const shouldShowColor = (activeClubTab === 'pasadas' && isPast) || (activeClubTab === 'proximas' && isFuture);
+
+                                if (shouldShowColor) {
+                                  fontWeight = 800;
+                                  if (session.asistio) {
+                                    bgColor = '#DCFCE7'; textColor = '#166534'; border = '1px solid #BBF7D0';
+                                  } else if (['FALTO', 'FALTÓ', 'AUSENTE'].includes(session.estado)) {
+                                    bgColor = '#FEE2E2'; textColor = '#991B1B'; border = '1px solid #FECACA';
+                                  } else if (['JUSTIFICADO', 'EXCUSADO'].includes(session.estado)) {
+                                    bgColor = '#FEF9C3'; textColor = '#854D0E'; border = '1px solid #FEF08A';
+                                  } else if (session.estado === 'PROGRAMADO') {
+                                    bgColor = 'var(--color-surface-container-high)'; textColor = 'var(--color-primary)'; border = 'none';
+                                  }
                                 }
                               }
-
-                              const isToday = day === now.getDate();
 
                               return (
                                 <div 
@@ -635,8 +643,9 @@ export default function PortalFamiliar() {
                                   style={{ 
                                     aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                                     borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight,
-                                    background: bgColor, color: textColor, border: isToday && !session ? '2px solid var(--color-primary)' : border,
-                                    position: 'relative', cursor: session ? 'help' : 'default'
+                                    background: bgColor, color: textColor, border: isToday && bgColor === 'transparent' ? '2px solid var(--color-primary)' : border,
+                                    position: 'relative', cursor: session ? 'help' : 'default',
+                                    opacity: session && !((activeClubTab === 'pasadas' && (session.asistio || ['FALTO', 'FALTÓ', 'AUSENTE', 'JUSTIFICADO', 'EXCUSADO'].includes(session.estado))) || (activeClubTab === 'proximas' && session.estado === 'PROGRAMADO')) ? 0.3 : 1
                                   }}
                                 >
                                   {day}
