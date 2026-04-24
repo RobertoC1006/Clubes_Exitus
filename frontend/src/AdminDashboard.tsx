@@ -5,7 +5,8 @@ import {
   Download, ChevronRight, X, Save,
   BarChart2, BookOpen, CreditCard, RefreshCw,
   GraduationCap, Search, ChevronDown, FileText, ExternalLink,
-  Check, Calendar, Clock, History, CheckCircle
+  Check, Calendar, Clock, History, CheckCircle,
+  Ban, ShieldAlert, UserX, AlertCircle
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './index.css';
@@ -36,9 +37,11 @@ interface Profesor {
   nombre: string;
   apellido: string;
   email: string;
+  dni?: string;
+  celular?: string;
   clubes?: { id: number; nombre: string; horario: any }[];
 }
-interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; celular?: string; password?: string }
+interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; celular?: string; password?: string; estado?: string }
 interface Alumno {
   id: number; nombre: string; apellido: string; grado: string;
   padreId?: number | null;
@@ -414,6 +417,18 @@ export default function AdminDashboard() {
     setPagesUsuarios({ ADMINISTRADOR: 1, PROFESOR: 1, PADRE: 1 });
   }, [tab, personasTab]);
 
+  // Confirm Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    type: 'DANGER' | 'WARNING' | 'SUCCESS';
+    onConfirm: () => void;
+    icon?: React.ReactNode;
+  }>({
+    show: false, title: '', message: '', type: 'WARNING', onConfirm: () => { }
+  });
+
   // Payment Validation Modal state
   const [paymentActionModal, setPaymentActionModal] = useState<{
     show: boolean,
@@ -421,6 +436,8 @@ export default function AdminDashboard() {
     type: 'VALIDAR' | 'RECHAZAR',
     observacion: string
   }>({ show: false, pago: null, type: 'VALIDAR', observacion: '' });
+
+  // Payment Validation Modal state
 
   // ── Fetch ────────────────────────────────────────────────────
   const fetchMetricas = useCallback(async () => {
@@ -514,6 +531,30 @@ export default function AdminDashboard() {
     fetchPagos();
   };
 
+  const handleToggleUsuarioStatus = async (id: number, estado: string) => {
+    try {
+      await fetch(`${API}/admin/usuarios/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado }),
+      });
+      fetchProfesores();
+    } catch { alert('Error al cambiar estado'); }
+  };
+
+  const handleDeleteUsuario = async (id: number) => {
+    try {
+      const res = await fetch(`${API}/admin/usuarios/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchProfesores();
+        fetchAlumnos();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Error al eliminar');
+      }
+    } catch { alert('Error de red'); }
+  };
+
   const handleExportarCSV = () => {
     window.open(`${API}/admin/reporte/asistencia`, '_blank');
   };
@@ -533,20 +574,23 @@ export default function AdminDashboard() {
   };
 
   const handleResetPassword = async (id: number) => {
-    if (!window.confirm('¿Estás seguro de que deseas resetear la contraseña de este usuario? Se establecerá como "123456" y se le pedirá cambiarla en su próximo inicio de sesión.')) return;
-    try {
-      const res = await fetch(`${API}/admin/usuarios/${id}/reset-password`, {
-        method: 'PATCH',
-      });
-      if (res.ok) {
-        alert('Contraseña reseteada con éxito (123456)');
-      } else {
-        const err = await res.json();
-        alert(err.message || 'Error al resetear la contraseña');
+    setConfirmModal({
+      show: true,
+      title: 'Resetear Contraseña',
+      message: '¿Estás seguro de que deseas resetear la contraseña de este usuario? Se establecerá como "123456" y se le pedirá cambiarla en su próximo inicio de sesión.',
+      type: 'WARNING',
+      icon: <RefreshCw size={32} color="var(--color-warning)" />,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API}/admin/usuarios/${id}/reset-password`, { method: 'PATCH' });
+          if (res.ok) alert('Contraseña reseteada con éxito (123456)');
+          else {
+            const err = await res.json();
+            alert(err.message || 'Error al resetear');
+          }
+        } catch { alert('Error de red'); }
       }
-    } catch {
-      alert('Error de red');
-    }
+    });
   };
 
   const handleSaveAlumno = async (data: { nombre: string; apellido: string; grado: string; padreId?: number; clubIds?: number[]; nuevoPadre?: any }) => {
@@ -942,22 +986,64 @@ export default function AdminDashboard() {
                             }}>
                               <div style={{
                                 width: '3.2rem', height: '3.2rem', borderRadius: '1rem', flexShrink: 0,
-                                background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)',
+                                background: u.estado === 'Desactivado' ? 'var(--color-error-container)' : 'var(--color-surface-dim)',
+                                display: 'flex', alignItems: 'center',
+                                justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: u.estado === 'Desactivado' ? 'var(--color-error)' : 'var(--color-primary)',
+                                opacity: u.estado === 'Desactivado' ? 0.6 : 1
                               }}>
                                 {(u.nombre[0] + (u.apellido[0] ?? '')).toUpperCase()}
                               </div>
-                              <div style={{ flex: 1 }}>
-                                <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                                  {u.nombre} {u.apellido}
-                                </p>
+                              <div style={{ flex: 1, opacity: u.estado === 'Desactivado' ? 0.5 : 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                                    {u.nombre} {u.apellido}
+                                  </p>
+                                  {u.estado === 'Desactivado' && (
+                                    <span style={{ fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-error)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase' }}>Desactivado</span>
+                                  )}
+                                </div>
                                 <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                                  {u.email ?? (u.dni ? `DNI: ${u.dni}` : 'Sin correo registrado')}
+                                  DNI: {u.dni || '---'} • Cel: {u.celular || '---'}
                                 </p>
                               </div>
-                              <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
-                                <Edit2 size={15} />
-                              </button>
+                              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                <button
+                                  onClick={() => {
+                                    const nuevoEstado = u.estado === 'Desactivado' ? 'Activado' : 'Desactivado';
+                                    setConfirmModal({
+                                      show: true,
+                                      title: nuevoEstado === 'Activado' ? 'Activar Usuario' : 'Desactivar Usuario',
+                                      message: `¿Estás seguro de que deseas ${nuevoEstado === 'Activado' ? 'activar' : 'desactivar'} a ${u.nombre}? ${nuevoEstado === 'Activado' ? 'Podrá volver a ingresar al sistema.' : 'No podrá iniciar sesión hasta que sea reactivado.'}`,
+                                      type: nuevoEstado === 'Activado' ? 'SUCCESS' : 'WARNING',
+                                      icon: nuevoEstado === 'Activado' ? <UserCheck size={32} color="var(--color-success)" /> : <Ban size={32} color="var(--color-warning)" />,
+                                      onConfirm: () => handleToggleUsuarioStatus(u.id, nuevoEstado)
+                                    });
+                                  }}
+                                  title={u.estado === 'Desactivado' ? "Activar" : "Desactivar"}
+                                  style={iconBtnStyle(u.estado === 'Desactivado' ? 'var(--color-success-container)' : 'var(--color-surface-container-low)', u.estado === 'Desactivado' ? 'var(--color-success)' : 'var(--color-outline)')}
+                                >
+                                  {u.estado === 'Desactivado' ? <UserCheck size={15} /> : <Ban size={15} />}
+                                </button>
+                                <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
+                                  <Edit2 size={15} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      show: true,
+                                      title: 'Eliminar Usuario',
+                                      message: `¿Estás seguro de que deseas eliminar permanentemente a ${u.nombre} ${u.apellido}? Esta acción no se puede deshacer y podría afectar registros históricos.`,
+                                      type: 'DANGER',
+                                      icon: <UserX size={32} color="var(--color-error)" />,
+                                      onConfirm: () => handleDeleteUsuario(u.id)
+                                    });
+                                  }}
+                                  title="Eliminar"
+                                  style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
                             </div>
                           ))
                         )}
@@ -1811,7 +1897,9 @@ export default function AdminDashboard() {
                           </div>
                           <div>
                             <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{prof.email || 'Sin correo registrado'}</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                              DNI: {prof.dni || '---'} • Cel: {prof.celular || '---'}
+                            </p>
                           </div>
                         </div>
 
@@ -2292,7 +2380,6 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* 🔮 MODAL DE ACCIÓN DE PAGO SIMPLIFICADO */}
       {paymentActionModal.show && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 99999,
@@ -2355,6 +2442,70 @@ export default function AdminDashboard() {
                   padding: '0.6rem 1.25rem', borderRadius: '0.75rem', border: 'none',
                   background: paymentActionModal.type === 'VALIDAR' ? 'var(--color-success)' : 'var(--color-error)',
                   color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer'
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔮 MODAL DE CONFIRMACIÓN GENÉRICO */}
+      {confirmModal.show && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100000,
+          background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1.5rem'
+        }} onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}>
+          <div style={{
+            background: 'white', borderRadius: '2.5rem', width: '100%', maxWidth: '450px',
+            padding: '2.5rem', textAlign: 'center', boxShadow: '0 40px 100px rgba(0,0,0,0.5)',
+            position: 'relative', overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()} className="animate-pop">
+            
+            <div style={{
+              width: '5.5rem', height: '5.5rem', borderRadius: '2.2rem',
+              background: confirmModal.type === 'DANGER' ? 'var(--color-error-container)' : 
+                         confirmModal.type === 'SUCCESS' ? 'var(--color-success-container)' : 
+                         'var(--color-warning-container)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1.5rem'
+            }}>
+              {confirmModal.icon || (confirmModal.type === 'DANGER' ? <AlertCircle size={36} color="var(--color-error)" /> : <AlertCircle size={36} color="var(--color-warning)" />)}
+            </div>
+
+            <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              {confirmModal.title}
+            </h3>
+            <p style={{ margin: '1rem 0 2rem', fontSize: '1rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
+              {confirmModal.message}
+            </p>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                style={{
+                  flex: 1, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
+                  background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+                  fontWeight: 800, cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(prev => ({ ...prev, show: false }));
+                }}
+                style={{
+                  flex: 1.5, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
+                  background: confirmModal.type === 'DANGER' ? 'var(--color-error)' : 
+                             confirmModal.type === 'SUCCESS' ? 'var(--color-success)' : 
+                             'var(--color-warning)',
+                  color: 'white', fontWeight: 900, fontSize: '1rem', cursor: 'pointer',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
                 }}
               >
                 Confirmar

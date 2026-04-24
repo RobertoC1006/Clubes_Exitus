@@ -78,6 +78,14 @@ export class AdminController {
     return this.adminService.resetPassword(id);
   }
 
+  @Patch('usuarios/:id/status')
+  toggleUsuarioStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { estado: string },
+  ) {
+    return this.adminService.toggleUsuarioStatus(id, body.estado);
+  }
+
   @Delete('usuarios/:id')
   deleteUsuario(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.deleteUsuario(id);

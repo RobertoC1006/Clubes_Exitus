@@ -40,6 +40,7 @@ model Usuario {
   dni       String?  @unique
   celular   String?  // Número de contacto del usuario
   mustChangePassword Boolean @default(true) // Fuerza cambio en primer login
+  estado             String  @default("Activado") // Estado: Activado / Desactivado
 
   // Un profesor puede tener varios clubes a su cargo
   clubes    Club[]   @relation("ProfesorClub")

@@ -20,9 +20,16 @@ export class AuthService {
       throw new UnauthorizedException('DNI o contraseña incorrectos');
     }
 
-    // Retornamos todos los datos del usuario (sin el password)
+    if (usuario.estado !== 'Activado') {
+      throw new UnauthorizedException('Tu cuenta ha sido desactivada. Contacta al administrador.');
+    }
+
+    // Solo forzamos el cambio de contraseña si la que está usando es la default
     const { password: _, ...result } = usuario;
-    return result;
+    return {
+      ...result,
+      mustChangePassword: password === DEFAULT_PASSWORD && usuario.mustChangePassword,
+    };
   }
 
   async changePassword(userId: number, newPassword: string) {

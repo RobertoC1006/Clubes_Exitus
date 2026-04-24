@@ -206,7 +206,7 @@ export class AdminService {
 
   async getUsuarios() {
     return this.prisma.usuario.findMany({
-      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
       orderBy: [{ rol: 'asc' }, { nombre: 'asc' }],
     });
   }
@@ -222,8 +222,8 @@ export class AdminService {
     }
     // La contraseña siempre es la default — el frontend no puede enviarla
     return this.prisma.usuario.create({
-      data: { ...data, password: '123456', mustChangePassword: true },
-      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true },
+      data: { ...data, password: '123456', mustChangePassword: true, estado: 'Activado' },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
     });
   }
 
@@ -233,7 +233,7 @@ export class AdminService {
     return this.prisma.usuario.update({
       where: { id },
       data,
-      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
     });
   }
 
@@ -245,6 +245,16 @@ export class AdminService {
       data: { password: '123456', mustChangePassword: true },
     });
     return { message: `Contraseña de ${existe.nombre} ${existe.apellido} reseteada correctamente` };
+  }
+
+  async toggleUsuarioStatus(id: number, estado: string) {
+    const existe = await this.prisma.usuario.findUnique({ where: { id } });
+    if (!existe) throw new NotFoundException(`Usuario #${id} no encontrado`);
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { estado },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
+    });
   }
 
   async deleteUsuario(id: number) {
