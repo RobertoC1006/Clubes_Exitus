@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
-import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock, History, RefreshCw, ChevronRight } from 'lucide-react';
+import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock, History, RefreshCw, ChevronRight, Zap, Target, Star } from 'lucide-react';
 import './index.css';
 
 import { API_BASE_URL } from './config';
@@ -68,6 +68,7 @@ interface Resumen {
         totalAsistencias: number;
         puntuacion: number;
         nivel: string;
+        racha?: number;
     };
 }
 
@@ -86,6 +87,13 @@ export default function PortalFamiliar() {
   const [activeCalendarTab, setActiveCalendarTab] = useState<'proximas' | 'pasadas'>('proximas');
   const [currentPageCalendar, setCurrentPageCalendar] = useState(1);
   const [activeNoticeIndex, setActiveNoticeIndex] = useState(0);
+
+  // Nuevos estados para modales
+  const [showDesempenoModal, setShowDesempenoModal] = useState(false);
+  const [showRachaModal, setShowRachaModal] = useState(false);
+  const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
+  const [showClubModal, setShowClubModal] = useState(false);
+  const [activeClubTab, setActiveClubTab] = useState<'pasadas' | 'programadas'>('pasadas');
 
   // 1. Cargar Lista de Hijos
   useEffect(() => {
@@ -178,125 +186,7 @@ export default function PortalFamiliar() {
     <div className="portal-container" style={{ padding: '1.5rem', background: '#F8F9FE', minHeight: '100vh', paddingBottom: '6rem' }}>
       <style>{globalStyles}</style>
 
-      {/* MODAL CALENDARIO */}
-      {showCalendar && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-            <div style={{ background: 'var(--grad-primary)', padding: '1.5rem 2rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>Mi Calendario</h3>
-                <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', opacity: 0.8, fontWeight: 700 }}>{resumen?.alumno.nombre} • {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
-              </div>
-              <button onClick={() => setShowCalendar(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                <XCircle size={22} />
-              </button>
-            </div>
 
-            {/* TABS CALENDARIO */}
-            <div style={{ display: 'flex', background: 'var(--color-surface-dim)', padding: '0.5rem', gap: '0.5rem', borderBottom: '1px solid var(--color-surface-container-high)' }}>
-               {[
-                 { id: 'proximas', label: 'Próximas Clases', icon: <Clock size={16}/> },
-                 { id: 'pasadas', label: 'Historial / Pasadas', icon: <History size={16}/> }
-               ].map(tab => {
-                 const isA = activeCalendarTab === tab.id;
-                 return (
-                   <button 
-                    key={tab.id}
-                    onClick={() => { setActiveCalendarTab(tab.id as any); setCurrentPageCalendar(1); }}
-                    style={{ 
-                      flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', 
-                      background: isA ? 'white' : 'transparent', 
-                      color: isA ? 'var(--color-primary)' : 'var(--color-outline)',
-                      fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                      boxShadow: isA ? 'var(--shadow-sm)' : 'none',
-                      transition: 'all 0.3s ease'
-                    }}
-                   >
-                     {tab.icon} {tab.label}
-                   </button>
-                 );
-               })}
-            </div>
-
-            <div style={{ padding: '1.5rem', maxHeight: '55vh', overflowY: 'auto' }}>
-              {(() => {
-                const pasadas = resumen?.calendario.filter((s: any) => s.estado !== 'PROGRAMADO').reverse() || [];
-                const proximas = resumen?.calendario.filter((s: any) => s.estado === 'PROGRAMADO') || [];
-                const listaActual = activeCalendarTab === 'pasadas' ? pasadas : proximas;
-                const totalPaginas = Math.ceil(listaActual.length / CALENDAR_ITEMS_PER_PAGE);
-
-                if (listaActual.length === 0) {
-                  return (
-                    <div style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-                        <Calendar size={48} color="var(--color-outline-variant)" style={{ marginBottom: '1.25rem', opacity: 0.3 }} />
-                        <p style={{ fontWeight: 700, color: 'var(--color-outline)', fontSize: '0.9rem' }}>
-                          {activeCalendarTab === 'proximas' ? 'No hay más clases programadas este mes.' : 'Aún no se han registrado asistencias.'}
-                        </p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {listaActual
-                        .slice((currentPageCalendar - 1) * CALENDAR_ITEMS_PER_PAGE, currentPageCalendar * CALENDAR_ITEMS_PER_PAGE)
-                        .map((s: any) => (
-                        <div key={s.id} className="animate-enter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-dim)', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
-                           <div style={{ width: '3.5rem', textAlign: 'center', borderRight: '1.2px solid var(--color-surface-container-high)', paddingRight: '1rem' }}>
-                              <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
-                              <p style={{ margin: '0.1rem 0 0', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
-                                {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
-                              </p>
-                           </div>
-                           <div style={{ flex: 1 }}>
-                              <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{s.club}</p>
-                              <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>{s.tema}</p>
-                           </div>
-                           <div style={{ 
-                             padding: '0.45rem 0.85rem', borderRadius: '0.8rem', fontSize: '0.65rem', fontWeight: 900,
-                             background: s.asistio ? 'var(--color-success-container)' : (s.estado === 'PENDIENTE' ? 'var(--color-surface-container-high)' : (s.estado === 'PROGRAMADO' ? 'var(--color-primary-container)' : 'var(--color-error-container)')),
-                             color: s.asistio ? 'var(--color-success)' : (s.estado === 'PENDIENTE' ? 'var(--color-primary)' : (s.estado === 'PROGRAMADO' ? 'white' : 'var(--color-error)'))
-                           }}>
-                             {s.asistio ? 'ASISTIÓ' : s.estado}
-                           </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* PAGINACIÓN MODAL */}
-                    {totalPaginas > 1 && (
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', alignItems: 'center' }}>
-                          <button 
-                            disabled={currentPageCalendar === 1}
-                            onClick={() => setCurrentPageCalendar(p => Math.max(1, p - 1))}
-                            style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === 1 ? 0.3 : 1 }}
-                          >
-                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
-                          </button>
-                          <div style={{ background: 'var(--color-surface-dim)', borderRadius: '99px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                            {currentPageCalendar} <span style={{ opacity: 0.4 }}>/</span> {totalPaginas}
-                          </div>
-                          <button 
-                            disabled={currentPageCalendar === totalPaginas}
-                            onClick={() => setCurrentPageCalendar(p => Math.min(totalPaginas, p + 1))}
-                            style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === totalPaginas ? 0.3 : 1 }}
-                          >
-                            <ChevronRight size={18} />
-                          </button>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-            <div style={{ padding: '1.5rem', borderTop: '1px solid var(--color-surface-container-high)', textAlign: 'center' }}>
-               <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Los horarios específicos se coordinan con el docente del club.</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* KID SELECTOR (Premium Chips) */}
       <section style={{ marginBottom: '2rem', marginTop: '1rem' }}>
@@ -342,49 +232,34 @@ export default function PortalFamiliar() {
 
       {resumen && (
         <div className={fetchingResumen ? 'fetching-fade' : ''}>
-          
           {/* MODAL CALENDARIO */}
           {showCalendar && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-              <div className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-                <div style={{ background: 'var(--grad-primary)', padding: '1.5rem 2rem', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div onClick={() => setShowCalendar(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div onClick={(e) => e.stopPropagation()} className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+                <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>Mi Calendario</h3>
-                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', opacity: 0.8, fontWeight: 700 }}>{resumen.alumno.nombre} • {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>Mi Calendario</h3>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 500 }}>{resumen.alumno.nombre} • {new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
                   </div>
-                  <button onClick={() => setShowCalendar(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                    <XCircle size={22} />
+                  <button onClick={() => setShowCalendar(false)} style={{ background: 'white', border: '1px solid var(--color-surface-container-high)', borderRadius: '50%', width: '2rem', height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}>
+                    <XCircle size={18} />
                   </button>
                 </div>
 
-                {/* TABS CALENDARIO */}
-                <div style={{ display: 'flex', background: 'var(--color-surface-dim)', padding: '0.5rem', gap: '0.5rem', borderBottom: '1px solid var(--color-surface-container-high)' }}>
-                   {[
-                     { id: 'proximas', label: 'Próximas Clases', icon: <Clock size={16}/> },
-                     { id: 'pasadas', label: 'Historial / Pasadas', icon: <History size={16}/> }
-                   ].map(tab => {
-                     const isA = activeCalendarTab === tab.id;
-                     return (
-                       <button 
-                        key={tab.id}
-                        onClick={() => { setActiveCalendarTab(tab.id as any); setCurrentPageCalendar(1); }}
-                        style={{ 
-                          flex: 1, padding: '0.75rem', borderRadius: '0.75rem', border: 'none', 
-                          background: isA ? 'white' : 'transparent', 
-                          color: isA ? 'var(--color-primary)' : 'var(--color-outline)',
-                          fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                          boxShadow: isA ? 'var(--shadow-sm)' : 'none',
-                          transition: 'all 0.3s ease'
-                        }}
-                       >
-                         {tab.icon} {tab.label}
-                       </button>
-                     );
-                   })}
+                <div style={{ display: 'flex', padding: '0 1.5rem 1rem', gap: '0.5rem' }}>
+                   <button 
+                    onClick={() => { setActiveCalendarTab('pasadas'); setCurrentPageCalendar(1); }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeCalendarTab === 'pasadas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeCalendarTab === 'pasadas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+                      Pasadas
+                   </button>
+                   <button 
+                    onClick={() => { setActiveCalendarTab('proximas'); setCurrentPageCalendar(1); }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeCalendarTab === 'proximas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeCalendarTab === 'proximas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+                      Programadas
+                   </button>
                 </div>
 
-                <div style={{ padding: '1.5rem', maxHeight: '55vh', overflowY: 'auto' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1.5rem' }}>
                   {(() => {
                     const pasadas = resumen.calendario.filter((s: any) => s.estado !== 'PROGRAMADO').reverse();
                     const proximas = resumen.calendario.filter((s: any) => s.estado === 'PROGRAMADO');
@@ -393,10 +268,10 @@ export default function PortalFamiliar() {
 
                     if (listaActual.length === 0) {
                       return (
-                        <div style={{ padding: '4rem 1rem', textAlign: 'center' }}>
-                            <Calendar size={48} color="var(--color-outline-variant)" style={{ marginBottom: '1.25rem', opacity: 0.3 }} />
-                            <p style={{ fontWeight: 700, color: 'var(--color-outline)', fontSize: '0.9rem' }}>
-                              {activeCalendarTab === 'proximas' ? 'No hay más clases programadas este mes.' : 'Aún no se han registrado asistencias.'}
+                        <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
+                            <Calendar size={40} color="var(--color-outline-variant)" style={{ marginBottom: '1rem', opacity: 0.4 }} />
+                            <p style={{ color: 'var(--color-outline)', fontWeight: 500, fontSize: '0.9rem' }}>
+                              {activeCalendarTab === 'proximas' ? 'No hay más clases programadas.' : 'Aún no se han registrado asistencias.'}
                             </p>
                         </div>
                       );
@@ -404,60 +279,69 @@ export default function PortalFamiliar() {
 
                     return (
                       <>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                           {listaActual
                             .slice((currentPageCalendar - 1) * CALENDAR_ITEMS_PER_PAGE, currentPageCalendar * CALENDAR_ITEMS_PER_PAGE)
-                            .map((s: any) => (
-                            <div key={s.id} className="animate-enter" style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-dim)', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
-                               <div style={{ width: '3.5rem', textAlign: 'center', borderRight: '1.2px solid var(--color-surface-container-high)', paddingRight: '1rem' }}>
-                                  <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
-                                  <p style={{ margin: '0.1rem 0 0', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
-                                    {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
-                                  </p>
-                               </div>
-                               <div style={{ flex: 1 }}>
-                                  <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{s.club}</p>
-                                  <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>{s.tema}</p>
-                               </div>
-                               <div style={{ 
-                                 padding: '0.45rem 0.85rem', borderRadius: '0.8rem', fontSize: '0.65rem', fontWeight: 900,
-                                 background: s.asistio ? 'var(--color-success-container)' : (s.estado === 'PENDIENTE' ? 'var(--color-surface-container-high)' : (s.estado === 'PROGRAMADO' ? 'var(--color-primary-container)' : 'var(--color-error-container)')),
-                                 color: s.asistio ? 'var(--color-success)' : (s.estado === 'PENDIENTE' ? 'var(--color-primary)' : (s.estado === 'PROGRAMADO' ? 'white' : 'var(--color-error)'))
-                               }}>
-                                 {s.asistio ? 'ASISTIÓ' : s.estado}
-                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            .map((s: any) => {
+                                let bg = 'var(--color-surface-container-high)';
+                                let fg = 'var(--color-primary)';
+                                let text = s.estado;
+                                if (s.asistio) {
+                                    bg = '#DCFCE7'; fg = '#166534'; text = 'ASISTIÓ';
+                                } else if (s.estado === 'FALTO' || s.estado === 'FALTÓ' || s.estado === 'AUSENTE') {
+                                    bg = '#FEE2E2'; fg = '#991B1B'; text = 'FALTÓ';
+                                } else if (s.estado === 'JUSTIFICADO' || s.estado === 'EXCUSADO') {
+                                    bg = '#FEF9C3'; fg = '#854D0E'; text = 'JUSTIFICADO';
+                                } else if (s.estado === 'PROGRAMADO') {
+                                    bg = 'var(--color-surface-container-high)'; fg = 'var(--color-outline)'; text = 'PROGRAMADO';
+                                }
 
-                        {/* PAGINACIÓN MODAL */}
+                                return (
+                                <div key={s.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-container-low)', borderRadius: '0.75rem' }}>
+                                   <div style={{ width: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                      <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
+                                      <p style={{ margin: '0.1rem 0 0', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
+                                        {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
+                                      </p>
+                                   </div>
+                                   <div style={{ flex: 1, borderLeft: '1px solid var(--color-surface-container-high)', paddingLeft: '1rem' }}>
+                                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{s.club}</p>
+                                      <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-outline)' }}>{s.tema || 'Sesión Regular'}</p>
+                                   </div>
+                                   <div style={{ 
+                                     padding: '0.25rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700,
+                                     background: bg, color: fg
+                                   }}>
+                                     {text}
+                                   </div>
+                                </div>
+                              );
+                          })}
+                        </div>
                         {totalPaginas > 1 && (
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1.5rem', alignItems: 'center' }}>
                               <button 
                                 disabled={currentPageCalendar === 1}
                                 onClick={() => setCurrentPageCalendar(p => Math.max(1, p - 1))}
-                                style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === 1 ? 0.3 : 1 }}
+                                style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid var(--color-surface-container-high)', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: currentPageCalendar === 1 ? 'not-allowed' : 'pointer', opacity: currentPageCalendar === 1 ? 0.5 : 1 }}
                               >
-                                <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
+                                <ChevronRight size={16} style={{ transform: 'rotate(180deg)' }} />
                               </button>
-                              <div style={{ background: 'var(--color-surface-dim)', borderRadius: '99px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                                {currentPageCalendar} <span style={{ opacity: 0.4 }}>/</span> {totalPaginas}
-                              </div>
+                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-outline)' }}>
+                                {currentPageCalendar} de {totalPaginas}
+                              </span>
                               <button 
                                 disabled={currentPageCalendar === totalPaginas}
                                 onClick={() => setCurrentPageCalendar(p => Math.min(totalPaginas, p + 1))}
-                                style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.8rem', border: 'none', background: 'var(--color-surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', opacity: currentPageCalendar === totalPaginas ? 0.3 : 1 }}
+                                style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid var(--color-surface-container-high)', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: currentPageCalendar === totalPaginas ? 'not-allowed' : 'pointer', opacity: currentPageCalendar === totalPaginas ? 0.5 : 1 }}
                               >
-                                <ChevronRight size={18} />
+                                <ChevronRight size={16} />
                               </button>
                           </div>
                         )}
                       </>
                     );
                   })()}
-                </div>
-                <div style={{ padding: '1.5rem', borderTop: '1px solid var(--color-surface-container-high)', textAlign: 'center' }}>
-                   <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Los horarios específicos se coordinan con el docente del club.</p>
                 </div>
               </div>
             </div>
@@ -481,51 +365,21 @@ export default function PortalFamiliar() {
                     </button>
                 </div>
               </div>
-              <div style={{ position: 'relative' }}>
-                <div style={{ width: '4rem', height: '4rem', borderRadius: '1.2rem', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--color-surface-container-high)', boxShadow: 'var(--shadow-md)' }}>
-                    <Users size={24} color="var(--color-primary)" />
-                </div>
-                <div style={{ position: 'absolute', top: -4, right: -4, width: 12, height: 12, borderRadius: '50%', background: 'var(--color-success)', border: '2.5px solid white' }}></div>
-              </div>
             </div>
           </section>
 
 
 
-          {/* LOGROS (Premium Badges) */}
-          <section style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
-              Evolución y Logros
-            </h3>
-            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
-              {resumen.logros.map((logro, i) => {
-                const colors = ['gold', 'silver', 'bronze'];
-                const badgeClass = `badge-${colors[i % 3]}`;
-                return (
-                    <div key={i} className="bento-card animate-enter" style={{ minWidth: '180px', animationDelay: `${i * 0.1}s`, padding: '1.5rem' }}>
-                      <div className={`badge-premium ${badgeClass}`} style={{ marginBottom: '1.25rem' }}>
-                        <span style={{ fontSize: '1.5rem' }}>{logro.icon}</span>
-                      </div>
-                      <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{logro.titulo}</p>
-                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600, lineHeight: 1.3 }}>{logro.desc}</p>
-                    </div>
-                );
-              })}
-              {resumen.logros.length === 0 && (
-                  <div className="bento-card" style={{ minWidth: '180px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--color-outline-variant)', background: 'none' }}>
-                    <Trophy size={32} color="var(--color-outline-variant)" style={{ marginBottom: '0.75rem', opacity: 0.3 }} />
-                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textAlign: 'center' }}>Nuevos desafíos próximamente</p>
-                  </div>
-              )}
-            </div>
-          {/* ESTATUS DE DESEMPEÑO (Premium Stats) */}
-          <section style={{ marginBottom: '2.5rem' }}>
-            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
-              Estatus de Desempeño
-            </h3>
-            <div className="bento-card" style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', background: 'var(--grad-primary)', color: 'white' }}>
+          {/* ESTATUS DE DESEMPEÑO Y RACHA */}
+          <section style={{ marginBottom: '2.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Tarjeta Desempeño */}
+            <div 
+              onClick={() => setShowDesempenoModal(true)}
+              className="bento-card" 
+              style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', background: 'var(--grad-primary)', color: 'white', cursor: 'pointer', transition: 'transform 0.2s', position: 'relative', overflow: 'hidden' }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
                <div style={{ position: 'relative', width: '6rem', height: '6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg style={{ position: 'absolute', transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
                      <circle cx="3rem" cy="3rem" r="2.5rem" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
@@ -533,25 +387,107 @@ export default function PortalFamiliar() {
                   </svg>
                   <span style={{ fontSize: '1.4rem', fontWeight: 900 }}>{resumen.performance.puntuacion}%</span>
                </div>
-               <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>Nivel de Disciplina</p>
+               <div style={{ flex: 1, zIndex: 1 }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>Nivel Institucional</p>
                   <h4 style={{ margin: '0.2rem 0 0.5rem', fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.04em' }}>{resumen.performance.nivel}</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, opacity: 0.9, lineHeight: 1.4 }}>
-                     {resumen.alumno.nombre} ha completado {resumen.performance.totalAsistencias} sesiones con éxito este ciclo.
+                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, opacity: 0.9, lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                     Ver cumplimiento <ChevronRight size={14} />
                   </p>
                </div>
             </div>
+
+            {/* Tarjeta Racha */}
+            <div 
+              onClick={() => setShowRachaModal(true)}
+              className="bento-card" 
+              style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'white', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid var(--color-surface-container-high)' }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+               <div style={{ width: '4.5rem', height: '4.5rem', borderRadius: '1.2rem', background: 'var(--color-secondary-container)', color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Zap size={32} fill="currentColor" />
+               </div>
+               <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Compromiso</p>
+                  <h4 style={{ margin: '0.2rem 0 0.5rem', fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--color-primary)' }}>Racha: {resumen.performance.racha || 0} Sesiones</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-secondary)' }}>
+                     Excelencia en compromiso
+                  </p>
+               </div>
+               <ChevronRight size={24} color="var(--color-outline-variant)" />
+            </div>
           </section>
 
-          {/* ASISTENCIA (Track Lineal) */}
+          {/* MODAL DESEMPEÑO */}
+          {showDesempenoModal && (
+            <div onClick={() => setShowDesempenoModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div onClick={(e) => e.stopPropagation()} className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '400px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                  <div style={{ width: '4rem', height: '4rem', background: 'var(--color-primary-container)', color: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                    <Target size={32} />
+                  </div>
+                  <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)' }}>Cumplimiento Integral</h3>
+                  <p style={{ margin: '0 0 2rem', fontSize: '0.9rem', color: 'var(--color-outline)', lineHeight: 1.5 }}>
+                    Este porcentaje representa el compromiso global de {resumen.alumno.nombre} con las normas de la institución, reflejando su responsabilidad y participación en todas las actividades.
+                  </p>
+
+                  <div style={{ background: 'var(--color-surface-container-low)', padding: '1.5rem', borderRadius: '1.25rem', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '0.9rem' }}>Nivel de Cumplimiento</span>
+                      <span style={{ fontWeight: 900, color: 'var(--color-secondary)', fontSize: '1.1rem' }}>{resumen.performance.puntuacion}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '12px', background: 'var(--color-surface-container-high)', borderRadius: '99px', overflow: 'hidden' }}>
+                      <div style={{ width: `${resumen.performance.puntuacion}%`, height: '100%', background: 'var(--grad-primary)', borderRadius: '99px' }}></div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ padding: '1rem', borderTop: '1px solid var(--color-surface-container-high)' }}>
+                  <button onClick={() => setShowDesempenoModal(false)} style={{ width: '100%', padding: '1rem', background: 'var(--color-surface-dim)', color: 'var(--color-primary)', border: 'none', borderRadius: '1rem', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer' }}>
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL RACHA */}
+          {showRachaModal && (
+            <div onClick={() => setShowRachaModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div onClick={(e) => e.stopPropagation()} className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '360px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+                <div style={{ padding: '2.5rem 2rem 2rem', textAlign: 'center' }}>
+                  <div style={{ width: '5rem', height: '5rem', background: 'var(--color-secondary-container)', color: 'var(--color-secondary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                    <Zap size={40} fill="currentColor" />
+                  </div>
+                  <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>{resumen.performance.racha || 0} Clases Seguidas</h3>
+                  <p style={{ margin: '0 0 1.5rem', fontSize: '0.95rem', color: 'var(--color-outline)', lineHeight: 1.5 }}>
+                    ¡Excelente compromiso! Mantener una racha demuestra responsabilidad, constancia y dedicación.
+                  </p>
+                </div>
+                <div style={{ padding: '1rem', borderTop: '1px solid var(--color-surface-container-high)' }}>
+                  <button onClick={() => setShowRachaModal(false)} style={{ width: '100%', padding: '1rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '1rem', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer' }}>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ASISTENCIA (Tarjetas Grid) */}
           <section style={{ marginBottom: '2rem' }}>
             <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ width: 15, height: 2, background: 'var(--color-secondary)' }}></div>
               Asistencia por Club
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
               {resumen.clubes.map((club: any) => (
-                <div key={club.id} className="bento-card" style={{ padding: '1.5rem' }}>
+                <div 
+                  key={club.id} 
+                  onClick={() => { setSelectedClubId(club.id); setShowClubModal(true); setActiveClubTab('pasadas'); }}
+                  className="bento-card" 
+                  style={{ padding: '1.5rem', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid var(--color-surface-container-high)' }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
                     <div>
                       <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.15rem', color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{club.nombre}</h4>
@@ -568,30 +504,24 @@ export default function PortalFamiliar() {
                     </div>
                   </div>
 
-                  {/* Track Moderno */}
                   <div style={{ background: 'var(--color-surface-container-low)', padding: '1rem', borderRadius: '1.2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Historial Reciente</span>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                            {club.asistencias.map((_: any, idx: number) => (
-                                <div key={idx} style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--color-outline-variant)' }}></div>
-                            ))}
-                        </div>
+                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimas 5 sesiones</span>
+                        <ChevronRight size={14} color="var(--color-outline-variant)" />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
                         {club.asistencias.map((asistio: boolean, i: number) => (
                             <div key={i} style={{ 
-                                flex: 1, height: '1.75rem', borderRadius: '0.6rem', 
+                                flex: 1, height: '1.5rem', borderRadius: '0.5rem', 
                                 background: asistio ? 'var(--color-success)' : 'var(--color-error)', 
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: asistio ? '0 4px 10px rgba(46,125,50,0.2)' : 'none',
-                                opacity: 0.95
+                                boxShadow: asistio ? '0 2px 8px rgba(46,125,50,0.2)' : 'none',
                             }}>
-                                {asistio ? <CheckCircle2 size={14} color="white" /> : <XCircle size={14} color="white" />}
+                                {asistio ? <CheckCircle2 size={12} color="white" /> : <XCircle size={12} color="white" />}
                             </div>
                         ))}
-                        {[...Array(5 - club.asistencias.length)].map((_, i) => (
-                            <div key={i + 10} style={{ flex: 1, height: '1.75rem', borderRadius: '0.6rem', background: 'var(--color-surface-dim)', opacity: 0.3 }} />
+                        {[...Array(5 - (club.asistencias?.length || 0))].map((_, i) => (
+                            <div key={i + 10} style={{ flex: 1, height: '1.5rem', borderRadius: '0.5rem', background: 'var(--color-surface-dim)', opacity: 0.5 }} />
                         ))}
                     </div>
                   </div>
@@ -604,7 +534,90 @@ export default function PortalFamiliar() {
               )}
             </div>
           </section>
-  </section>
+
+          {/* MODAL ASISTENCIA POR CLUB */}
+          {showClubModal && selectedClubId && (() => {
+             const clubInfo = resumen.clubes.find((c: any) => c.id === selectedClubId);
+             const calendarioClub = resumen.calendario.filter((s: any) => s.club === clubInfo?.nombre);
+             const pasadas = calendarioClub.filter((s: any) => s.estado !== 'PROGRAMADO').reverse();
+             const programadas = calendarioClub.filter((s: any) => s.estado === 'PROGRAMADO');
+             const listaMostrada = activeClubTab === 'pasadas' ? pasadas : programadas;
+
+             return (
+              <div onClick={() => setShowClubModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                <div onClick={(e) => e.stopPropagation()} className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+                  <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{clubInfo?.nombre}</h3>
+                      <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 500 }}>Registro de Asistencia</p>
+                    </div>
+                    <button onClick={() => setShowClubModal(false)} style={{ background: 'white', border: '1px solid var(--color-surface-container-high)', borderRadius: '50%', width: '2rem', height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}>
+                      <XCircle size={18} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', padding: '0 1.5rem 1rem', gap: '0.5rem' }}>
+                     <button 
+                      onClick={() => setActiveClubTab('pasadas')}
+                      style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeClubTab === 'pasadas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeClubTab === 'pasadas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        Pasadas
+                     </button>
+                     <button 
+                      onClick={() => setActiveClubTab('proximas')}
+                      style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeClubTab === 'proximas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeClubTab === 'proximas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+                        Programadas
+                     </button>
+                  </div>
+
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1.5rem' }}>
+                    {listaMostrada.length === 0 ? (
+                      <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
+                         <Calendar size={40} color="var(--color-outline-variant)" style={{ marginBottom: '1rem', opacity: 0.4 }} />
+                         <p style={{ color: 'var(--color-outline)', fontWeight: 500, fontSize: '0.9rem' }}>No hay clases {activeClubTab} registradas.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {listaMostrada.map((s: any) => {
+                            let bg = 'var(--color-surface-container-high)';
+                            let fg = 'var(--color-primary)';
+                            let text = s.estado;
+                            if (s.asistio) {
+                                bg = '#DCFCE7'; fg = '#166534'; text = 'ASISTIÓ';
+                            } else if (s.estado === 'FALTO' || s.estado === 'FALTÓ' || s.estado === 'AUSENTE') {
+                                bg = '#FEE2E2'; fg = '#991B1B'; text = 'FALTÓ';
+                            } else if (s.estado === 'JUSTIFICADO' || s.estado === 'EXCUSADO') {
+                                bg = '#FEF9C3'; fg = '#854D0E'; text = 'JUSTIFICADO';
+                            } else if (s.estado === 'PROGRAMADO') {
+                                bg = 'var(--color-surface-container-high)'; fg = 'var(--color-outline)'; text = 'PROGRAMADO';
+                            }
+
+                            return (
+                              <div key={s.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-container-low)', borderRadius: '0.75rem' }}>
+                                <div style={{ width: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                  <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
+                                  <p style={{ margin: '0.1rem 0 0', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
+                                    {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
+                                  </p>
+                                </div>
+                                <div style={{ flex: 1, borderLeft: '1px solid var(--color-surface-container-high)', paddingLeft: '1rem' }}>
+                                  <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{s.tema || 'Sesión Realizada'}</p>
+                                </div>
+                                <div style={{ 
+                                  padding: '0.25rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700,
+                                  background: bg, color: fg
+                                }}>
+                                  {text}
+                                </div>
+                              </div>
+                            );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+             );
+          })()}
         </div>
       )}
 
