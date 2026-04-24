@@ -3127,6 +3127,9 @@ function formatHorarioShort(horario: any): string {
 
   if (!parsed || typeof parsed !== 'object') return 'Por definir';
 
+  // Si viene del script de siembra con formato texto libre
+  if (parsed.texto) return parsed.texto;
+
   const daysOrdered = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   const activeDays = daysOrdered.filter(d => parsed[d]);
 
