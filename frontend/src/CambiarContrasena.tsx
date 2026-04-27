@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
+import { API_BASE_URL } from './config';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const API = API_BASE_URL;
 
 export default function CambiarContrasena() {
   const { usuario, login } = useUser();
