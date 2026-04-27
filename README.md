@@ -38,11 +38,7 @@ El sistema viene con una base de datos precargada (Seed) con perfiles de prueba.
 
 | Rol | Usuario (DNI) | Contraseña | Perfil de Prueba |
 | :--- | :--- | :--- | :--- |
-| **Administrador** | `ADM-001` | `admin123` | Carlos Mendoza (Director) |
-| **Profesor** | `PROF-001` | `prof123` | Juan Perez (Fútbol/Ajedrez) |
-| **Padre** | `PAD-001` | `padre123` | Alberto Benitez |
-
-*También puedes probar con `PROF-002`/`prof123` o `PAD-002`/`padre123` para ver diferentes datos.*
+| **Administrador** | `43285174` | `123456 (default)` | Juan Francisco Lippe Guzmán (Encargado de clubes) |
 
 ---
 
