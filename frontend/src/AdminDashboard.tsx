@@ -624,6 +624,19 @@ export default function AdminDashboard() {
     finally { setSavingPersona(false); }
   };
 
+  const handleDeleteAlumno = async (id: number) => {
+    try {
+      const res = await fetch(`${API}/admin/alumnos/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchAlumnos();
+        fetchMetricas();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Error al eliminar alumno');
+      }
+    } catch { alert('Error de red'); }
+  };
+
   // ── Render ────────────────────────────────────────────────────
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '70vh', flexDirection: 'column', gap: '1rem' }}>
@@ -1128,6 +1141,22 @@ export default function AdminDashboard() {
                           <div style={{ display: 'flex', gap: '0.4rem' }}>
                             <button onClick={() => setModalAlumno(alumno)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
                               <Edit2 size={15} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setConfirmModal({
+                                  show: true,
+                                  title: 'Eliminar Alumno',
+                                  message: `¿Estás seguro de que deseas eliminar permanentemente a ${alumno.nombre} ${alumno.apellido}? Esta acción no se puede deshacer y eliminará todas sus inscripciones y registros asociados.`,
+                                  type: 'DANGER',
+                                  icon: <UserX size={32} color="var(--color-error)" />,
+                                  onConfirm: () => handleDeleteAlumno(alumno.id)
+                                });
+                              }}
+                              title="Eliminar Alumno"
+                              style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}
+                            >
+                              <Trash2 size={15} />
                             </button>
                           </div>
                         </div>
