@@ -27,8 +27,8 @@ La forma más sencilla de ejecutar este proyecto es utilizando **Docker Compose*
    *Nota: La primera vez puede tardar unos minutos. El backend esperará automáticamente a que la base de datos esté lista para aplicar el esquema y cargar los datos de prueba.*
 
 3. **Acceder a la aplicación:**
-   - **Plataforma (Frontend/PWA):** [http://localhost:5173](http://localhost:5173)
-   - **API (Backend - vía Proxy):** [http://localhost:5173/api](http://localhost:5173/api)
+   - **Plataforma (Frontend/PWA):** [http://localhost:5174](http://localhost:5174)
+   - **API (Backend - vía Proxy):** [http://localhost:5174/api](http://localhost:5174/api)
 
 ---
 
@@ -46,7 +46,7 @@ El sistema viene con una base de datos precargada (Seed) con perfiles de prueba.
 
 - **MySQL-DB**: Base de datos persistente en un volumen persistente.
 - **Backend (NestJS)**: Corre en el puerto interno 3000. Usa `prisma db push` para sincronizar el esquema automáticamente en cada inicio.
-- **Frontend (React + Vite + Nginx)**: Expuesto en el puerto **5173**. Nginx actúa como proxy inverso, redirigiendo todas las peticiones a `/api/*` directamente al contenedor del backend.
+- **Frontend (React + Vite + Nginx)**: Expuesto en el puerto **5174**. Nginx actúa como proxy inverso, redirigiendo todas las peticiones a `/api/*` directamente al contenedor del backend.
 
 ---
 
