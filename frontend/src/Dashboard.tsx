@@ -12,17 +12,44 @@ import { API_BASE_URL } from './config';
 const API = API_BASE_URL;
 
 // ── Helpers ────────────────────────────────────────────────────
+function normalizeDay(dia: string) {
+  if (!dia) return '';
+  const d = dia.toLowerCase();
+  if (d.includes('lun')) return 'Lunes';
+  if (d.includes('mar')) return 'Martes';
+  if (d.includes('mi') || d.includes('mirc')) return 'Miércoles';
+  if (d.includes('jue')) return 'Jueves';
+  if (d.includes('vie')) return 'Viernes';
+  if (d.includes('s') || d.includes('sba')) return 'Sábado';
+  if (d.includes('d') || d.includes('dom')) return 'Domingo';
+  return dia;
+}
+
 function formatHorarioShort(horario: any): string {
-  if (!horario) return '';
-  const dias = Object.keys(horario);
-  if (dias.length === 0) return '';
+  if (!horario) return 'Por definir';
+  let h = horario;
+  if (typeof h === 'string') {
+    try { h = JSON.parse(h); } catch { return 'Error horario'; }
+  }
+  if (!h || typeof h !== 'object') return 'Por definir';
+  if (h.texto) return h.texto;
+
+  const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const dias = Object.keys(h).filter(d => DIAS_VALIDOS.includes(normalizeDay(d)));
+  
+  if (dias.length === 0) return 'Sin horario';
 
   if (dias.length === 1) {
     const d = dias[0];
-    return `${d.slice(0, 3)} ${horario[d].start}-${horario[d].end}`;
+    const conf = h[d];
+    if (!conf || !conf.start) return 'Sin horario';
+    return `${d.slice(0, 3)} ${conf.start}-${conf.end}`;
   }
 
-  const times = dias.map(d => `${horario[d].start}-${horario[d].end}`);
+  const validSessions = dias.map(d => h[d]).filter(conf => conf && conf.start);
+  if (validSessions.length === 0) return 'Sin horario';
+
+  const times = validSessions.map(conf => `${conf.start}-${conf.end}`);
   const allSame = times.every(t => t === times[0]);
 
   if (allSame) {
@@ -30,7 +57,8 @@ function formatHorarioShort(horario: any): string {
     return `${diasStr} ${times[0]}`;
   }
 
-  return `${dias[0].slice(0, 3)} ${horario[dias[0]].start}+`;
+  const d = dias[0];
+  return `${d.slice(0, 3)} ${h[d].start}+`;
 }
 
 function formatHorarioFull(horario: any): string {
@@ -39,14 +67,21 @@ function formatHorarioFull(horario: any): string {
   if (typeof h === 'string') {
     try { h = JSON.parse(h); } catch { return 'Horario inválido'; }
   }
-  const dias = Object.keys(h);
+  if (!h || typeof h !== 'object') return 'Sin horario';
+  if (h.texto) return h.texto;
+
+  const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const dias = Object.keys(h).filter(d => DIAS_VALIDOS.includes(normalizeDay(d)));
+  
   if (dias.length === 0) return 'Sin horario';
   
   return dias.map(d => {
-    const s = h[d].start || '';
-    const e = h[d].end || '';
+    const conf = h[d];
+    if (!conf || !conf.start) return '';
+    const s = conf.start || '';
+    const e = conf.end || '';
     return `${d.slice(0, 3)} ${s}-${e}`;
-  }).join(' • ');
+  }).filter(Boolean).join(' • ');
 }
 
 function getActiveClubs(clubes: any[]) {
@@ -56,9 +91,14 @@ function getActiveClubs(clubes: any[]) {
   const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
   return clubes.filter(club => {
-    if (!club.horario || !club.horario[currentDay]) return false;
-    const { start, end } = club.horario[currentDay];
-    return currentTime >= start && currentTime <= end;
+    if (!club.horario) return false;
+    const dayKey = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
+    if (!dayKey) return false;
+    
+    const conf = club.horario[dayKey];
+    if (!conf || !conf.start || !conf.end) return false;
+    
+    return currentTime >= conf.start && currentTime <= conf.end;
   });
 }
 
@@ -139,18 +179,6 @@ export default function Dashboard() {
     const endMin = timeToMinutes(end);
     return ((endMin - startMin) / 60) * ROW_HEIGHT;
   };
-  const normalizeDay = (dia: string) => {
-    if (!dia) return '';
-    const d = dia.toLowerCase();
-    if (d.includes('lun')) return 'Lunes';
-    if (d.includes('mar')) return 'Martes';
-    if (d.includes('mi') || d.includes('mirc')) return 'Miércoles';
-    if (d.includes('jue')) return 'Jueves';
-    if (d.includes('vie')) return 'Viernes';
-    if (d.includes('s') || d.includes('sba')) return 'Sábado';
-    if (d.includes('d') || d.includes('dom')) return 'Domingo';
-    return dia;
-  };
   const getClubTheme = (clubName: string) => {
     const name = clubName.toLowerCase();
     if (name.includes('fút') || name.includes('fut')) return { grad: 'linear-gradient(135deg, #1e40af, #3b82f6)', main: '#3b82f6' };
@@ -181,15 +209,22 @@ export default function Dashboard() {
   // ── Sesiones Ordenadas para el Timeline de Inicio ──
   const allSessions = useMemo(() => {
     const sessions: any[] = [];
+    const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
     clubes.forEach(club => {
       if (club.horario) {
         Object.keys(club.horario).forEach(dia => {
           const normalized = normalizeDay(dia);
+          if (!DIAS_VALIDOS.includes(normalized)) return; // Ignorar 'texto' u otros campos
+          
+          const config = club.horario[dia];
+          if (!config || !config.start) return;
+
           sessions.push({
             id: club.id,
             nombre: club.nombre,
             dia: normalized,
-            config: club.horario[dia]
+            config: config
           });
         });
       }
@@ -200,7 +235,9 @@ export default function Dashboard() {
     return sessions.sort((a, b) => {
       const dayDiff = (dayOrder[a.dia] || 9) - (dayOrder[b.dia] || 9);
       if (dayDiff !== 0) return dayDiff;
-      return a.config.start.localeCompare(b.config.start);
+      const startA = a.config?.start || '';
+      const startB = b.config?.start || '';
+      return startA.localeCompare(startB);
     });
   }, [clubes]);
 

@@ -59,6 +59,7 @@ model Club {
   id          Int      @id @default(autoincrement())
   nombre      String
   descripcion String?
+  precio      Float    @default(50)
   
   horario     Json?
   

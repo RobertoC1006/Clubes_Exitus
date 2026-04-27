@@ -292,7 +292,7 @@ export class PadreService {
             alumnoNombre: `${alumno.nombre} ${alumno.apellido}`,
             clubId: ins.club.id,
             clubNombre: ins.club.nombre,
-            monto: 50.00, // Precio sugerido por el usuario
+            monto: ins.club.precio,
             mes: mesActual
           });
         }
