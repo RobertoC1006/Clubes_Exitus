@@ -31,6 +31,7 @@ interface ClubMetrica {
   id: number; nombre: string; descripcion: string | null;
   profesorId: number; profesor: string; inscritos: number; asistencia: number;
   horario: any | null;
+  precio: number;
 }
 interface Profesor {
   id: number;
@@ -70,11 +71,12 @@ function ClubModal({
 }: {
   club: Partial<ClubMetrica> | null;
   profesores: Profesor[];
-  onSave: (data: { nombre: string; descripcion: string; profesorId: number; horario: any }) => void;
+  onSave: (data: { nombre: string; descripcion: string; precio: number; profesorId: number; horario: any }) => void;
   onClose: () => void;
 }) {
   const [nombre, setNombre] = useState(club?.nombre ?? '');
   const [desc, setDesc] = useState(club?.descripcion ?? '');
+  const [precio, setPrecio] = useState<number>(club?.precio ?? 50);
   const [profId, setProfId] = useState<number>(club?.profesorId ?? (profesores[0]?.id ?? 0));
 
   // Horario inicial: Lunes a Domingo desactivado por defecto
@@ -122,7 +124,7 @@ function ClubModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim() || !profId) return;
-    onSave({ nombre, descripcion: desc, profesorId: profId, horario });
+    onSave({ nombre, descripcion: desc, precio, profesorId: profId, horario });
   };
 
   return (
@@ -169,6 +171,13 @@ function ClubModal({
               <label style={labelStyle}>Resumen / Descripción</label>
               <input value={desc} onChange={e => setDesc(e.target.value)}
                 placeholder="Breve descripción..."
+                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Precio Mensual (S/)</label>
+              <input type="number" value={precio} onChange={e => setPrecio(Number(e.target.value))}
+                placeholder="Ej: 50" required min="0"
                 style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
             </div>
 
@@ -502,7 +511,7 @@ export default function AdminDashboard() {
   useEffect(() => { if (tab === 'personas') { fetchAlumnos(); fetchProfesores(); } }, [tab]);
 
   // ── CRUD Clubes ──────────────────────────────────────────────
-  const handleSaveClub = async (data: { nombre: string; descripcion: string; profesorId: number; horario: any }) => {
+  const handleSaveClub = async (data: { nombre: string; descripcion: string; precio: number; profesorId: number; horario: any }) => {
     const isEdit = modalClub && 'id' in modalClub && modalClub.id;
     const url = isEdit ? `${API}/admin/clubes/${modalClub.id}` : `${API}/admin/clubes`;
     const method = isEdit ? 'PUT' : 'POST';
@@ -896,6 +905,7 @@ export default function AdminDashboard() {
                     <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
                       <Pill icon={<UserCheck size={12} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
                       <Pill icon={<Users size={12} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
+                      <Pill icon={<CreditCard size={12} />} label={`S/ ${club.precio?.toFixed(2) ?? '50.00'}`} bg="var(--color-success-container)" color="var(--color-success)" />
                       {club.horario && (
                         <Pill icon={<Calendar size={12} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
                       )}
