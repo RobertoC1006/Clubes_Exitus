@@ -16,7 +16,7 @@ La forma más sencilla de ejecutar este proyecto es utilizando **Docker Compose*
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone <url-de-tu-repositorio>
+   git clone <https://github.com/RobertoC1006/Clubes_Exitus>
    cd Clubes_Exitus
    ```
 
