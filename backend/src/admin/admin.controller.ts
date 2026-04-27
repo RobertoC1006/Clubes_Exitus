@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Put, Delete,
+  Controller, Get, Post, Put, Patch, Delete,
   Param, Body, ParseIntPipe, Query, Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -60,7 +60,7 @@ export class AdminController {
 
   @Post('usuarios')
   createUsuario(
-    @Body() body: { nombre: string; apellido: string; email?: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string; password?: string },
+    @Body() body: { nombre: string; apellido: string; email?: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string; celular?: string },
   ) {
     return this.adminService.createUsuario(body);
   }
@@ -68,9 +68,22 @@ export class AdminController {
   @Put('usuarios/:id')
   updateUsuario(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { nombre?: string; apellido?: string; email?: string; rol?: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string },
+    @Body() body: { nombre?: string; apellido?: string; email?: string; rol?: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string; celular?: string },
   ) {
     return this.adminService.updateUsuario(id, body);
+  }
+
+  @Patch('usuarios/:id/reset-password')
+  resetPassword(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.resetPassword(id);
+  }
+
+  @Patch('usuarios/:id/status')
+  toggleUsuarioStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { estado: string },
+  ) {
+    return this.adminService.toggleUsuarioStatus(id, body.estado);
   }
 
   @Delete('usuarios/:id')

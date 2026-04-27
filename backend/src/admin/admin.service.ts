@@ -206,12 +206,12 @@ export class AdminService {
 
   async getUsuarios() {
     return this.prisma.usuario.findMany({
-      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
       orderBy: [{ rol: 'asc' }, { nombre: 'asc' }],
     });
   }
 
-  async createUsuario(data: { nombre: string; apellido: string; email?: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string; password?: string }) {
+  async createUsuario(data: { nombre: string; apellido: string; email?: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string; celular?: string }) {
     if (data.email) {
       const existe = await this.prisma.usuario.findUnique({ where: { email: data.email } });
       if (existe) throw new ConflictException(`El email ${data.email} ya está registrado`);
@@ -220,19 +220,40 @@ export class AdminService {
       const existe = await this.prisma.usuario.findUnique({ where: { dni: data.dni } });
       if (existe) throw new ConflictException(`El DNI ${data.dni} ya está registrado`);
     }
+    // La contraseña siempre es la default — el frontend no puede enviarla
     return this.prisma.usuario.create({
-      data,
-      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true },
+      data: { ...data, password: '123456', mustChangePassword: true, estado: 'Activado' },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
     });
   }
 
-  async updateUsuario(id: number, data: { nombre?: string; apellido?: string; email?: string; rol?: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string }) {
+  async updateUsuario(id: number, data: { nombre?: string; apellido?: string; email?: string; rol?: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni?: string; celular?: string }) {
     const existe = await this.prisma.usuario.findUnique({ where: { id } });
     if (!existe) throw new NotFoundException(`Usuario #${id} no encontrado`);
     return this.prisma.usuario.update({
       where: { id },
       data,
-      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
+    });
+  }
+
+  async resetPassword(id: number) {
+    const existe = await this.prisma.usuario.findUnique({ where: { id } });
+    if (!existe) throw new NotFoundException(`Usuario #${id} no encontrado`);
+    await this.prisma.usuario.update({
+      where: { id },
+      data: { password: '123456', mustChangePassword: true },
+    });
+    return { message: `Contraseña de ${existe.nombre} ${existe.apellido} reseteada correctamente` };
+  }
+
+  async toggleUsuarioStatus(id: number, estado: string) {
+    const existe = await this.prisma.usuario.findUnique({ where: { id } });
+    if (!existe) throw new NotFoundException(`Usuario #${id} no encontrado`);
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { estado },
+      select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
     });
   }
 
