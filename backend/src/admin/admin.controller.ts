@@ -47,6 +47,30 @@ export class AdminController {
     return this.adminService.asignarProfesor(clubId, body.profesorId);
   }
 
+  // ── AULAS ────────────────────────────────────────
+  @Get('aulas')
+  getAulas() {
+    return this.adminService.getAulas();
+  }
+
+  @Post('aulas')
+  createAula(@Body() body: { nombre: string; latitud: number; longitud: number; radioPermitido?: number; codigoContingencia?: string }) {
+    return this.adminService.createAula(body);
+  }
+
+  @Put('aulas/:id')
+  updateAula(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { nombre?: string; latitud?: number; longitud?: number; radioPermitido?: number; codigoContingencia?: string },
+  ) {
+    return this.adminService.updateAula(id, body);
+  }
+
+  @Delete('aulas/:id')
+  deleteAula(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteAula(id);
+  }
+
   // ── USUARIOS ─────────────────────────────────────
   @Get('profesores')
   getProfesores() {
@@ -142,5 +166,18 @@ export class AdminController {
   @Get('clubes/:id/sesiones')
   getClubSesiones(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.getClubSesiones(id);
+  }
+
+  @Get('asistencia-docente')
+  getAsistenciaDocente(
+    @Query('profesorId') profesorId?: string,
+    @Query('inicio') inicio?: string,
+    @Query('fin') fin?: string,
+  ) {
+    return this.adminService.getAsistenciaDocente({
+      profesorId: profesorId ? parseInt(profesorId) : undefined,
+      inicio,
+      fin,
+    });
   }
 }

@@ -20,6 +20,12 @@ enum EstadoAsistencia {
   JUSTIFICADO
 }
 
+enum AsistenciaDocente {
+  PUNTUAL
+  TARDE
+  AUSENTE
+}
+
 enum RolUsuario {
   ADMINISTRADOR
   PROFESOR
@@ -118,10 +124,34 @@ model Sesion {
   clubId    Int
   club      Club     @relation(fields: [clubId], references: [id])
   
+  // --- Campos Asistencia Docente ---
+  asistenciaDocente    AsistenciaDocente?
+  horaMarcajeDocente   DateTime?
+  latitudDocente       Float?
+  longitudDocente      Float?
+  
+  aulaId               Int?
+  aula                 Aula?    @relation(fields: [aulaId], references: [id])
+  // ---------------------------------
+
   asistencias Asistencia[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Aula {
+  id                Int      @id @default(autoincrement())
+  nombre            String   // Ej: "Aula 203", "Campo 1"
+  latitud           Float
+  longitud          Float
+  radioPermitido    Int      @default(7) // En metros
+  codigoContingencia String?  // Código manual para emergencias
+
+  sesiones          Sesion[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 // El registro exacto de si vino o no vino

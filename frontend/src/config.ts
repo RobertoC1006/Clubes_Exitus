@@ -4,7 +4,7 @@
 
 const getApiUrl = () => {
   if (!import.meta.env.DEV) return '/api';
-  
+
   // Si estamos en desarrollo, usamos el mismo host que el navegador pero con el puerto 3000 (backend)
   const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
   return `http://${hostname}:3000`;

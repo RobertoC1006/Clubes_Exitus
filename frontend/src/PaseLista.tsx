@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle, BookOpen, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle, BookOpen, ShieldAlert, CheckCircle2, QrCode, Navigation } from 'lucide-react';
 import { db } from './db';
 import { useUser } from './UserContext';
 import './index.css';
@@ -21,6 +22,11 @@ export default function PaseLista() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successInfo, setSuccessInfo] = useState({ title: '', message: '' });
   const [existingSessionId, setExistingSessionId] = useState<number | null>(null);
+  const [docenteStatus, setDocenteStatus] = useState<string | null>(null);
+  const [verificandoDocente, setVerificandoDocente] = useState(false);
+  const [errorVerificacion, setErrorVerificacion] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const isAdmin = usuario?.rol?.toUpperCase() === 'ADMINISTRADOR';
 
@@ -67,9 +73,12 @@ export default function PaseLista() {
         }
         
         let asistenciasHoy: any[] = [];
-        if (sesionHoy && sesionHoy.asistencias) {
-          asistenciasHoy = sesionHoy.asistencias;
+        if (sesionHoy) {
           setExistingSessionId(sesionHoy.id);
+          setDocenteStatus(sesionHoy.asistenciaDocente);
+          if (sesionHoy.asistencias) {
+            asistenciasHoy = sesionHoy.asistencias;
+          }
         }
 
         // 4. Mapear alumnos con su estado de hoy (si existe)
@@ -143,8 +152,8 @@ export default function PaseLista() {
     console.error("Error evaluating live status", err);
   }
 
-  // Bloqueo total: es Solo Lectura SI es Admin O SI NO está en vivo.
-  const isReadOnly = isAdmin || !isActuallyLive;
+  // Bloqueo total: es Solo Lectura SI es Admin O SI NO está en vivo O SI el docente no ha verificado presencia
+  const isReadOnly = isAdmin || !isActuallyLive || (!isAdmin && !docenteStatus);
 
   const marcados = alumnos.filter(a => a.estado !== null).length;
   const faltan = alumnos.length - marcados;
@@ -158,6 +167,147 @@ export default function PaseLista() {
     if (isReadOnly) return;
     setAlumnos(prev => prev.map(a => a.id === id ? { ...a, observacion } : a));
   };
+
+  const handleValidarDocente = async (qrDataRaw: string) => {
+    // Si ya estamos verificando, no hacer nada
+    if (verificandoDocente) return;
+    
+    const qrData = qrDataRaw.trim();
+    if (!qrData) return;
+
+    setVerificandoDocente(true);
+    setErrorVerificacion('');
+    
+    try {
+      // 1. Obtener ubicación
+      const pos: any = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = pos.coords;
+
+      // 2. Enviar al backend
+      const payload: any = {
+        clubId: Number(clubId),
+        latitud: latitude,
+        longitud: longitude,
+      };
+
+      // Intentar parsear si el QR contiene un JSON (formato del AdminDashboard)
+      let parsedData: any = null;
+      try {
+        if (qrData.startsWith('{')) {
+          parsedData = JSON.parse(qrData);
+        }
+      } catch (e) {
+        console.warn("QR no es JSON:", qrData);
+      }
+
+      if (parsedData && parsedData.aulaId) {
+        payload.aulaId = Number(parsedData.aulaId);
+      } else if (/^\d+$/.test(qrData)) {
+        // Si es un número puro
+        payload.aulaId = Number(qrData);
+      } else {
+        // Si no, es un código de contingencia (o el QR es el código directamente)
+        payload.codigoContingencia = qrData.toUpperCase();
+      }
+
+      const res = await fetch(`${API}/sesiones/validar-docente`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(result.message || 'Error en la validación');
+      }
+
+      setDocenteStatus(result.sesion?.asistenciaDocente || result.asistenciaDocente || result.estado);
+      setShowScanner(false);
+      
+      // Mostrar mensaje de éxito
+      setSuccessInfo({ 
+        title: '¡Verificado!', 
+        message: `Asistencia registrada como ${result.estado || 'PUNTUAL'}. Ya puedes pasar lista.` 
+      });
+      setShowSuccessModal(true);
+      
+    } catch (err: any) {
+      console.error(err);
+      setErrorVerificacion(err.message || 'Error al validar ubicación');
+    } finally {
+      setVerificandoDocente(false);
+    }
+  };
+
+  // 🔹 Efecto para el Escáner QR
+  useEffect(() => {
+    let scanner: Html5Qrcode | null = null;
+
+    if (showScanner) {
+      const startScanner = async () => {
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setErrorVerificacion("Cámara no soportada o requiere HTTPS.");
+            return;
+          }
+
+          scanner = new Html5Qrcode("reader");
+          
+          const qrConfig = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          };
+
+          await scanner.start(
+            { facingMode: "environment" }, 
+            qrConfig,
+            (decodedText) => {
+              console.log("QR Detectado:", decodedText);
+              handleValidarDocente(decodedText);
+            },
+            () => {}
+          ).catch((err) => {
+            console.warn("Fallo cámara trasera, intentando frontal...", err);
+            return scanner?.start(
+              { facingMode: "user" }, 
+              qrConfig,
+              (decodedText) => {
+                console.log("QR Detectado (Frontal):", decodedText);
+                handleValidarDocente(decodedText);
+              },
+              () => {}
+            );
+          });
+        } catch (err: any) {
+          console.error("General Scanner Error:", err);
+          setErrorVerificacion("Fallo al abrir cámara. Revisa los permisos.");
+        }
+      };
+
+      startScanner();
+    }
+
+    return () => {
+      if (scanner) {
+        if (scanner.isScanning) {
+          scanner.stop().then(() => {
+            scanner?.clear();
+          }).catch(e => console.warn("Error al detener scanner:", e));
+        } else {
+          try { scanner.clear(); } catch(e) {}
+        }
+      }
+    };
+  }, [showScanner]);
 
   const guardarAsistencia = async () => {
     if (isReadOnly) return;
@@ -235,13 +385,116 @@ export default function PaseLista() {
   return (
     <div className="animate-enter" style={{ paddingBottom: '16rem' }}>
       
-      {/* HEADER BANNER DE BLOQUEO */}
-      {isReadOnly && (
-        <div style={{ padding: '1rem', background: 'var(--color-surface-container-high)', borderBottom: '1px solid var(--color-outline-variant)', display: 'flex', alignItems: 'center', gap: '0.75rem', animation: 'fadeInDown 0.4s ease' }}>
-          <ShieldAlert size={20} color="var(--color-primary)" />
-          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-            {isAdmin ? 'Modo Administrador: Solo lectura.' : 'Registro deshabilitado: La clase no está en vivo actualmente.'}
+      {/* HEADER BANNER DE BLOQUEO / ESTADO */}
+      {(isReadOnly || docenteStatus) && (
+        <div style={{ 
+          padding: '1rem', 
+          background: docenteStatus ? 'var(--color-success-container)' : 'var(--color-surface-container-high)', 
+          borderBottom: '1px solid var(--color-outline-variant)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.75rem', 
+          animation: 'fadeInDown 0.4s ease' 
+        }}>
+          {docenteStatus ? <CheckCircle2 size={20} color="var(--color-success)" /> : <ShieldAlert size={20} color="var(--color-primary)" />}
+          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: docenteStatus ? 'var(--color-success)' : 'var(--color-primary)' }}>
+            {isAdmin ? 'Modo Administrador: Solo lectura.' : 
+             !isActuallyLive ? 'Registro deshabilitado: La clase no está en vivo actualmente.' :
+             docenteStatus === 'PUNTUAL' ? 'Presencia Verificada: ¡Buen trabajo, llegaste a tiempo!' :
+             docenteStatus === 'TARDE' ? 'Presencia Verificada: Registro con tardanza.' :
+             'Debes verificar tu ubicación antes de pasar lista.'}
           </p>
+        </div>
+      )}
+
+      {/* ESCUDO DE VERIFICACIÓN (Teacher Verification Gate) */}
+      {!isAdmin && isActuallyLive && !docenteStatus && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(var(--color-primary-rgb), 0.98)',
+          backdropFilter: 'blur(20px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '2rem', textAlign: 'center', color: 'white',
+          animation: 'fadeIn 0.5s ease-out'
+        }}>
+          {/* Círculo de Icono */}
+          <div style={{ 
+            width: '8rem', height: '8rem', borderRadius: '3rem', 
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))', 
+            border: '1px solid rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: '2.5rem',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            position: 'relative'
+          }}>
+            <ShieldAlert size={56} color="var(--color-secondary)" className="pulse" />
+            <div style={{ position: 'absolute', inset: '-10px', borderRadius: '3.5rem', border: '2px solid var(--color-secondary)', opacity: 0.3, animation: 'ping 2s infinite' }} />
+          </div>
+
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 950, margin: '0 0 1rem', letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+            Control de <br />
+            <span style={{ color: 'var(--color-secondary)' }}>Presencia</span>
+          </h2>
+          
+          <p style={{ fontSize: '1.1rem', opacity: 0.9, marginBottom: '3rem', maxWidth: '320px', fontWeight: 500, lineHeight: 1.5 }}>
+            Para habilitar el registro de asistencia, confirma que estás en el aula escaneando el **Código QR oficial**.
+          </p>
+          
+          {errorVerificacion && (
+            <div className="animate-shake" style={{ 
+              background: 'rgba(211, 47, 47, 0.15)', 
+              color: '#ff8a80', 
+              padding: '1.25rem', 
+              borderRadius: '1.25rem', 
+              marginBottom: '2rem', 
+              fontSize: '0.9rem', 
+              fontWeight: 700, 
+              width: '100%', 
+              maxWidth: '340px',
+              border: '1px solid rgba(211, 47, 47, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <AlertCircle size={20} />
+              <span style={{ textAlign: 'left' }}>{errorVerificacion}</span>
+            </div>
+          )}
+
+          <div style={{ width: '100%', maxWidth: '340px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <button 
+              onClick={() => {
+                setErrorVerificacion('');
+                setShowScanner(true);
+              }}
+              disabled={verificandoDocente}
+              className="btn"
+              style={{ 
+                height: '4.5rem', 
+                borderRadius: '1.5rem', border: 'none', 
+                background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', 
+                fontWeight: 900, fontSize: '1.2rem', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                boxShadow: '0 15px 30px rgba(237, 198, 32, 0.3)',
+                width: '100%'
+              }}
+            >
+              {verificandoDocente ? <Loader2 className="spin" /> : <QrCode size={26} />}
+              {verificandoDocente ? 'Validando...' : 'Escanear QR'}
+            </button>
+            
+            <p style={{ fontSize: '0.8rem', opacity: 0.6, fontWeight: 600 }}>
+              Colegio Exitus • Sistema de Gestión de Clubes
+            </p>
+          </div>
+          
+          <style>{`
+            @keyframes ping {
+              0% { transform: scale(1); opacity: 0.3; }
+              70% { transform: scale(1.3); opacity: 0; }
+              100% { transform: scale(1.3); opacity: 0; }
+            }
+          `}</style>
         </div>
       )}
 
@@ -328,6 +581,74 @@ export default function PaseLista() {
       </div>
 
       <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} title={successInfo.title} message={successInfo.message} />
+
+      {/* MODAL ESCÁNER QR */}
+      {showScanner && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'black', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', top: '2rem', right: '2rem' }}>
+            <button onClick={() => setShowScanner(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '1rem', width: '3rem', height: '3rem', color: 'white', cursor: 'pointer' }}>
+              <X size={24} />
+            </button>
+          </div>
+          
+          <div style={{ width: '80vw', height: '80vw', maxWidth: '400px', maxHeight: '400px', border: '4px solid var(--color-secondary)', borderRadius: '2rem', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111' }}>
+             <div id="reader" style={{ width: '100%', height: '100%' }}></div>
+             <div style={{ width: '100%', height: '2px', background: 'var(--color-secondary)', position: 'absolute', top: 0, animation: 'scan 2s infinite linear', boxShadow: '0 0 15px var(--color-secondary)', zIndex: 10, pointerEvents: 'none' }} />
+             
+             {/* Loader de Validación */}
+             {verificandoDocente && (
+               <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                 <Loader2 className="animate-spin" size={48} color="var(--color-secondary)" />
+                 <p style={{ color: 'white', fontWeight: 800 }}>Validando...</p>
+               </div>
+             )}
+          </div>
+          
+          <div style={{ marginTop: '3rem', width: '100%', maxWidth: '300px', textAlign: 'center', padding: '0 1rem' }}>
+            {errorVerificacion && (
+              <p style={{ color: '#ff8a80', fontSize: '0.85rem', fontWeight: 700, marginBottom: '1rem', background: 'rgba(211,47,47,0.2)', padding: '0.75rem', borderRadius: '0.75rem' }}>
+                {errorVerificacion}
+              </p>
+            )}
+            <p style={{ color: 'white', fontWeight: 700, marginBottom: '1.5rem', fontSize: '0.9rem' }}>Escanear QR o ingresar código de contingencia</p>
+            <input 
+              autoFocus
+              placeholder="Código de 6 caracteres"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleValidarDocente(e.currentTarget.value);
+                }
+              }}
+              style={{ width: '100%', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '1rem', textAlign: 'center', fontSize: '1.5rem', height: '4.5rem', letterSpacing: '0.2em', fontWeight: 900, outline: 'none' }}
+            />
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', marginTop: '1.25rem', fontWeight: 600 }}>
+              Usa el código de 6 caracteres si el GPS o la cámara fallan.
+            </p>
+            <button 
+              onClick={(e) => {
+                const input = e.currentTarget.previousElementSibling?.previousElementSibling as HTMLInputElement;
+                if (input.value) handleValidarDocente(input.value);
+              }}
+              disabled={verificandoDocente}
+              style={{ marginTop: '1.5rem', width: '100%', height: '3.5rem', borderRadius: '1rem', border: 'none', background: 'var(--color-secondary)', color: 'white', fontWeight: 900, cursor: 'pointer', opacity: verificandoDocente ? 0.5 : 1 }}>
+              {verificandoDocente ? 'Validando...' : 'Validar Código'}
+            </button>
+          </div>
+
+          <style>{`
+            @keyframes scan {
+              0% { top: 0; }
+              100% { top: 100%; }
+            }
+            .pulse { animation: pulse 2s infinite; }
+            @keyframes pulse {
+              0% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.1); opacity: 0.7; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

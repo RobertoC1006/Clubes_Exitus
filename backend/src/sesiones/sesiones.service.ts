@@ -155,4 +155,85 @@ export class SesionesService {
      console.log(`[SESIONES-SERVICE] Fin de guardado masivo exitoso.`);
      return { success: true, guardados: asistencias.length };
   }
+
+  async validarAsistenciaDocente(data: { clubId: number, aulaId?: number, latitud: number, longitud: number, codigoContingencia?: string }) {
+    const { clubId, aulaId, latitud, longitud, codigoContingencia } = data;
+    console.log('[SESIONES-SERVICE] Validando docente:', { clubId, aulaId, latitud, longitud, codigoContingencia });
+    
+    let aula;
+    if (aulaId) {
+      aula = await this.prisma.aula.findUnique({ where: { id: Number(aulaId) } });
+    } else if (codigoContingencia) {
+      aula = await this.prisma.aula.findFirst({ where: { codigoContingencia } });
+    }
+    console.log('[SESIONES-SERVICE] Aula encontrada:', aula ? aula.id : 'NINGUNA');
+
+    if (!aula) throw new Error('Aula no encontrada o código de contingencia inválido');
+    const club = await this.prisma.club.findUnique({ where: { id: clubId } });
+    if (!club) throw new Error('Club no encontrado');
+    const distancia = this.getDistance(latitud, longitud, aula.latitud, aula.longitud);
+    const estaCerca = distancia <= aula.radioPermitido;
+    if (!estaCerca && (!codigoContingencia || codigoContingencia.toUpperCase() !== aula.codigoContingencia.toUpperCase())) {
+      throw new Error(`Fuera de rango: Estás a ${Math.round(distancia)}m del aula. El radio permitido es ${aula.radioPermitido}m.`);
+    }
+    let sesion = await this.getSesionHoy(clubId);
+    if (!sesion) {
+      sesion = await this.prisma.sesion.create({ 
+        data: { clubId, fecha: new Date() },
+        include: { asistencias: true }
+      });
+    }
+    if ((sesion as any).asistenciaDocente) {
+      return { success: true, message: 'Asistencia ya registrada anteriormente', sesion };
+    }
+    const now = new Date();
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const diaActual = dias[now.getDay()];
+    let horario: any = club.horario;
+    if (typeof horario === 'string') { try { horario = JSON.parse(horario); } catch { horario = {}; } }
+    const normalizeDay = (d: string) => {
+      const dd = d.toLowerCase();
+      if (dd.includes('lun')) return 'Lunes';
+      if (dd.includes('mar')) return 'Martes';
+      if (dd.includes('mi')) return 'Miércoles';
+      if (dd.includes('jue')) return 'Jueves';
+      if (dd.includes('vie')) return 'Viernes';
+      if (dd.includes('s')) return 'Sábado';
+      if (dd.includes('d')) return 'Domingo';
+      return d;
+    };
+    const diaKey = Object.keys(horario).find(k => normalizeDay(k) === diaActual);
+    let estado: 'PUNTUAL' | 'TARDE' = 'PUNTUAL';
+    if (diaKey) {
+      const sessionData = Array.isArray(horario[diaKey]) ? horario[diaKey][0] : horario[diaKey];
+      if (sessionData && sessionData.start) {
+        const [startH, startM] = sessionData.start.split(':').map(Number);
+        const startMins = startH * 60 + startM;
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        if (currentMins > startMins) { estado = 'TARDE'; }
+      }
+    }
+    const sesionActualizada = await this.prisma.sesion.update({
+      where: { id: sesion.id },
+      data: { 
+        asistenciaDocente: estado, 
+        horaMarcajeDocente: now, 
+        latitudDocente: latitud, 
+        longitudDocente: longitud, 
+        aulaId: aula.id 
+      } as any
+    });
+    return { success: true, estado, distancia: Math.round(distancia), sesion: sesionActualizada };
+  }
+
+  private getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371e3;
+    const phi1 = lat1 * Math.PI/180;
+    const phi2 = lat2 * Math.PI/180;
+    const dPhi = (lat2-lat1) * Math.PI/180;
+    const dLambda = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(dPhi/2) * Math.sin(dPhi/2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda/2) * Math.sin(dLambda/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
 }

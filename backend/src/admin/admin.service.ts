@@ -187,6 +187,27 @@ export class AdminService {
   }
 
   // ============================================================
+  // CRUD DE AULAS
+  // ============================================================
+  async getAulas() {
+    return this.prisma.aula.findMany({
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  async createAula(data: { nombre: string; latitud: number; longitud: number; radioPermitido?: number; codigoContingencia?: string }) {
+    return (this.prisma.aula.create as any)({ data });
+  }
+
+  async updateAula(id: number, data: { nombre?: string; latitud?: number; longitud?: number; radioPermitido?: number; codigoContingencia?: string }) {
+    return (this.prisma.aula.update as any)({ where: { id }, data });
+  }
+
+  async deleteAula(id: number) {
+    return (this.prisma.aula.delete as any)({ where: { id } });
+  }
+
+  // ============================================================
   // PROFESORES / USUARIOS
   // ============================================================
   async getProfesores() {
@@ -421,6 +442,35 @@ export class AdminService {
         },
       },
       orderBy: { fecha: 'desc' },
+    });
+  }
+
+  // ============================================================
+  // REPORTE DE ASISTENCIA DOCENTE
+  // ============================================================
+  async getAsistenciaDocente(filtros?: { profesorId?: number, inicio?: string, fin?: string }) {
+    const where: any = {};
+    if (filtros?.profesorId) {
+      where.club = { profesorId: filtros.profesorId };
+    }
+    if (filtros?.inicio || filtros?.fin) {
+      where.fecha = {};
+      if (filtros.inicio) where.fecha.gte = new Date(filtros.inicio);
+      if (filtros.fin) where.fecha.lte = new Date(filtros.fin);
+    }
+
+    return this.prisma.sesion.findMany({
+      where,
+      include: {
+        club: {
+          select: {
+            nombre: true,
+            profesor: { select: { nombre: true, apellido: true } }
+          }
+        },
+        aula: { select: { nombre: true } }
+      } as any,
+      orderBy: { fecha: 'desc' }
     });
   }
 }
