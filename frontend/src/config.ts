@@ -3,7 +3,9 @@
 // En producción (Docker/Nginx) usamos el proxy /api que redirige al contenedor backend
 
 const getApiUrl = () => {
-  if (!import.meta.env.DEV) return '/api';
+  if (!import.meta.env.DEV) {
+    return import.meta.env.VITE_API_URL || '/api';
+  }
 
   // Si estamos en desarrollo, usamos el mismo host que el navegador pero con el puerto 3000 (backend)
   const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
