@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EstadoAsistencia } from '@prisma/client';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
@@ -170,7 +170,7 @@ export class SesionesService {
     const distancia = this.getDistance(latitud, longitud, aula.latitud, aula.longitud);
     const estaCerca = distancia <= aula.radioPermitido;
     if (!estaCerca && (!codigoContingencia || codigoContingencia.toUpperCase() !== aula.codigoContingencia.toUpperCase())) {
-      throw new Error(`Fuera de rango: Estás a ${Math.round(distancia)}m del aula. El radio permitido es ${aula.radioPermitido}m.`);
+      throw new BadRequestException(`Fuera de rango: Estás a ${Math.round(distancia)}m del aula. El radio permitido es ${aula.radioPermitido}m.`);
     }
     let sesion = await this.getSesionHoy(clubId);
     if (!sesion) {

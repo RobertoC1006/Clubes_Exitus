@@ -246,13 +246,18 @@ export default function PaseLista() {
     } catch (err: any) {
       console.error(err);
       const msg = err.message || 'Error al validar ubicación';
-      setErrorVerificacion(msg);
       
-      // Si el error es de "Fuera de rango", mostramos un modal especial para que sea inevitable verlo
-      if (msg.toLowerCase().includes('fuera de rango') || msg.toLowerCase().includes('distancia')) {
+      // Asegurarnos de que el mensaje sea legible si viene de NestJS
+      const finalMsg = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      setErrorVerificacion(finalMsg);
+      
+      // Si el error es de "Fuera de rango", mostramos un modal especial
+      if (finalMsg.toLowerCase().includes('fuera de rango') || 
+          finalMsg.toLowerCase().includes('distancia') ||
+          finalMsg.toLowerCase().includes('rango')) {
         setSuccessInfo({ 
           title: 'Fuera de Posición', 
-          message: msg 
+          message: finalMsg 
         });
         setShowSuccessModal(true);
       }

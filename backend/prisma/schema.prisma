@@ -147,7 +147,7 @@ model Aula {
   nombre            String   // Ej: "Aula 203", "Campo 1"
   latitud           Float
   longitud          Float
-  radioPermitido    Int      @default(7) // En metros
+  radioPermitido    Int      @default(5) // En metros
   codigoContingencia String?  // Código manual para emergencias
 
   sesiones          Sesion[]
