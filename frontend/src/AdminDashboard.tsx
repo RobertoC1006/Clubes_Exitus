@@ -2620,7 +2620,7 @@ export default function AdminDashboard() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={labelStyle}>Radio (Metros)</label>
-                  <input name="radioPermitido" type="number" defaultValue={editingAula?.radioPermitido || 7} required min="3" max="20" style={inputStyle} />
+                  <input name="radioPermitido" type="number" defaultValue={editingAula?.radioPermitido || 5} required min="3" max="20" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Cód. Contingencia</label>
