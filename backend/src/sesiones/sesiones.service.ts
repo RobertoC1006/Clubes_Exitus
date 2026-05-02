@@ -35,17 +35,13 @@ export class SesionesService {
   }
 
   async getSesionHoy(clubId: number) {
-    const hoyDateStr = new Date().toISOString().split('T')[0];
-    const inicioHoy = new Date(`${hoyDateStr}T00:00:00.000Z`);
-    const finHoy = new Date(`${hoyDateStr}T23:59:59.999Z`);
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
 
     return this.prisma.sesion.findFirst({
       where: {
         clubId,
-        fecha: {
-          gte: inicioHoy,
-          lte: finHoy
-        }
+        fecha: hoy
       },
       include: {
         asistencias: true
@@ -178,8 +174,11 @@ export class SesionesService {
     }
     let sesion = await this.getSesionHoy(clubId);
     if (!sesion) {
+      const fechaHoy = new Date();
+      fechaHoy.setHours(0, 0, 0, 0);
+      
       sesion = await this.prisma.sesion.create({ 
-        data: { clubId, fecha: new Date() },
+        data: { clubId, fecha: fechaHoy },
         include: { asistencias: true }
       });
     }

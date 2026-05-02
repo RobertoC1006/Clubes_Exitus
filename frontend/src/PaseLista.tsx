@@ -27,6 +27,7 @@ export default function PaseLista() {
   const [errorVerificacion, setErrorVerificacion] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isVerifyingRef = useRef(false);
 
   const isAdmin = usuario?.rol?.toUpperCase() === 'ADMINISTRADOR';
 
@@ -169,12 +170,13 @@ export default function PaseLista() {
   };
 
   const handleValidarDocente = async (qrDataRaw: string) => {
-    // Si ya estamos verificando, no hacer nada
-    if (verificandoDocente) return;
+    // Si ya estamos verificando, no hacer nada (doble capa de seguridad con ref y state)
+    if (verificandoDocente || isVerifyingRef.current) return;
     
     const qrData = qrDataRaw.trim();
     if (!qrData) return;
 
+    isVerifyingRef.current = true;
     setVerificandoDocente(true);
     setErrorVerificacion('');
     
@@ -230,6 +232,8 @@ export default function PaseLista() {
       }
 
       setDocenteStatus(result.sesion?.asistenciaDocente || result.asistenciaDocente || result.estado);
+      if (result.sesion?.id) setExistingSessionId(result.sesion.id);
+      
       setShowScanner(false);
       
       // Mostrar mensaje de éxito
@@ -241,9 +245,20 @@ export default function PaseLista() {
       
     } catch (err: any) {
       console.error(err);
-      setErrorVerificacion(err.message || 'Error al validar ubicación');
+      const msg = err.message || 'Error al validar ubicación';
+      setErrorVerificacion(msg);
+      
+      // Si el error es de "Fuera de rango", mostramos un modal especial para que sea inevitable verlo
+      if (msg.toLowerCase().includes('fuera de rango') || msg.toLowerCase().includes('distancia')) {
+        setSuccessInfo({ 
+          title: 'Fuera de Posición', 
+          message: msg 
+        });
+        setShowSuccessModal(true);
+      }
     } finally {
       setVerificandoDocente(false);
+      isVerifyingRef.current = false;
     }
   };
 

@@ -138,6 +138,8 @@ model Sesion {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([clubId, fecha])
 }
 
 model Aula {
