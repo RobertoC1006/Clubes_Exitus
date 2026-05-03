@@ -251,12 +251,15 @@ export default function PaseLista() {
       const finalMsg = typeof msg === 'string' ? msg : JSON.stringify(msg);
       setErrorVerificacion(finalMsg);
       
-      // Si el error es de "Fuera de rango", mostramos un modal especial
+      // Si el error es de "Fuera de rango", "QR Inválido" o falta de asignación, mostramos un modal especial
       if (finalMsg.toLowerCase().includes('fuera de rango') || 
           finalMsg.toLowerCase().includes('distancia') ||
-          finalMsg.toLowerCase().includes('rango')) {
+          finalMsg.toLowerCase().includes('rango') ||
+          finalMsg.toLowerCase().includes('qr inválido') ||
+          finalMsg.toLowerCase().includes('qr invalido') ||
+          finalMsg.toLowerCase().includes('no hay un aula asignada')) {
         setSuccessInfo({ 
-          title: 'Fuera de Posición', 
+          title: 'Error de Verificación', 
           message: finalMsg 
         });
         setShowSuccessModal(true);

@@ -88,10 +88,11 @@ const estadoColor = {
 
 // ── Modal de Club ──────────────────────────────────────────────
 function ClubModal({
-  club, profesores, onSave, onClose,
+  club, profesores, aulas, onSave, onClose,
 }: {
   club: Partial<ClubMetrica> | null;
   profesores: Profesor[];
+  aulas: Aula[];
   onSave: (data: { nombre: string; descripcion: string; precio: number; profesorId: number; horario: any }) => void;
   onClose: () => void;
 }) {
@@ -123,9 +124,26 @@ function ClubModal({
       if (newHorario[dia]) {
         delete newHorario[dia];
       } else {
-        newHorario[dia] = { start: '16:00', end: '17:30' };
+        newHorario[dia] = { 
+          start: '16:00', 
+          end: '17:30',
+          aulaId: aulas[0]?.id || null
+        };
       }
       return newHorario;
+    });
+  };
+
+  const updateAula = (dia: string, aulaId: string) => {
+    setHorario((prev: any) => {
+      let current = prev;
+      if (typeof prev === 'string') {
+        try { current = JSON.parse(prev); } catch { current = {}; }
+      }
+      return {
+        ...current,
+        [dia]: { ...current[dia], aulaId: Number(aulaId) }
+      };
     });
   };
 
@@ -239,13 +257,37 @@ function ClubModal({
                       }}></div>
                     </div>
                     {isActive && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
-                        <input type="time" value={horario[dia].start}
-                          onChange={e => updateTime(dia, 'start', e.target.value)}
-                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
-                        <input type="time" value={horario[dia].end}
-                          onChange={e => updateTime(dia, 'end', e.target.value)}
-                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-primary)', opacity: 0.7 }}>INICIO / FIN</span>
+                          <div style={{ display: 'flex', gap: '0.2rem' }}>
+                            <input type="time" value={horario[dia].start}
+                              onChange={e => updateTime(dia, 'start', e.target.value)}
+                              style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center', width: '100%' }} />
+                            <input type="time" value={horario[dia].end}
+                              onChange={e => updateTime(dia, 'end', e.target.value)}
+                              style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center', width: '100%' }} />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-primary)', opacity: 0.7 }}>AULA ASIGNADA</span>
+                          <select 
+                            value={horario[dia].aulaId || ''} 
+                            onChange={e => updateAula(dia, e.target.value)}
+                            style={{ 
+                              border: 'none', background: 'white', color: 'var(--color-primary)', 
+                              fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem', 
+                              borderRadius: '0.4rem', width: '100%',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="">Seleccionar...</option>
+                            {aulas.map((a: any) => (
+                              <option key={a.id} value={a.id}>{a.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2003,6 +2045,7 @@ export default function AdminDashboard() {
         <ClubModal
           club={modalClub as Partial<ClubMetrica>}
           profesores={profesores}
+          aulas={aulas}
           onSave={handleSaveClub}
           onClose={() => setModalClub(false)}
         />
