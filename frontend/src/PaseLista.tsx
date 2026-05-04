@@ -286,7 +286,12 @@ export default function PaseLista() {
           
           const qrConfig = {
             fps: 10,
-            qrbox: { width: 250, height: 250 },
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+              const minEdgePercentage = 0.7; // 70% del borde más pequeño
+              const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+              const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+              return { width: qrboxSize, height: qrboxSize };
+            },
             aspectRatio: 1.0
           };
 

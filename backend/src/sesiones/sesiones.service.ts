@@ -207,13 +207,13 @@ export class SesionesService {
       throw new BadRequestException('QR Inválido. Este salón no corresponde a la clase programada para hoy.');
     }
 
-    // PASO 5: Validar distancia GPS (5 metros fijos)
+    // PASO 5: Validar distancia GPS (dinámico o 12 metros)
     const distancia = this.getDistance(latitud, longitud, scannedAula.latitud, scannedAula.longitud);
-    const radioPermitido = 5; // Siempre 5 metros
+    const radioPermitido = scannedAula.radioPermitido || 12; // Radio de la base de datos o 12m por defecto
 
     const estaCerca = distancia <= radioPermitido;
     if (!estaCerca && (!codigoContingencia || codigoContingencia.toUpperCase() !== scannedAula.codigoContingencia.toUpperCase())) {
-      throw new BadRequestException(`Fuera de rango: Estás a ${Math.round(distancia)}m del aula. Debes estar a menos de 5m.`);
+      throw new BadRequestException(`Fuera de rango: Estás a ${Math.round(distancia)}m del aula. Debes estar a menos de ${radioPermitido}m.`);
     }
 
     // PASO 6: Crear o buscar sesión de hoy
