@@ -26,8 +26,15 @@ export default function PaseLista() {
   const [verificandoDocente, setVerificandoDocente] = useState(false);
   const [errorVerificacion, setErrorVerificacion] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isVerifyingRef = useRef(false);
+
+  // Auto-update time to refresh isActuallyLive state
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isAdmin = usuario?.rol?.toUpperCase() === 'ADMINISTRADOR';
 
@@ -137,7 +144,7 @@ export default function PaseLista() {
       if (dMatchKey) {
         const sessionData = h[dMatchKey];
         const sessions = Array.isArray(sessionData) ? sessionData : [sessionData];
-        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const currentMins = currentTime.getHours() * 60 + currentTime.getMinutes();
         
         isActuallyLive = sessions.some((s: any) => {
           if (!s || !s.start || !s.end) return false;

@@ -242,7 +242,8 @@ export class SesionesService {
     const [startH, startM] = sessionData.start.split(':').map(Number);
     const startMins = startH * 60 + startM;
     const currentMins = now.getHours() * 60 + now.getMinutes();
-    if (currentMins > startMins) { estado = 'TARDE'; }
+    // Tolerancia de 5 minutos
+    if (currentMins > startMins + 5) { estado = 'TARDE'; }
 
     const sesionActualizada = await this.prisma.sesion.update({
       where: { id: sesion.id },

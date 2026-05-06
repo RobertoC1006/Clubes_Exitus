@@ -88,7 +88,7 @@ function getActiveClubs(clubes: any[]) {
   const now = new Date();
   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const currentDay = days[now.getDay()];
-  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+  const currentMins = now.getHours() * 60 + now.getMinutes();
 
   return clubes.filter(club => {
     if (!club.horario) return false;
@@ -98,7 +98,12 @@ function getActiveClubs(clubes: any[]) {
     const conf = club.horario[dayKey];
     if (!conf || !conf.start || !conf.end) return false;
     
-    return currentTime >= conf.start && currentTime <= conf.end;
+    const [startH, startM] = conf.start.split(':').map(Number);
+    const [endH, endM] = conf.end.split(':').map(Number);
+    const sMins = startH * 60 + startM;
+    const eMins = endH * 60 + endM;
+    
+    return currentMins >= (sMins - 5) && currentMins <= eMins;
   });
 }
 
@@ -110,6 +115,13 @@ export default function Dashboard() {
   const { usuario } = useUser();
   const [clubes, setClubes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Auto update for live classes
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000); // refresh every 30s
+    return () => clearInterval(timer);
+  }, []);
 
   // Paginación (Punto: 3 clubes por página)
   const ITEMS_PER_PAGE = 3;
@@ -156,7 +168,28 @@ export default function Dashboard() {
       });
   }, [usuario]);
 
-  const activeClubs = useMemo(() => getActiveClubs(clubes), [clubes]);
+  const activeClubs = useMemo(() => {
+    // We pass currentTime to getActiveClubs logic inside here or just let it use its own, but we need it to react to currentTime
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const currentDay = days[currentTime.getDay()];
+    const currentMins = currentTime.getHours() * 60 + currentTime.getMinutes();
+
+    return clubes.filter(club => {
+      if (!club.horario) return false;
+      const dayKey = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
+      if (!dayKey) return false;
+      
+      const conf = club.horario[dayKey];
+      if (!conf || !conf.start || !conf.end) return false;
+      
+      const [startH, startM] = conf.start.split(':').map(Number);
+      const [endH, endM] = conf.end.split(':').map(Number);
+      const sMins = startH * 60 + startM;
+      const eMins = endH * 60 + endM;
+      
+      return currentMins >= (sMins - 5) && currentMins <= eMins;
+    });
+  }, [clubes, currentTime]);
 
   // ── Horarios ──
   const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
@@ -468,17 +501,20 @@ export default function Dashboard() {
                 
                 const hoy = DIAS_CALENDARIO[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
                 
-                // 🔹 Lógica Precisa: ¿Está en horario de clase JUSTO AHORA?
+                // 🔹 Lógica Precisa: ¿Está en horario de clase (5 mins antes)?
                 const estaEnVivoAhora = (() => {
                   if (!club.horario) return false;
-                  const now = new Date();
                   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                  const currentDay = days[now.getDay()];
+                  const currentDay = days[currentTime.getDay()];
                   const dMatch = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
                   if (!dMatch) return false;
                   const { start, end } = club.horario[dMatch];
-                  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                  return currentTime >= start && currentTime <= end;
+                  const [startH, startM] = start.split(':').map(Number);
+                  const [endH, endM] = end.split(':').map(Number);
+                  const sMins = startH * 60 + startM;
+                  const eMins = endH * 60 + endM;
+                  const currentMins = currentTime.getHours() * 60 + currentTime.getMinutes();
+                  return currentMins >= (sMins - 5) && currentMins <= eMins;
                 })();
 
                 const hayClaseHoy = club.horario && Object.keys(club.horario).some(d => normalizeDay(d) === hoy);
