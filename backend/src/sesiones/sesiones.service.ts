@@ -118,26 +118,26 @@ export class SesionesService {
         // Comprobación defensiva del estado (para cubrir cualquier desajuste de tipos/valores)
         const estadoStr = String(a.estado).toUpperCase();
 
-        if (estadoStr === 'AUSENTE') {
-          console.log(`[ALERTA-AUSENCIA] Detectada falta para alumno ID: ${a.alumnoId}`);
+        if (estadoStr === 'AUSENTE' || estadoStr === 'PRESENTE') {
+          const isFalta = estadoStr === 'AUSENTE';
+          console.log(`[NOTIF-ASISTENCIA] Detectado ${estadoStr} para alumno ID: ${a.alumnoId}`);
 
-          // Obtener datos del alumno y su padre de forma inmediata para asegurar persistencia
+          // Obtener datos del alumno y su padre
           const alumnoData = await this.prisma.alumno.findUnique({
             where: { id: a.alumnoId },
             include: { padre: true }
           });
 
           if (alumnoData && alumnoData.padreId) {
-            console.log(`[ALERTA-AUSENCIA] Creando registro para padre ID: ${alumnoData.padreId}`);
             await this.notificaciones.crear({
-              titulo: 'Alerta de Falta',
-              mensaje: `Tu hijo ${alumnoData.nombre} ha faltado hoy al club de ${sesionInfo?.club?.nombre || 'su club'}.`,
+              titulo: isFalta ? 'Alerta de Falta' : 'Confirmación de Asistencia',
+              mensaje: isFalta 
+                ? `Tu hijo ${alumnoData.nombre} ha faltado hoy al club de ${sesionInfo?.club?.nombre || 'su club'}.`
+                : `Tu hijo ${alumnoData.nombre} ha llegado correctamente a su club de ${sesionInfo?.club?.nombre || 'su club'}.`,
               tipo: 'ASISTENCIA',
               usuarioId: alumnoData.padreId
             });
-            console.log(`[ALERTA-AUSENCIA] ✅ Notificación registrada en DB`);
-          } else {
-            console.log(`[ALERTA-AUSENCIA] ⚠️ Alumno sin padre vinculado. No se puede notificar.`);
+            console.log(`[NOTIF-ASISTENCIA] ✅ Notificación registrada para el padre ID: ${alumnoData.padreId}`);
           }
         }
       } catch (notifErr) {

@@ -589,6 +589,7 @@ export default function AdminDashboard() {
     type: 'DANGER' | 'WARNING' | 'SUCCESS';
     onConfirm: () => void;
     icon?: React.ReactNode;
+    isAlert?: boolean;
   }>({
     show: false, title: '', message: '', type: 'WARNING', onConfirm: () => { }
   });
@@ -733,10 +734,22 @@ export default function AdminDashboard() {
     const method = isEdit ? 'PUT' : 'POST';
     try {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      if (!res.ok) { const err = await res.json(); alert(err.message ?? 'Error al guardar'); }
-      else { setModalUsuario(false); fetchProfesores(); }
-    } catch { alert('Error de red'); }
-    finally { setSavingPersona(false); }
+      if (!res.ok) {
+        const err = await res.json();
+        setConfirmModal({
+          show: true, title: 'Error', message: err.message ?? 'Error al guardar', type: 'DANGER', isAlert: true, onConfirm: () => { }
+        });
+      } else {
+        setModalUsuario(false);
+        fetchProfesores();
+      }
+    } catch {
+      setConfirmModal({
+        show: true, title: 'Error de Red', message: 'No se pudo conectar con el servidor', type: 'DANGER', isAlert: true, onConfirm: () => { }
+      });
+    } finally {
+      setSavingPersona(false);
+    }
   };
 
   const handleResetPassword = async (id: number) => {
@@ -749,12 +762,36 @@ export default function AdminDashboard() {
       onConfirm: async () => {
         try {
           const res = await fetch(`${API}/admin/usuarios/${id}/reset-password`, { method: 'PATCH' });
-          if (res.ok) alert('Contraseña reseteada con éxito (123456)');
-          else {
+          if (res.ok) {
+            setConfirmModal({
+              show: true,
+              title: 'Éxito',
+              message: 'Contraseña reseteada con éxito (123456)',
+              type: 'SUCCESS',
+              isAlert: true,
+              onConfirm: () => { }
+            });
+          } else {
             const err = await res.json();
-            alert(err.message || 'Error al resetear');
+            setConfirmModal({
+              show: true,
+              title: 'Error',
+              message: err.message || 'Error al resetear',
+              type: 'DANGER',
+              isAlert: true,
+              onConfirm: () => { }
+            });
           }
-        } catch { alert('Error de red'); }
+        } catch { 
+            setConfirmModal({
+                show: true,
+                title: 'Error de Red',
+                message: 'No se pudo conectar con el servidor',
+                type: 'DANGER',
+                isAlert: true,
+                onConfirm: () => { }
+            });
+        }
       }
     });
   };
@@ -784,10 +821,24 @@ export default function AdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, padreId: finalPadreId })
       });
-      if (!res.ok) { const err = await res.json(); alert(err.message ?? 'Error al guardar'); }
-      else { setModalAlumno(false); fetchAlumnos(); fetchMetricas(); fetchProfesores(); }
-    } catch { alert('Error de red'); }
-    finally { setSavingPersona(false); }
+      if (!res.ok) {
+        const err = await res.json();
+        setConfirmModal({
+          show: true, title: 'Error', message: err.message ?? 'Error al guardar', type: 'DANGER', isAlert: true, onConfirm: () => { }
+        });
+      } else {
+        setModalAlumno(false);
+        fetchAlumnos();
+        fetchMetricas();
+        fetchProfesores();
+      }
+    } catch {
+      setConfirmModal({
+        show: true, title: 'Error de Red', message: 'No se pudo conectar con el servidor', type: 'DANGER', isAlert: true, onConfirm: () => { }
+      });
+    } finally {
+      setSavingPersona(false);
+    }
   };
 
   const handleDeleteAlumno = async (id: number) => {
@@ -1891,7 +1942,15 @@ export default function AdminDashboard() {
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button onClick={() => { setEditingAula(aula); setIsAulaModalOpen(true); }} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-primary)' }}><FileText size={16} /></button>
-                          <button onClick={async () => { if (confirm('¿Eliminar aula?')) { await fetch(`${API}/admin/aulas/${aula.id}`, { method: 'DELETE' }); fetchAulas(); } }} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
+                          <button onClick={() => setConfirmModal({ 
+                            show: true, 
+                            title: 'Eliminar Aula', 
+                            message: `¿Estás seguro de que deseas eliminar el aula "${aula.nombre}"? Esta acción no se puede deshacer.`, 
+                            onConfirm: async () => { 
+                              await fetch(`${API}/admin/aulas/${aula.id}`, { method: 'DELETE' }); 
+                              fetchAulas(); 
+                            } 
+                          })} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
                         </div>
                       </div>
                       <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)' }}>{aula.nombre}</h4>
@@ -2982,19 +3041,21 @@ export default function AdminDashboard() {
             </p>
 
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                style={{
-                  flex: 1, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
-                  background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
-                  fontWeight: 800, cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
+              {!confirmModal.isAlert && (
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                  style={{
+                    flex: 1, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
+                    background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+                    fontWeight: 800, cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
               <button
                 onClick={() => {
-                  confirmModal.onConfirm();
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
                   setConfirmModal(prev => ({ ...prev, show: false }));
                 }}
                 style={{
@@ -3006,7 +3067,7 @@ export default function AdminDashboard() {
                   boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
                 }}
               >
-                Confirmar
+                {confirmModal.isAlert ? 'Entendido' : 'Confirmar'}
               </button>
             </div>
           </div>

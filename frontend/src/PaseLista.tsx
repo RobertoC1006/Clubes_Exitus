@@ -131,9 +131,10 @@ export default function PaseLista() {
   let isActuallyLive = false;
   try {
     if (club && club.horario) {
-      const now = new Date();
+      // Forzar hora de Perú (America/Lima)
+      const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
       const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const currentDay = days[now.getDay()];
+      const currentDay = days[peruDate.getDay()];
       
       let h = club.horario;
       if (typeof h === 'string') {
@@ -145,8 +146,6 @@ export default function PaseLista() {
         const sessionData = h[dMatchKey];
         const sessions = Array.isArray(sessionData) ? sessionData : [sessionData];
         
-        // Forzar hora de Perú (America/Lima)
-        const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
         const currentMins = peruDate.getHours() * 60 + peruDate.getMinutes();
         
         isActuallyLive = sessions.some((s: any) => {
@@ -155,7 +154,8 @@ export default function PaseLista() {
           const [endH, endM] = s.end.split(':').map(Number);
           const sMins = startH * 60 + startM;
           const eMins = endH * 60 + endM;
-          return currentMins >= sMins && currentMins <= eMins;
+          // Tolerance of 5 minutes before start
+          return currentMins >= (sMins - 5) && currentMins <= eMins;
         });
       }
     }
@@ -620,7 +620,18 @@ export default function PaseLista() {
         )}
       </div>
 
-      <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} title={successInfo.title} message={successInfo.message} />
+      <SuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={() => {
+          setShowSuccessModal(false);
+          // Si fue éxito, volvemos al dashboard
+          if (successInfo.title === '¡Asistencia Registrada!' || successInfo.title === 'Guardado Local') {
+            navigate('/dashboard');
+          }
+        }} 
+        title={successInfo.title} 
+        message={successInfo.message} 
+      />
 
       {/* MODAL ESCÁNER QR */}
       {showScanner && (
