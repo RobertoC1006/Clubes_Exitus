@@ -366,10 +366,19 @@ export default function AdminDashboard() {
   const [loadingAsistenciaDocente, setLoadingAsistenciaDocente] = useState(false);
   const [filtroProfesorId, setFiltroProfesorId] = useState<number | string>('');
 
-  // ── CALIBRACIÓN GPS ──────────────────────────────
+  // ── CALIBRACIÓN GPS (5 puntos: 4 esquinas + centro) ──────────────────────────────
   const [calibrando, setCalibrando] = useState(false);
-  const [muestras, setMuestras] = useState<{ lat: number, lng: number }[]>([]);
+  const [muestras, setMuestras] = useState<{ lat: number, lng: number, accuracy: number, label: string }[]>([]);
   const [calibracionProgreso, setCalibracionProgreso] = useState(0);
+  const [calibracionPaso, setCalibracionPaso] = useState(0); // 0-4 (5 puntos)
+  const [calibracionCompletada, setCalibracionCompletada] = useState(false);
+  const PUNTOS_CALIBRACION = [
+    { label: 'Esquina 1 (Frente-Izquierda)', icon: '↖️' },
+    { label: 'Esquina 2 (Frente-Derecha)', icon: '↗️' },
+    { label: 'Esquina 3 (Fondo-Izquierda)', icon: '↙️' },
+    { label: 'Esquina 4 (Fondo-Derecha)', icon: '↘️' },
+    { label: 'Centro del Aula', icon: '⭐' },
+  ];
 
   const DIAS_CALENDARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   const HORAS_START = 8;
@@ -437,32 +446,40 @@ export default function AdminDashboard() {
     setCalibrando(true);
     setMuestras([]);
     setCalibracionProgreso(0);
+    setCalibracionPaso(0);
+    setCalibracionCompletada(false);
+  };
 
-    let count = 0;
-    const interval = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const nuevaMuestra = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setMuestras(prev => {
-            const upd = [...prev, nuevaMuestra];
-            setCalibracionProgreso((upd.length / 5) * 100);
-            return upd;
-          });
-          count++;
-          if (count >= 5) {
-            clearInterval(interval);
-            setCalibrando(false);
-          }
-        },
-        (err) => {
-          console.error(err);
-          clearInterval(interval);
+  const capturarPuntoCalibrado = () => {
+    const pasoActual = calibracionPaso;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const nuevaMuestra = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          label: PUNTOS_CALIBRACION[pasoActual].label
+        };
+        setMuestras(prev => {
+          const upd = [...prev, nuevaMuestra];
+          setCalibracionProgreso((upd.length / 5) * 100);
+          return upd;
+        });
+
+        if (pasoActual >= 4) {
+          // Completado: 5 puntos capturados
           setCalibrando(false);
-          alert('Error al obtener ubicación. Asegúrate de dar permisos de GPS.');
-        },
-        { enableHighAccuracy: true }
-      );
-    }, 2000);
+          setCalibracionCompletada(true);
+        } else {
+          setCalibracionPaso(pasoActual + 1);
+        }
+      },
+      (err) => {
+        console.error(err);
+        alert(`Error GPS en ${PUNTOS_CALIBRACION[pasoActual].label}. Verifica permisos e intenta de nuevo.`);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
   };
 
   const getClubTheme = (clubName: string) => {
@@ -2641,29 +2658,124 @@ export default function AdminDashboard() {
               </div>
 
               <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1rem', borderRadius: '1rem', border: '1px dashed var(--color-primary-container)' }}>
-                <p style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>Calibración de Ubicación GPS</p>
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>Calibración GPS — 5 Puntos del Aula</p>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 600 }}>Captura las 4 esquinas y el centro del aula para máxima precisión.</p>
+
+                {/* Coordenadas finales (promedio / centroide) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Latitud</label>
-                    <input name="latitud" value={calibrando ? (muestras.length > 0 ? muestras[muestras.length - 1].lat.toFixed(7) : '') : (editingAula?.latitud || (muestras.length > 0 ? (muestras.reduce((a, b) => a + b.lat, 0) / muestras.length).toFixed(7) : ''))} readOnly style={{ ...inputStyle, fontSize: '0.8rem' }} />
+                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Latitud (centroide)</label>
+                    <input name="latitud" value={
+                      calibracionCompletada && muestras.length === 5
+                        ? (muestras.reduce((a, b) => a + b.lat, 0) / muestras.length).toFixed(7)
+                        : (muestras.length > 0 && !calibrando
+                          ? (muestras.reduce((a, b) => a + b.lat, 0) / muestras.length).toFixed(7)
+                          : (editingAula?.latitud?.toString() || ''))
+                    } readOnly style={{ ...inputStyle, fontSize: '0.8rem', background: calibracionCompletada ? '#e8f5e9' : undefined }} />
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Longitud</label>
-                    <input name="longitud" value={calibrando ? (muestras.length > 0 ? muestras[muestras.length - 1].lng.toFixed(7) : '') : (editingAula?.longitud || (muestras.length > 0 ? (muestras.reduce((a, b) => a + b.lng, 0) / muestras.length).toFixed(7) : ''))} readOnly style={{ ...inputStyle, fontSize: '0.8rem' }} />
+                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Longitud (centroide)</label>
+                    <input name="longitud" value={
+                      calibracionCompletada && muestras.length === 5
+                        ? (muestras.reduce((a, b) => a + b.lng, 0) / muestras.length).toFixed(7)
+                        : (muestras.length > 0 && !calibrando
+                          ? (muestras.reduce((a, b) => a + b.lng, 0) / muestras.length).toFixed(7)
+                          : (editingAula?.longitud?.toString() || ''))
+                    } readOnly style={{ ...inputStyle, fontSize: '0.8rem', background: calibracionCompletada ? '#e8f5e9' : undefined }} />
                   </div>
                 </div>
 
-                <button type="button" onClick={iniciarCalibracion} disabled={calibrando} style={{ width: '100%', height: '3rem', borderRadius: '0.75rem', border: 'none', background: 'var(--color-secondary)', color: 'white', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  {calibrando ? <RefreshCw className="spin" size={18} /> : <Navigation size={18} />}
-                  {calibrando ? `Calibrando (${muestras.length}/5)...` : 'Calibrar con mi ubicación actual'}
-                </button>
-                {calibrando && <div style={{ height: '4px', background: 'var(--color-surface-container-high)', borderRadius: '2px', marginTop: '0.5rem', overflow: 'hidden' }}><div style={{ width: `${calibracionProgreso}%`, height: '100%', background: 'var(--color-secondary)', transition: 'width 0.3s' }}></div></div>}
+                {/* Mostrar puntos capturados */}
+                {muestras.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    {muestras.map((m, i) => (
+                      <div key={i} style={{
+                        padding: '0.25rem 0.5rem', borderRadius: '0.5rem',
+                        background: 'var(--color-primary-fixed)', fontSize: '0.6rem',
+                        fontWeight: 700, color: 'var(--color-primary)',
+                        display: 'flex', alignItems: 'center', gap: '0.25rem'
+                      }}>
+                        <span>{PUNTOS_CALIBRACION[i]?.icon}</span>
+                        <span>±{m.accuracy.toFixed(0)}m</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Barra de progreso */}
+                <div style={{ height: '6px', background: 'var(--color-surface-container-high)', borderRadius: '3px', marginBottom: '0.75rem', overflow: 'hidden' }}>
+                  <div style={{ width: `${calibracionProgreso}%`, height: '100%', background: calibracionCompletada ? '#4caf50' : 'var(--color-secondary)', transition: 'width 0.4s ease' }}></div>
+                </div>
+
+                {/* Estado de calibración */}
+                {calibrando && (
+                  <div style={{
+                    background: 'var(--color-primary-fixed)', padding: '0.75rem', borderRadius: '0.75rem',
+                    marginBottom: '0.75rem', textAlign: 'center'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                      {PUNTOS_CALIBRACION[calibracionPaso]?.icon} Paso {calibracionPaso + 1}/5
+                    </p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                      Ve a: <strong>{PUNTOS_CALIBRACION[calibracionPaso]?.label}</strong>
+                    </p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)' }}>
+                      Presiona "Capturar" cuando estés en posición
+                    </p>
+                  </div>
+                )}
+
+                {calibracionCompletada && (
+                  <div style={{
+                    background: '#e8f5e9', padding: '0.75rem', borderRadius: '0.75rem',
+                    marginBottom: '0.75rem', textAlign: 'center', border: '1px solid #a5d6a7'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#2e7d32' }}>
+                      ✅ Calibración completa — 5/5 puntos capturados
+                    </p>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.65rem', color: '#558b2f' }}>
+                      Precisión prom: ±{(muestras.reduce((a, b) => a + b.accuracy, 0) / muestras.length).toFixed(1)}m
+                    </p>
+                  </div>
+                )}
+
+                {!calibrando && !calibracionCompletada && (
+                  <button type="button" onClick={iniciarCalibracion} style={{
+                    width: '100%', height: '3rem', borderRadius: '0.75rem', border: 'none',
+                    background: 'var(--color-secondary)', color: 'white', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                  }}>
+                    <Navigation size={18} />
+                    {muestras.length > 0 ? 'Recalibrar (reinicia los 5 puntos)' : 'Iniciar Calibración de 5 Puntos'}
+                  </button>
+                )}
+
+                {calibrando && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button type="button" onClick={capturarPuntoCalibrado} style={{
+                      flex: 2, height: '3rem', borderRadius: '0.75rem', border: 'none',
+                      background: 'var(--color-primary)', color: 'white', fontWeight: 900,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      fontSize: '0.95rem'
+                    }}>
+                      <Navigation size={18} />
+                      Capturar {PUNTOS_CALIBRACION[calibracionPaso]?.icon}
+                    </button>
+                    <button type="button" onClick={() => { setCalibrando(false); setMuestras([]); setCalibracionProgreso(0); }} style={{
+                      flex: 1, height: '3rem', borderRadius: '0.75rem', border: 'none',
+                      background: 'var(--color-surface-dim)', color: 'var(--color-outline)', fontWeight: 700,
+                      cursor: 'pointer', fontSize: '0.8rem'
+                    }}>
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={labelStyle}>Radio (Metros)</label>
-                  <input name="radioPermitido" type="number" defaultValue={editingAula?.radioPermitido || 5} required min="3" max="20" style={inputStyle} />
+                  <input name="radioPermitido" type="number" defaultValue={editingAula?.radioPermitido || 10} required min="3" max="50" style={inputStyle} />
                 </div>
                 <div>
                   <label style={labelStyle}>Cód. Contingencia</label>

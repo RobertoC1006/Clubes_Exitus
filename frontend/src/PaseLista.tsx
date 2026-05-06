@@ -185,18 +185,20 @@ export default function PaseLista() {
       const pos: any = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000,
           maximumAge: 0
         });
       });
 
-      const { latitude, longitude } = pos.coords;
+      const { latitude, longitude, accuracy } = pos.coords;
+      console.log(`[GPS-SCAN] Coords: ${latitude}, ${longitude} | Accuracy: ±${accuracy?.toFixed(1)}m`);
 
       // 2. Enviar al backend
       const payload: any = {
         clubId: Number(clubId),
         latitud: latitude,
         longitud: longitude,
+        accuracy: accuracy,
       };
 
       // Intentar parsear si el QR contiene un JSON (formato del AdminDashboard)

@@ -152,9 +152,9 @@ export class SesionesService {
     return { success: true, guardados: asistencias.length };
   }
 
-  async validarAsistenciaDocente(data: { clubId: number, aulaId?: number, latitud: number, longitud: number, codigoContingencia?: string }) {
-    const { clubId, aulaId, latitud, longitud, codigoContingencia } = data;
-    console.log('[SESIONES-SERVICE] Validando docente:', { clubId, aulaId, latitud, longitud, codigoContingencia });
+  async validarAsistenciaDocente(data: { clubId: number, aulaId?: number, latitud: number, longitud: number, accuracy?: number, codigoContingencia?: string }) {
+    const { clubId, aulaId, latitud, longitud, accuracy, codigoContingencia } = data;
+    console.log('[SESIONES-SERVICE] Validando docente:', { clubId, aulaId, latitud, longitud, accuracy, codigoContingencia });
 
     // PASO 1: Buscar club y determinar el horario de hoy
     const club = await this.prisma.club.findUnique({ where: { id: clubId } });
@@ -207,13 +207,18 @@ export class SesionesService {
       throw new BadRequestException('QR Inválido. Este salón no corresponde a la clase programada para hoy.');
     }
 
-    // PASO 5: Validar distancia GPS (dinámico o 12 metros)
+    // PASO 5: Validar distancia GPS (dinámico o 10 metros)
     const distancia = this.getDistance(latitud, longitud, scannedAula.latitud, scannedAula.longitud);
-    const radioPermitido = scannedAula.radioPermitido || 12; // Radio de la base de datos o 12m por defecto
+    const radioPermitido = scannedAula.radioPermitido || 10; // Radio de la base de datos o 10m por defecto
+    console.log(`[GPS-DEBUG] Distancia: ${distancia.toFixed(2)}m | Radio: ${radioPermitido}m | Accuracy del dispositivo: ${accuracy ?? 'N/A'}m`);
+    console.log(`[GPS-DEBUG] Coords docente: ${latitud}, ${longitud} | Coords aula: ${scannedAula.latitud}, ${scannedAula.longitud}`);
 
     const estaCerca = distancia <= radioPermitido;
     if (!estaCerca && (!codigoContingencia || codigoContingencia.toUpperCase() !== scannedAula.codigoContingencia.toUpperCase())) {
-      throw new BadRequestException(`Fuera de rango: Estás a ${Math.round(distancia)}m del aula. Debes estar a menos de ${radioPermitido}m.`);
+      const accuracyMsg = accuracy && accuracy > radioPermitido 
+        ? ` (Tu GPS tiene precisión de ±${Math.round(accuracy)}m, intenta en un área abierta o espera unos segundos)` 
+        : '';
+      throw new BadRequestException(`Fuera de rango: Estás a ${Math.round(distancia)}m del aula. Debes estar a menos de ${radioPermitido}m.${accuracyMsg}`);
     }
 
     // PASO 6: Crear o buscar sesión de hoy
