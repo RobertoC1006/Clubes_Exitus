@@ -169,10 +169,11 @@ export default function Dashboard() {
   }, [usuario]);
 
   const activeClubs = useMemo(() => {
-    // We pass currentTime to getActiveClubs logic inside here or just let it use its own, but we need it to react to currentTime
+    // Forzar hora de Perú (America/Lima) para las comparaciones
+    const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const currentDay = days[currentTime.getDay()];
-    const currentMins = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const currentDay = days[peruDate.getDay()];
+    const currentMins = peruDate.getHours() * 60 + peruDate.getMinutes();
 
     return clubes.filter(club => {
       if (!club.horario) return false;
@@ -504,8 +505,9 @@ export default function Dashboard() {
                 // 🔹 Lógica Precisa: ¿Está en horario de clase (5 mins antes)?
                 const estaEnVivoAhora = (() => {
                   if (!club.horario) return false;
+                  const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
                   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                  const currentDay = days[currentTime.getDay()];
+                  const currentDay = days[peruDate.getDay()];
                   const dMatch = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
                   if (!dMatch) return false;
                   const { start, end } = club.horario[dMatch];
@@ -513,7 +515,7 @@ export default function Dashboard() {
                   const [endH, endM] = end.split(':').map(Number);
                   const sMins = startH * 60 + startM;
                   const eMins = endH * 60 + endM;
-                  const currentMins = currentTime.getHours() * 60 + currentTime.getMinutes();
+                  const currentMins = peruDate.getHours() * 60 + peruDate.getMinutes();
                   return currentMins >= (sMins - 5) && currentMins <= eMins;
                 })();
 

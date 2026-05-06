@@ -241,9 +241,17 @@ export class SesionesService {
     let estado: 'PUNTUAL' | 'TARDE' = 'PUNTUAL';
     const [startH, startM] = sessionData.start.split(':').map(Number);
     const startMins = startH * 60 + startM;
-    const currentMins = now.getHours() * 60 + now.getMinutes();
-    // Tolerancia de 5 minutos
-    if (currentMins > startMins + 5) { estado = 'TARDE'; }
+
+    // Obtener hora actual en Perú (UTC-5) para comparar correctamente con el horario
+    const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const currentMins = peruTime.getHours() * 60 + peruTime.getMinutes();
+
+    console.log(`[ASISTENCIA-DEBUG] Hora Inicio: ${sessionData.start} (${startMins}m) | Hora Marcaje (PE): ${peruTime.getHours()}:${peruTime.getMinutes()} (${currentMins}m)`);
+
+    // Tolerancia de 5 minutos: si marca a las 11:55 siendo la entrada 11:50, es PUNTUAL.
+    if (currentMins > startMins + 5) { 
+      estado = 'TARDE'; 
+    }
 
     const sesionActualizada = await this.prisma.sesion.update({
       where: { id: sesion.id },
