@@ -48,7 +48,7 @@ export class SesionesController {
 
   @Post('validar-docente')
   validarDocente(
-    @Body() body: { clubId: number, aulaId: number, latitud: number, longitud: number, codigoContingencia?: string }
+    @Body() body: { clubId: number, aulaId: number, latitud: number, longitud: number, accuracy?: number, codigoContingencia?: string }
   ) {
     return this.sesionesService.validarAsistenciaDocente(body);
   }
