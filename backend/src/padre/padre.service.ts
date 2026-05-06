@@ -176,9 +176,25 @@ export class PadreService {
       avisos.push({
         id: `falta-${f.id}`,
         titulo: 'Falta Registrada',
-        desc: `No se registró asistencia en ${f.club.nombre} el día ${f.fecha.toLocaleDateString()}.`,
+        desc: `No se registró asistencia en ${f.club.nombre} el día ${f.fecha.toLocaleDateString('es-ES')}.`,
         icono: '⚠️',
         tipo: 'alert'
+      });
+    });
+
+    // Confirmaciones de asistencia recientes
+    const presenciasRecientes = sesionesReales
+      .filter(s => s.asistencias.some(a => a.estado === 'PRESENTE'))
+      .sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
+      .slice(0, 3); // Solo mostrar las últimas 3 presencias
+
+    presenciasRecientes.forEach(p => {
+      avisos.push({
+        id: `presencia-${p.id}`,
+        titulo: 'Asistencia Confirmada',
+        desc: `${alumno.nombre} asistió correctamente a ${p.club.nombre} el día ${p.fecha.toLocaleDateString('es-ES')}.`,
+        icono: '✅',
+        tipo: 'success'
       });
     });
 

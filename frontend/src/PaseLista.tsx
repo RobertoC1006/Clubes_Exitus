@@ -626,7 +626,7 @@ export default function PaseLista() {
           setShowSuccessModal(false);
           // Si fue éxito, volvemos al dashboard
           if (successInfo.title === '¡Asistencia Registrada!' || successInfo.title === 'Guardado Local') {
-            navigate('/dashboard');
+            navigate('/');
           }
         }} 
         title={successInfo.title} 
