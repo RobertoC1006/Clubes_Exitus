@@ -215,22 +215,26 @@ export class ClubesService {
       }
     }
 
-    // 7. Historial de Actividad (Últimos 30 días) para el mapa de calor
-    const sesiones30Dias = await this.prisma.sesion.findMany({
+    // 7. Historial de Actividad (Mes Actual) para el mapa de calor
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0, 23, 59, 59);
+
+    const sesionesMes = await this.prisma.sesion.findMany({
       where: {
         club: { profesorId },
-        fecha: { gte: hace30Dias, lte: ahora }
+        fecha: { gte: inicioMes, lte: finMes }
       },
       include: { asistencias: true }
     });
 
-    const historialUltimos30Dias: { fecha: string; asistenciaPct: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(ahora);
-      d.setDate(ahora.getDate() - i);
+    const historialMesActual: { fecha: string; asistenciaPct: number }[] = [];
+    const diasEnMes = finMes.getDate();
+
+    for (let i = 1; i <= diasEnMes; i++) {
+      const d = new Date(ahora.getFullYear(), ahora.getMonth(), i);
       const dateStr = d.toISOString().split('T')[0];
 
-      const sesionesDelDia = sesiones30Dias.filter(s => s.fecha.toISOString().split('T')[0] === dateStr);
+      const sesionesDelDia = sesionesMes.filter(s => s.fecha.toISOString().split('T')[0] === dateStr);
       
       if (sesionesDelDia.length > 0) {
         let p = 0;
@@ -239,14 +243,14 @@ export class ClubesService {
           p += s.asistencias.filter(a => a.estado === 'PRESENTE' || a.estado === 'JUSTIFICADO').length;
           t += s.asistencias.length;
         });
-        historialUltimos30Dias.push({
+        historialMesActual.push({
           fecha: dateStr,
           asistenciaPct: t > 0 ? Math.round((p / t) * 100) : 0
         });
       } else {
-        historialUltimos30Dias.push({
+        historialMesActual.push({
           fecha: dateStr,
-          asistenciaPct: 0
+          asistenciaPct: -1 // -1 indica que no hubo clase ese día
         });
       }
     }
@@ -257,7 +261,7 @@ export class ClubesService {
         asistenciaPct,
         nuevosIngresos,
         racha,
-        historialUltimos30Dias
+        historialMesActual
       },
       alertas
     };

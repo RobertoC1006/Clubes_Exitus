@@ -1111,35 +1111,63 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
               </div>
             </div>
 
-            {/* Mapa de Calor Mejorado */}
+            {/* Mapa de Calor Mensual Mejorado */}
             <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.5rem', borderRadius: '2rem', border: '1px solid var(--color-surface-container-high)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Actividad Reciente</p>
-                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-outline)' }}>Últimos 30 días</span>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Actividad de {new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date())}
+                </p>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-outline)' }}>Mes Actual</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '8px' }}>
-                {Array.from({ length: 30 }).map((_, i) => {
-                  const historial = metricas?.historialUltimos30Dias || []; 
-                  const diaData = historial[i];
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+                {(metricas?.historialMesActual || []).map((diaData: any, i: number) => {
+                  const pct = diaData?.asistenciaPct ?? -1;
                   
                   let bgColor = 'var(--color-surface-container-high)'; 
                   let opacity = 0.3;
 
-                  if (diaData && (diaData.asistenciaPct || 0) > 0) {
-                    const pct = diaData.asistenciaPct || 0;
-                    bgColor = pct >= 90 ? 'var(--color-primary)' : pct >= 50 ? 'var(--color-secondary)' : 'var(--color-primary-fixed)';
+                  if (pct > 90) {
+                    bgColor = '#059669'; // Emerald 600
+                    opacity = 1;
+                  } else if (pct >= 50) {
+                    bgColor = '#34d399'; // Emerald 400
+                    opacity = 1;
+                  } else if (pct >= 0) {
+                    bgColor = '#a7f3d0'; // Emerald 200
                     opacity = 1;
                   }
 
                   return (
-                    <div key={i} title={diaData ? `${diaData.fecha}: ${diaData.asistenciaPct}%` : 'Sin datos'} style={{
+                    <div key={i} title={diaData && pct !== -1 ? `${diaData.fecha}: ${pct}%` : `Día ${i+1}: Sin clase`} style={{
                       aspectRatio: '1/1', borderRadius: '8px',
                       background: bgColor, opacity,
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      cursor: 'help'
-                    }}></div>
+                      cursor: pct !== -1 ? 'help' : 'default',
+                      border: pct !== -1 ? '1px solid rgba(0,0,0,0.05)' : 'none'
+                    }}>
+                      <span style={{ fontSize: '0.5rem', fontWeight: 900, color: pct !== -1 ? 'rgba(0,0,0,0.3)' : 'var(--color-outline)', display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                        {i + 1}
+                      </span>
+                    </div>
                   );
                 })}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)' }}>Asistencia:</span>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#a7f3d0' }}></div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-outline)' }}>&lt;50%</span>
+                </div>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#34d399' }}></div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-outline)' }}>&gt;50%</span>
+                </div>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#059669' }}></div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-outline)' }}>&gt;90%</span>
+                </div>
               </div>
             </div>
 
