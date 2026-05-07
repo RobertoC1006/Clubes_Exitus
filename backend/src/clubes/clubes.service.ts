@@ -216,7 +216,15 @@ export class ClubesService {
     }
 
     // 7. Historial de Actividad (Mes Actual) para el mapa de calor
-    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    // Usamos formateador con Zona Horaria fija para evitar desfases
+    const formatter = new Intl.DateTimeFormat('en-CA', { 
+      timeZone: 'America/Lima', 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1, 0, 0, 0);
     const finMes = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0, 23, 59, 59);
 
     const sesionesMes = await this.prisma.sesion.findMany({
@@ -231,18 +239,21 @@ export class ClubesService {
     const diasEnMes = finMes.getDate();
 
     for (let i = 1; i <= diasEnMes; i++) {
-      const d = new Date(ahora.getFullYear(), ahora.getMonth(), i);
-      const dateStr = d.toISOString().split('T')[0];
+      const d = new Date(ahora.getFullYear(), ahora.getMonth(), i, 12, 0, 0);
+      const dateStr = formatter.format(d); // YYYY-MM-DD en Lima
 
-      const sesionesDelDia = sesionesMes.filter(s => s.fecha.toISOString().split('T')[0] === dateStr);
+      const sesionesDelDia = sesionesMes.filter(s => formatter.format(s.fecha) === dateStr);
       
       if (sesionesDelDia.length > 0) {
         let p = 0;
         let t = 0;
         sesionesDelDia.forEach(s => {
+          // Solo contamos si hay asistencias registradas
           p += s.asistencias.filter(a => a.estado === 'PRESENTE' || a.estado === 'JUSTIFICADO').length;
           t += s.asistencias.length;
         });
+
+        // Si hay sesión pero no hay alumnos (t=0), lo tratamos como "sin datos" o 0% pero marcado
         historialMesActual.push({
           fecha: dateStr,
           asistenciaPct: t > 0 ? Math.round((p / t) * 100) : 0
@@ -250,7 +261,7 @@ export class ClubesService {
       } else {
         historialMesActual.push({
           fecha: dateStr,
-          asistenciaPct: -1 // -1 indica que no hubo clase ese día
+          asistenciaPct: -1 // Sin clase
         });
       }
     }
