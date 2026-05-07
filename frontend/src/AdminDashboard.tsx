@@ -2002,7 +2002,7 @@ export default function AdminDashboard() {
                         <option value="">Todos los profesores</option>
                         {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
                       </select>
-                      <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      {/* <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />*/}
                     </div>
                   </div>
                   <button onClick={fetchAsistenciaDocente} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '0.85rem 1.5rem', borderRadius: '1rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
@@ -2027,44 +2027,44 @@ export default function AdminDashboard() {
                         asistenciaDocente
                           .slice((currentPageAsistenciaDocente - 1) * ITEMS_PER_PAGE_DOCENTE, currentPageAsistenciaDocente * ITEMS_PER_PAGE_DOCENTE)
                           .map(reg => (
-                          <div key={reg.id} className="bento-card" style={{ padding: '1.25rem', background: 'white', borderRadius: '1.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', fontWeight: 900 }}>
-                                  {(reg.club.profesor.nombre[0] + (reg.club.profesor.apellido[0] ?? '')).toUpperCase()}
+                            <div key={reg.id} className="bento-card" style={{ padding: '1.25rem', background: 'white', borderRadius: '1.25rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', fontWeight: 900 }}>
+                                    {(reg.club.profesor.nombre[0] + (reg.club.profesor.apellido[0] ?? '')).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{new Date(reg.fecha).toLocaleDateString()}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
-                                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{new Date(reg.fecha).toLocaleDateString()}</p>
+                                <span style={{
+                                  padding: '0.3rem 0.7rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
+                                  background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
+                                  color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
+                                }}>
+                                  {reg.asistenciaDocente || 'PENDIENTE'}
+                                </span>
+                              </div>
+
+                              <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1rem', borderRadius: '1rem', border: '1px solid var(--color-surface-container-low)', marginBottom: '1rem' }}>
+                                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
+                                <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 700 }}>Aula: {reg.aula?.nombre || 'Sin aula'}</p>
+                              </div>
+
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-outline)' }}>
+                                  <Clock size={14} />
+                                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}</span>
                                 </div>
+                                {reg.latitudDocente && (
+                                  <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-primary)', padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    <MapPin size={14} /> Ver mapa
+                                  </a>
+                                )}
                               </div>
-                              <span style={{
-                                padding: '0.3rem 0.7rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
-                                background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
-                                color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
-                              }}>
-                                {reg.asistenciaDocente || 'PENDIENTE'}
-                              </span>
                             </div>
-
-                            <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1rem', borderRadius: '1rem', border: '1px solid var(--color-surface-container-low)', marginBottom: '1rem' }}>
-                              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
-                              <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 700 }}>Aula: {reg.aula?.nombre || 'Sin aula'}</p>
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-outline)' }}>
-                                <Clock size={14} />
-                                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}</span>
-                              </div>
-                              {reg.latitudDocente && (
-                                <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-primary)', padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                  <MapPin size={14} /> Ver mapa
-                                </a>
-                              )}
-                            </div>
-                          </div>
-                        ))
+                          ))
                       )}
                     </div>
                   ) : (
@@ -2089,36 +2089,36 @@ export default function AdminDashboard() {
                               asistenciaDocente
                                 .slice((currentPageAsistenciaDocente - 1) * ITEMS_PER_PAGE_DOCENTE, currentPageAsistenciaDocente * ITEMS_PER_PAGE_DOCENTE)
                                 .map(reg => (
-                                <tr key={reg.id} style={{ borderBottom: '1px solid var(--color-surface-container-low)', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-container-lowest)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                  <td style={{ padding: '1.25rem' }}>
-                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{new Date(reg.fecha).toLocaleDateString()}</p>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString() : 'N/A'}</p>
-                                  </td>
-                                  <td style={{ padding: '1.25rem' }}>
-                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
-                                  </td>
-                                  <td style={{ padding: '1.25rem' }}>
-                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
-                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 700 }}>{reg.aula?.nombre || 'Sin aula'}</p>
-                                  </td>
-                                  <td style={{ padding: '1.25rem' }}>
-                                    <span style={{
-                                      padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 900,
-                                      background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
-                                      color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
-                                    }}>
-                                      {reg.asistenciaDocente || 'PENDIENTE'}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '1.25rem' }}>
-                                    {reg.latitudDocente ? (
-                                      <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
-                                        <MapPin size={14} /> Ver mapa
-                                      </a>
-                                    ) : '-'}
-                                  </td>
-                                </tr>
-                              ))
+                                  <tr key={reg.id} style={{ borderBottom: '1px solid var(--color-surface-container-low)', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-container-lowest)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    <td style={{ padding: '1.25rem' }}>
+                                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{new Date(reg.fecha).toLocaleDateString()}</p>
+                                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString() : 'N/A'}</p>
+                                    </td>
+                                    <td style={{ padding: '1.25rem' }}>
+                                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
+                                    </td>
+                                    <td style={{ padding: '1.25rem' }}>
+                                      <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
+                                      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 700 }}>{reg.aula?.nombre || 'Sin aula'}</p>
+                                    </td>
+                                    <td style={{ padding: '1.25rem' }}>
+                                      <span style={{
+                                        padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 900,
+                                        background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
+                                        color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
+                                      }}>
+                                        {reg.asistenciaDocente || 'PENDIENTE'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '1.25rem' }}>
+                                      {reg.latitudDocente ? (
+                                        <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                                          <MapPin size={14} /> Ver mapa
+                                        </a>
+                                      ) : '-'}
+                                    </td>
+                                  </tr>
+                                ))
                             )}
                           </tbody>
                         </table>
