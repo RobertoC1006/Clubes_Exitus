@@ -65,8 +65,10 @@ export class PadreService {
       })
     );
 
-    // 2. Estado de Pagos (Mes actual)
-    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date());
+    // 2. Estado de Pagos (Mes actual en Perú)
+    const now = new Date();
+    const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(peruTime);
     const ultimoPago = await this.prisma.pago.findFirst({
       where: { alumnoId },
       orderBy: { id: 'desc' }
@@ -101,8 +103,9 @@ export class PadreService {
         logros.push({ titulo: 'Socio Responsable', desc: 'Pagos al día', icon: '💎' });
     }
 
-    // 4. Calendario (Sesiones de este mes: Reales + Proyectadas)
-    const hoy = new Date();
+    // 4. Calendario (Sesiones de este mes en Perú: Reales + Proyectadas)
+    const now = new Date();
+    const hoy = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
@@ -280,7 +283,9 @@ export class PadreService {
       }
     });
 
-    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(new Date());
+    const now = new Date();
+    const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(peruTime);
     const deudas: any[] = [];
     const historial: any[] = [];
 

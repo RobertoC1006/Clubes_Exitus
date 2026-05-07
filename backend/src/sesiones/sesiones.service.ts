@@ -35,8 +35,10 @@ export class SesionesService {
   }
 
   async getSesionHoy(clubId: number) {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const now = new Date();
+    // Forzar fecha de Perú para determinar qué día es "hoy"
+    const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const hoy = new Date(peruTime.getFullYear(), peruTime.getMonth(), peruTime.getDate());
 
     return this.prisma.sesion.findFirst({
       where: {
@@ -161,8 +163,10 @@ export class SesionesService {
     if (!club) throw new Error('Club no encontrado');
 
     const now = new Date();
+    // Forzar hora de Perú (America/Lima) para determinar el día de la semana
+    const peruDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const diaActual = dias[now.getDay()];
+    const diaActual = dias[peruDate.getDay()];
 
     let horario: any = club.horario;
     if (typeof horario === 'string') { try { horario = JSON.parse(horario); } catch { horario = {}; } }
