@@ -1004,77 +1004,79 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(16px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+      background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(20px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
       animation: 'fadeIn 0.3s ease'
     }} onClick={onClose}>
       <div
         style={{
-          background: 'var(--color-surface)', borderRadius: '2.5rem', width: '100%', maxWidth: '550px',
-          padding: '2.5rem', boxShadow: '0 40px 100px rgba(0,0,0,0.4)', position: 'relative',
-          overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)',
-          animation: 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          background: 'white', borderRadius: '2.5rem', width: '100%', maxWidth: '520px',
+          padding: '2.5rem', boxShadow: '0 50px 100px rgba(0,0,0,0.5)', position: 'relative',
+          overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)',
+          animation: 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          display: 'flex', flexDirection: 'column', gap: '2rem'
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header Inspirado en Admin Pagos */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 5 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              {active === 'asistencia' ? 'Análisis de Asistencia' : 'Compromiso de Excelencia'}
+            <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 950, color: 'var(--color-primary)', letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+              {active === 'asistencia' ? 'Rendimiento' : 'Compromiso'}<br/>
+              <span style={{ color: 'var(--color-secondary)' }}>{active === 'asistencia' ? 'Académico' : 'Institucional'}</span>
             </h3>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-              {active === 'asistencia' ? 'Desglose detallado por disciplina ab-2025' : 'Hitos y consistencia institucional'}
+            <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              {active === 'asistencia' ? 'Métricas de participación por disciplina' : 'Consistencia y racha de excelencia'}
             </p>
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'var(--color-surface-container-high)', width: '2.8rem', height: '2.8rem', borderRadius: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
-            <CheckCircle2 size={20} color="var(--color-primary)" strokeWidth={3} />
+          <button onClick={onClose} style={{ 
+            border: 'none', background: 'var(--color-surface-container-high)', width: '3rem', height: '3rem', 
+            borderRadius: '1.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', 
+            justifyContent: 'center', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' 
+          }}>
+            <X size={20} color="var(--color-primary)" strokeWidth={3} />
           </button>
         </div>
 
         {/* CONTENIDO: ASISTENCIA PROMEDIO */}
         {active === 'asistencia' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Grid de Resumen */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ background: 'var(--color-primary-fixed)', padding: '1.5rem', borderRadius: '1.8rem', position: 'relative', overflow: 'hidden' }}>
-                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Promedio Global</p>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{metricas?.asistenciaPct ?? 0}%</p>
-                <TrendingUp size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.1, color: 'var(--color-primary)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', position: 'relative', zIndex: 5 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.25rem' }}>
+              <div style={{ background: 'var(--grad-primary)', padding: '1.8rem 1.5rem', borderRadius: '2.2rem', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(29, 40, 72, 0.2)' }}>
+                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.8 }}>Puntaje Global</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '2.8rem', fontWeight: 950, letterSpacing: '-0.05em', lineHeight: 1 }}>{metricas?.asistenciaPct ?? 0}%</p>
+                <TrendingUp size={80} style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.1 }} />
               </div>
-              <div style={{ background: 'var(--color-secondary-container)', padding: '1.5rem', borderRadius: '1.8rem', position: 'relative', overflow: 'hidden' }}>
-                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Alumnos Únicos</p>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', letterSpacing: '-0.03em' }}>{clubes.reduce((acc, c) => acc + (c._count?.inscripciones || 0), 0)}</p>
-                <Users size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.1, color: 'var(--color-on-secondary-container)' }} />
+              <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.8rem 1.5rem', borderRadius: '2.2rem', border: '1.5px solid var(--color-surface-container-high)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                  <Users size={16} color="var(--color-secondary)" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Atletas a cargo</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: 950, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{clubes.reduce((acc, c) => acc + (c._count?.inscripciones || 0), 0)}</p>
               </div>
             </div>
 
-            {/* Listado de Disciplinas */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Desglose por Club</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }} className="discrete-scroll">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Desglose por Club</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '280px', overflowY: 'auto', paddingRight: '0.5rem' }} className="discrete-scroll">
                 {clubes.map(club => {
-                  const pct = club.asistenciaPct || 0; // Usar dato real o 0% si no existe
-                  const status = pct >= 90 ? { label: 'Óptimo', color: '#4ade80', bg: '#dcfce7' } :
-                    pct >= 70 ? { label: 'Estable', color: '#fbbf24', bg: '#fef3c7' } :
-                      { label: 'Pendiente', color: 'var(--color-outline)', bg: 'var(--color-surface-container-high)' };
-
+                  const pct = club.asistenciaPct || 0;
+                  const isLow = pct < 70;
                   return (
-                    <div key={club.id} style={{ padding: '1.2rem', borderRadius: '1.5rem', background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-surface-container-high)', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                          <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '0.75rem', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                            <BookOpen size={16} color="var(--color-primary)" />
-                          </div>
-                          <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{club.nombre}</span>
-                        </div>
-                        <span style={{ padding: '0.25rem 0.6rem', borderRadius: '99px', background: status.bg, color: status.color, fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase' }}>{status.label}</span>
+                    <div key={club.id} style={{ padding: '1.25rem', borderRadius: '1.8rem', background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-surface-container-high)', transition: 'all 0.2s' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <span style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)' }}>{club.nombre}</span>
+                        <span style={{ 
+                          padding: '0.35rem 0.8rem', borderRadius: '99px', 
+                          background: isLow ? '#fee2e2' : 'var(--color-primary-fixed)', 
+                          color: isLow ? '#ef4444' : 'var(--color-primary)', 
+                          fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase' 
+                        }}>
+                          {pct}%
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ flex: 1, height: '8px', background: 'var(--color-surface-container-high)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--grad-primary)', borderRadius: '4px', transition: 'width 1s ease-out' }}></div>
-                        </div>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', minWidth: '40px', textAlign: 'right' }}>{pct}%</span>
+                      <div style={{ height: '8px', background: 'var(--color-surface-container-high)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: isLow ? '#ef4444' : 'var(--grad-primary)', borderRadius: '10px', transition: 'width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}></div>
                       </div>
                     </div>
                   );
@@ -1088,82 +1090,66 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
         {active === 'racha' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.8rem' }}>
             {/* Visualización Central - Amarillo Institucional */}
+            {/* Visualización Central Premium */}
             <div style={{
-              textAlign: 'center', padding: '2.5rem 2rem',
-              background: 'linear-gradient(135deg, #facc15, #fbbf24, #9a6d4dff)', // Amarillo-Oro Dominante
+              textAlign: 'center', padding: '3rem 2rem',
+              background: 'linear-gradient(135deg, #facc15, #eab308, #fbbf24)', 
               borderRadius: '2.5rem', color: 'var(--color-primary)', position: 'relative', overflow: 'hidden',
-              boxShadow: '0 25px 50px -12px rgba(250, 204, 21, 0.4)'
+              boxShadow: '0 30px 60px -12px rgba(234, 179, 8, 0.3)'
             }}>
-              <Zap size={150} style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', opacity: 0.06, color: 'var(--color-primary)' }} />
+              <Zap size={200} style={{ position: 'absolute', right: '-40px', top: '-40px', opacity: 0.1, color: 'white' }} />
               <div style={{ position: 'relative', zIndex: 2 }}>
                 <div style={{
-                  width: '4.5rem', height: '4.5rem',
-                  background: 'rgba(29, 40, 72, 0.1)',
+                  width: '4rem', height: '4rem', background: 'rgba(255, 255, 255, 0.2)',
                   borderRadius: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 1.5rem', backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(29, 40, 72, 0.1)'
+                  margin: '0 auto 1.25rem', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)'
                 }}>
-                  <Zap size={32} color="var(--color-primary)" fill="var(--color-primary)" />
+                  <Zap size={28} fill="var(--color-primary)" />
                 </div>
-                <p style={{ margin: 0, fontSize: '3.4rem', fontWeight: 950, letterSpacing: '-0.05em', lineHeight: 1 }}>{metricas?.racha ?? 0}</p>
-                <p style={{ margin: '0.2rem 0 1rem', fontSize: '1.2rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sesiones Invictas</p>
-                <div style={{ padding: '0.5rem 1rem', borderRadius: '99px', background: 'rgba(29, 40, 72, 0.08)', display: 'inline-block', fontSize: '0.85rem', fontWeight: 800 }}>
-                  ¡Compromiso del más alto nivel!
-                </div>
+                <p style={{ margin: 0, fontSize: '4.5rem', fontWeight: 950, letterSpacing: '-0.06em', lineHeight: 0.9 }}>{metricas?.racha ?? 0}</p>
+                <p style={{ margin: '0.6rem 0 0', fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.85 }}>Sesiones Invictas</p>
               </div>
             </div>
 
-            {/* Mapa de Calor - Estilo GitHub Verde */}
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem' }}>Mapa de Actividad (30 días)</p>
-              <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(15, 1fr)', gap: '6px',
-                padding: '1.2rem', background: 'var(--color-surface-container-lowest)',
-                borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)'
-              }}>
+            {/* Mapa de Calor Mejorado */}
+            <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.5rem', borderRadius: '2rem', border: '1px solid var(--color-surface-container-high)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Actividad Reciente</p>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-outline)' }}>Últimos 30 días</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '8px' }}>
                 {Array.from({ length: 30 }).map((_, i) => {
                   const historial = metricas?.historialUltimos30Dias || []; 
                   const diaData = historial[i];
                   
                   let bgColor = 'var(--color-surface-container-high)'; 
+                  let opacity = 0.3;
 
-                  if (diaData) {
+                  if (diaData && (diaData.asistenciaPct || 0) > 0) {
                     const pct = diaData.asistenciaPct || 0;
-                    bgColor = pct >= 90 ? '#098c46ff' :
-                             pct >= 50 ? '#10b981' : '#d1fae5';
+                    bgColor = pct >= 90 ? 'var(--color-primary)' : pct >= 50 ? 'var(--color-secondary)' : 'var(--color-primary-fixed)';
+                    opacity = 1;
                   }
 
                   return (
-                    <div key={i} title={diaData ? `Día ${diaData.fecha}: ${diaData.asistenciaPct}%` : 'Sin actividad'} style={{
-                      aspectRatio: '1/1', borderRadius: '4px',
-                      background: bgColor,
-                      transition: 'all 0.3s ease'
+                    <div key={i} title={diaData ? `${diaData.fecha}: ${diaData.asistenciaPct}%` : 'Sin datos'} style={{
+                      aspectRatio: '1/1', borderRadius: '8px',
+                      background: bgColor, opacity,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'help'
                     }}></div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Roadmap de Logros */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Próximos Hitos</p>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                {[
-                  { icon: <Award size={20} />, label: 'Bronce', req: 5, active: (metricas?.racha || 0) >= 5 },
-                  { icon: <Zap size={20} />, label: 'Plata', req: 15, active: (metricas?.racha || 0) >= 15 },
-                  { icon: <Target size={20} />, label: 'Oro', req: 30, active: (metricas?.racha || 0) >= 30 }
-                ].map((hito, i) => (
-                  <div key={i} style={{
-                    flex: 1, padding: '1rem', borderRadius: '1.5rem', textAlign: 'center',
-                    background: hito.active ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-low)',
-                    border: '1.5px solid', borderColor: hito.active ? 'var(--color-primary)' : 'transparent',
-                    opacity: hito.active ? 1 : 0.6
-                  }}>
-                    <div style={{ color: hito.active ? 'var(--color-primary)' : 'var(--color-outline)', marginBottom: '0.4rem' }}>{hito.icon}</div>
-                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, color: 'var(--color-primary)' }}>{hito.label}</p>
-                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)' }}>{hito.req} Sesiones</p>
-                  </div>
-                ))}
+            {/* Motivational Quote instead of Hitos */}
+            <div style={{ padding: '1.5rem', borderRadius: '2rem', background: 'rgba(var(--color-secondary-rgb), 0.08)', border: '1.5px dashed rgba(var(--color-secondary-rgb), 0.3)', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                "La excelencia no es un acto, sino un hábito. Tu consistencia hoy define el éxito de tus atletas mañana."
+              </p>
+              <div style={{ marginTop: '0.8rem', fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Equipo Exitus • Gestión 2025
               </div>
             </div>
           </div>
@@ -1172,12 +1158,13 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
         <button
           onClick={onClose}
           style={{
-            marginTop: '2.5rem', width: '100%', padding: '1.25rem', borderRadius: '1.5rem',
-            background: 'var(--color-primary)', color: 'white', fontWeight: 900, fontSize: '1.05rem',
-            border: 'none', cursor: 'pointer', boxShadow: '0 12px 24px rgba(29, 40, 72, 0.25)',
-            transition: 'all 0.2s'
+            width: '100%', padding: '1.25rem', borderRadius: '1.5rem',
+            background: 'var(--color-primary)', color: 'white', fontWeight: 950, fontSize: '1.1rem',
+            border: 'none', cursor: 'pointer', boxShadow: '0 15px 35px rgba(29, 40, 72, 0.3)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            position: 'relative', zIndex: 5, letterSpacing: '-0.02em'
           }}
-          onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+          onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
           onMouseOut={e => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           ¡Seguir Adelante!

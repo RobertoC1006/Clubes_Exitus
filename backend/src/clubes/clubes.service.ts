@@ -215,12 +215,49 @@ export class ClubesService {
       }
     }
 
+    // 7. Historial de Actividad (Últimos 30 días) para el mapa de calor
+    const sesiones30Dias = await this.prisma.sesion.findMany({
+      where: {
+        club: { profesorId },
+        fecha: { gte: hace30Dias, lte: ahora }
+      },
+      include: { asistencias: true }
+    });
+
+    const historialUltimos30Dias = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(ahora);
+      d.setDate(ahora.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+
+      const sesionesDelDia = sesiones30Dias.filter(s => s.fecha.toISOString().split('T')[0] === dateStr);
+      
+      if (sesionesDelDia.length > 0) {
+        let p = 0;
+        let t = 0;
+        sesionesDelDia.forEach(s => {
+          p += s.asistencias.filter(a => a.estado === 'PRESENTE' || a.estado === 'JUSTIFICADO').length;
+          t += s.asistencias.length;
+        });
+        historialUltimos30Dias.push({
+          fecha: dateStr,
+          asistenciaPct: t > 0 ? Math.round((p / t) * 100) : 0
+        });
+      } else {
+        historialUltimos30Dias.push({
+          fecha: dateStr,
+          asistenciaPct: 0
+        });
+      }
+    }
+
     return {
       metricas: {
         totalAtletas,
         asistenciaPct,
         nuevosIngresos,
-        racha
+        racha,
+        historialUltimos30Dias
       },
       alertas
     };
