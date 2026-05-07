@@ -224,7 +224,7 @@ export class ClubesService {
       include: { asistencias: true }
     });
 
-    const historialUltimos30Dias = [];
+    const historialUltimos30Dias: { fecha: string; asistenciaPct: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(ahora);
       d.setDate(ahora.getDate() - i);
