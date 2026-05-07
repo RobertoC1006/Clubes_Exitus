@@ -65,8 +65,10 @@ export class PadreService {
       })
     );
 
-    // 2. Estado de Pagos (Mes actual)
-    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date());
+    // 2. Estado de Pagos (Mes actual en Perú)
+    const now = new Date();
+    const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(peruTime);
     const ultimoPago = await this.prisma.pago.findFirst({
       where: { alumnoId },
       orderBy: { id: 'desc' }
@@ -101,8 +103,8 @@ export class PadreService {
         logros.push({ titulo: 'Socio Responsable', desc: 'Pagos al día', icon: '💎' });
     }
 
-    // 4. Calendario (Sesiones de este mes: Reales + Proyectadas)
-    const hoy = new Date();
+    // 4. Calendario (Sesiones de este mes en Perú: Reales + Proyectadas)
+    const hoy = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
@@ -176,9 +178,25 @@ export class PadreService {
       avisos.push({
         id: `falta-${f.id}`,
         titulo: 'Falta Registrada',
-        desc: `No se registró asistencia en ${f.club.nombre} el día ${f.fecha.toLocaleDateString()}.`,
+        desc: `No se registró asistencia en ${f.club.nombre} el día ${f.fecha.toLocaleDateString('es-ES')}.`,
         icono: '⚠️',
         tipo: 'alert'
+      });
+    });
+
+    // Confirmaciones de asistencia recientes
+    const presenciasRecientes = sesionesReales
+      .filter(s => s.asistencias.some(a => a.estado === 'PRESENTE'))
+      .sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
+      .slice(0, 3); // Solo mostrar las últimas 3 presencias
+
+    presenciasRecientes.forEach(p => {
+      avisos.push({
+        id: `presencia-${p.id}`,
+        titulo: 'Asistencia Confirmada',
+        desc: `${alumno.nombre} asistió correctamente a ${p.club.nombre} el día ${p.fecha.toLocaleDateString('es-ES')}.`,
+        icono: '✅',
+        tipo: 'success'
       });
     });
 
@@ -264,7 +282,9 @@ export class PadreService {
       }
     });
 
-    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(new Date());
+    const now = new Date();
+    const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const mesActual = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(peruTime);
     const deudas: any[] = [];
     const historial: any[] = [];
 

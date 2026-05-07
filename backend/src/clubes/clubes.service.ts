@@ -103,8 +103,9 @@ export class ClubesService {
 
   // 🔹 Obtener métricas dinámicas para el dashboard del profesor
   async getProfesorDashboard(profesorId: number) {
-    const ahora = new Date();
-    const hace30Dias = new Date();
+    const now = new Date();
+    const ahora = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const hace30Dias = new Date(ahora);
     hace30Dias.setDate(ahora.getDate() - 30);
 
     // 1. Clubes del profesor

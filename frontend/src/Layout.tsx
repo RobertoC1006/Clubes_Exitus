@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, CreditCard, User, Users, GraduationCap, BarChart2, BookOpen, UserPlus, Download, Bell, Check, Loader2, LogOut, Calendar } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, CreditCard, User, Users, GraduationCap, BarChart2, BookOpen, UserPlus, Download, Bell, Check, Loader2, LogOut, Calendar, MapPin } from 'lucide-react';
 import { useUser } from './UserContext';
 import { useState, useEffect, useRef } from 'react';
 
@@ -93,6 +93,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { key: 'personas', icon: <UserPlus size={22} />, label: 'Personas', path: '/admin?tab=personas' },
     { key: 'pagos', icon: <CreditCard size={22} />, label: 'Pagos', path: '/admin?tab=pagos' },
     { key: 'horarios', icon: <Calendar size={22} />, label: 'Horarios', path: '/admin?tab=horarios' },
+    { key: 'aulas', icon: <MapPin size={22} />, label: 'Aulas', path: '/admin?tab=aulas' },
+    { key: 'asistencia-docente', icon: <CheckSquare size={22} />, label: 'Asistencia Docente', path: '/admin?tab=asistencia-docente' },
     { key: 'reporte', icon: <Download size={22} />, label: 'Reportes', path: '/admin?tab=reporte' },
   ];
 
@@ -351,7 +353,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 onClick={() => navigate(t.path)}
                 style={{
                   background: 'transparent', border: 'none', display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', gap: '0.2rem', width: '20%', cursor: 'pointer',
+                  alignItems: 'center', gap: '0.2rem', width: '12.5%', cursor: 'pointer',
                   color: isActive ? 'var(--color-primary)' : 'var(--color-outline)',
                   transition: 'all 0.2s',
                 }}

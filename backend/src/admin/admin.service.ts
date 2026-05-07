@@ -157,20 +157,42 @@ export class AdminService {
   }
 
   async createClub(data: { nombre: string; descripcion?: string; precio?: number; profesorId: number; horario?: any }) {
-    return this.prisma.club.create({
+    const club = await this.prisma.club.create({
       data,
-      include: { profesor: { select: { nombre: true, apellido: true } } },
+      include: { profesor: { select: { id: true, nombre: true, apellido: true } } },
     });
+
+    // Notificar al profesor
+    await this.notificaciones.crear({
+      titulo: 'Nuevo Club Asignado',
+      mensaje: `Hola ${club.profesor.nombre}, se te ha asignado el club "${club.nombre}". Ya puedes ver tu horario en el dashboard.`,
+      tipo: 'INFO',
+      usuarioId: club.profesorId
+    });
+
+    return club;
   }
 
   async updateClub(id: number, data: { nombre?: string; descripcion?: string; precio?: number; profesorId?: number; horario?: any }) {
     const exists = await this.prisma.club.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException(`Club #${id} no encontrado`);
-    return this.prisma.club.update({
+    const club = await this.prisma.club.update({
       where: { id },
       data,
-      include: { profesor: { select: { nombre: true, apellido: true } } },
+      include: { profesor: { select: { id: true, nombre: true, apellido: true } } },
     });
+
+    // Si cambió el profesor, notificar al nuevo
+    if (data.profesorId && data.profesorId !== exists.profesorId) {
+        await this.notificaciones.crear({
+            titulo: 'Nuevo Club Asignado',
+            mensaje: `Hola ${club.profesor.nombre}, se te ha asignado el club "${club.nombre}". Ya puedes ver tu horario en el dashboard.`,
+            tipo: 'INFO',
+            usuarioId: club.profesorId
+        });
+    }
+
+    return club;
   }
 
   async deleteClub(id: number) {
@@ -184,6 +206,27 @@ export class AdminService {
     await this.prisma.inscripcion.deleteMany({ where: { clubId: id } });
     await this.prisma.pago.deleteMany({ where: { clubId: id } });
     return this.prisma.club.delete({ where: { id } });
+  }
+
+  // ============================================================
+  // CRUD DE AULAS
+  // ============================================================
+  async getAulas() {
+    return this.prisma.aula.findMany({
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  async createAula(data: { nombre: string; latitud: number; longitud: number; radioPermitido?: number; codigoContingencia?: string }) {
+    return (this.prisma.aula.create as any)({ data });
+  }
+
+  async updateAula(id: number, data: { nombre?: string; latitud?: number; longitud?: number; radioPermitido?: number; codigoContingencia?: string }) {
+    return (this.prisma.aula.update as any)({ where: { id }, data });
+  }
+
+  async deleteAula(id: number) {
+    return (this.prisma.aula.delete as any)({ where: { id } });
   }
 
   // ============================================================
@@ -421,6 +464,35 @@ export class AdminService {
         },
       },
       orderBy: { fecha: 'desc' },
+    });
+  }
+
+  // ============================================================
+  // REPORTE DE ASISTENCIA DOCENTE
+  // ============================================================
+  async getAsistenciaDocente(filtros?: { profesorId?: number, inicio?: string, fin?: string }) {
+    const where: any = {};
+    if (filtros?.profesorId) {
+      where.club = { profesorId: filtros.profesorId };
+    }
+    if (filtros?.inicio || filtros?.fin) {
+      where.fecha = {};
+      if (filtros.inicio) where.fecha.gte = new Date(filtros.inicio);
+      if (filtros.fin) where.fecha.lte = new Date(filtros.fin);
+    }
+
+    return this.prisma.sesion.findMany({
+      where,
+      include: {
+        club: {
+          select: {
+            nombre: true,
+            profesor: { select: { nombre: true, apellido: true } }
+          }
+        },
+        aula: { select: { nombre: true } }
+      } as any,
+      orderBy: { fecha: 'desc' }
     });
   }
 }

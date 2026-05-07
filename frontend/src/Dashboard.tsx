@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2, Activity, Calendar as CalendarIcon, Users,
   Loader2, Clock, Zap, Target, TrendingUp, AlertCircle, ChevronRight,
-  BookOpen, Award
+  BookOpen, Award, Bell, X, Info
 } from 'lucide-react';
 import { useUser } from './UserContext';
 import './index.css';
@@ -88,7 +88,7 @@ function getActiveClubs(clubes: any[]) {
   const now = new Date();
   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const currentDay = days[now.getDay()];
-  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+  const currentMins = now.getHours() * 60 + now.getMinutes();
 
   return clubes.filter(club => {
     if (!club.horario) return false;
@@ -98,7 +98,12 @@ function getActiveClubs(clubes: any[]) {
     const conf = club.horario[dayKey];
     if (!conf || !conf.start || !conf.end) return false;
     
-    return currentTime >= conf.start && currentTime <= conf.end;
+    const [startH, startM] = conf.start.split(':').map(Number);
+    const [endH, endM] = conf.end.split(':').map(Number);
+    const sMins = startH * 60 + startM;
+    const eMins = endH * 60 + endM;
+    
+    return currentMins >= (sMins - 5) && currentMins <= eMins;
   });
 }
 
@@ -110,15 +115,23 @@ export default function Dashboard() {
   const { usuario } = useUser();
   const [clubes, setClubes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Auto update for live classes
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000); // refresh every 30s
+    return () => clearInterval(timer);
+  }, []);
 
   // Paginación (Punto: 3 clubes por página)
   const ITEMS_PER_PAGE = 3;
   const [currentPage, setCurrentPage] = useState(1);
   const [activeModal, setActiveModal] = useState<'asistencia' | 'racha' | null>(null);
 
-  // Datos dinámicos del dashboard
   const [metricas, setMetricas] = useState<any>(null);
   const [alertas, setAlertas] = useState<any[]>([]);
+  const [notificaciones, setNotificaciones] = useState<any[]>([]);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
 
   useEffect(() => {
@@ -148,15 +161,66 @@ export default function Dashboard() {
       .then(data => {
         setMetricas(data.metricas);
         setAlertas(data.alertas);
+        // Si hay alertas nuevas (no leídas o críticas), podríamos mostrar el modal automáticamente
+        if (data.alertas && data.alertas.length > 0) {
+            // setShowAlertsModal(true); // Opcional: auto-abrir si hay alertas de inasistencia
+        }
         setLoadingDashboard(false);
       })
       .catch(err => {
         console.error("Error fetching dashboard metrics:", err);
         setLoadingDashboard(false);
       });
+
+    // 🔹 Cargar notificaciones (Novedades de asignación, etc)
+    fetch(`${API}/notificaciones?usuarioId=${usuario.id}`)
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data.data) ? data.data : [];
+        setNotificaciones(list);
+        // Auto-abrir si hay notificaciones no leídas de "Nuevo Club" o "Nuevo Alumno"
+        const tieneNovedades = list.some((n: any) => !n.leida);
+        if (tieneNovedades) {
+            setShowAlertsModal(true);
+        }
+      })
+      .catch(err => console.error("Error fetching notifications:", err));
   }, [usuario]);
 
-  const activeClubs = useMemo(() => getActiveClubs(clubes), [clubes]);
+  const leerNotificacion = async (id: number) => {
+    try {
+      await fetch(`${API}/notificaciones/${id}/leer`, { method: 'PUT' });
+      setNotificaciones(prev => prev.map((n: any) => n.id === id ? { ...n, leida: true } : n));
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const unreadCount = notificaciones.filter((n: any) => !n.leida).length + alertas.length;
+
+  const activeClubs = useMemo(() => {
+    // Forzar hora de Perú (America/Lima) para las comparaciones
+    const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const currentDay = days[peruDate.getDay()];
+    const currentMins = peruDate.getHours() * 60 + peruDate.getMinutes();
+
+    return clubes.filter(club => {
+      if (!club.horario) return false;
+      const dayKey = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
+      if (!dayKey) return false;
+      
+      const conf = club.horario[dayKey];
+      if (!conf || !conf.start || !conf.end) return false;
+      
+      const [startH, startM] = conf.start.split(':').map(Number);
+      const [endH, endM] = conf.end.split(':').map(Number);
+      const sMins = startH * 60 + startM;
+      const eMins = endH * 60 + endM;
+      
+      return currentMins >= (sMins - 5) && currentMins <= eMins;
+    });
+  }, [clubes, currentTime]);
 
   // ── Horarios ──
   const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
@@ -263,9 +327,32 @@ export default function Dashboard() {
       {/* 🔮 CONDITIONAL WELCOME (Only on Inicio) */}
       {tab === 'inicio' && (
         <div className="animate-enter" style={{ marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
           <h1 style={{ margin: 0, fontSize: '3rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em', lineHeight: 1.1 }}>
             Hola, <span style={{ color: 'var(--color-secondary)' }}>{(usuario as any).nombre?.split(' ')[0] || 'Profesor'}</span>
           </h1>
+          <button 
+            onClick={() => setShowAlertsModal(true)}
+            style={{ 
+              position: 'relative', background: 'white', border: '1.5px solid var(--color-surface-container-high)',
+              width: '3.5rem', height: '3.5rem', borderRadius: '1.25rem', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)', transition: 'all 0.3s'
+            }}
+          >
+            <Bell size={24} color="var(--color-primary)" />
+            {unreadCount > 0 && (
+              <span style={{ 
+                position: 'absolute', top: '-5px', right: '-5px', background: 'var(--color-error)',
+                color: 'white', fontSize: '0.7rem', fontWeight: 900, minWidth: '1.4rem', height: '1.4rem',
+                borderRadius: '99px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '3px solid var(--color-bg)', animation: 'pulse 2s infinite'
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
         </div>
       )}
 
@@ -468,17 +555,21 @@ export default function Dashboard() {
                 
                 const hoy = DIAS_CALENDARIO[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
                 
-                // 🔹 Lógica Precisa: ¿Está en horario de clase JUSTO AHORA?
+                // 🔹 Lógica Precisa: ¿Está en horario de clase (5 mins antes)?
                 const estaEnVivoAhora = (() => {
                   if (!club.horario) return false;
-                  const now = new Date();
+                  const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
                   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                  const currentDay = days[now.getDay()];
+                  const currentDay = days[peruDate.getDay()];
                   const dMatch = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
                   if (!dMatch) return false;
                   const { start, end } = club.horario[dMatch];
-                  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                  return currentTime >= start && currentTime <= end;
+                  const [startH, startM] = start.split(':').map(Number);
+                  const [endH, endM] = end.split(':').map(Number);
+                  const sMins = startH * 60 + startM;
+                  const eMins = endH * 60 + endM;
+                  const currentMins = peruDate.getHours() * 60 + peruDate.getMinutes();
+                  return currentMins >= (sMins - 5) && currentMins <= eMins;
                 })();
 
                 const hayClaseHoy = club.horario && Object.keys(club.horario).some(d => normalizeDay(d) === hoy);
@@ -793,6 +884,115 @@ export default function Dashboard() {
         metricas={metricas}
         clubes={clubes}
       />
+
+      <AlertsModal 
+        isOpen={showAlertsModal} 
+        onClose={() => setShowAlertsModal(false)}
+        alertas={alertas}
+        notificaciones={notificaciones}
+        onRead={leerNotificacion}
+      />
+    </div>
+  );
+}
+
+function AlertsModal({ isOpen, onClose, alertas, notificaciones, onRead }: any) {
+  if (!isOpen) return null;
+  
+  const hasContent = (alertas && alertas.length > 0) || (notificaciones && notificaciones.length > 0);
+
+  return (
+    <div style={{ 
+      position: 'fixed', inset: 0, zIndex: 11000, 
+      background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' 
+    }} onClick={onClose}>
+      <div style={{ 
+        background: 'white', borderRadius: '2rem', width: '100%', maxWidth: '500px', 
+        maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', animation: 'slideUp 0.4s ease'
+      }} onClick={e => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>Notificaciones</h3>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>Novedades y alertas importantes</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--color-surface-container-low)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={20} color="var(--color-primary)" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="discrete-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {!hasContent && (
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', opacity: 0.5 }}>
+              <Bell size={48} style={{ margin: '0 auto 1rem', display: 'block' }} />
+              <p style={{ fontWeight: 700 }}>No hay notificaciones nuevas</p>
+            </div>
+          )}
+
+          {/* Alertas Críticas (Asistencia) */}
+          {alertas && alertas.map((a: any) => (
+            <div key={a.id} style={{ 
+              background: 'rgba(211, 47, 47, 0.05)', padding: '1.25rem', 
+              borderRadius: '1.25rem', border: '1px solid rgba(211, 47, 47, 0.1)',
+              display: 'flex', gap: '1rem'
+            }}>
+              <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: '#d32f2f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertCircle size={20} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#d32f2f' }}>{a.titulo}</h4>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.4 }}>{a.desc}</p>
+              </div>
+            </div>
+          ))}
+
+          {/* Notificaciones (Asignaciones, etc) */}
+          {notificaciones && notificaciones.map((n: any) => (
+            <div 
+              key={n.id} 
+              onClick={() => !n.leida && onRead(n.id)}
+              style={{ 
+                background: n.leida ? 'var(--color-surface-container-low)' : 'rgba(var(--color-secondary-rgb), 0.1)', 
+                padding: '1.25rem', borderRadius: '1.25rem', 
+                border: '1px solid rgba(var(--color-secondary-rgb), 0.1)',
+                display: 'flex', gap: '1rem', cursor: n.leida ? 'default' : 'pointer',
+                transition: 'all 0.2s', opacity: n.leida ? 0.7 : 1
+              }}
+            >
+              <div style={{ 
+                width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', 
+                background: n.leida ? 'var(--color-outline)' : 'var(--color-secondary)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 
+              }}>
+                {n.tipo === 'INFO' ? <Info size={20} color="white" /> : <Bell size={20} color="white" />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-primary)' }}>{n.titulo}</h4>
+                  {!n.leida && <div style={{ width: '8px', height: '8px', background: 'var(--color-secondary)', borderRadius: '50%' }}></div>}
+                </div>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.4 }}>{n.mensaje}</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{new Date(n.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '1.5rem', background: 'var(--color-surface-container-lowest)', display: 'flex', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{ 
+            background: 'var(--color-primary)', color: 'white', border: 'none', 
+            padding: '0.85rem 2rem', borderRadius: '1rem', fontWeight: 900, cursor: 'pointer',
+            boxShadow: '0 8px 16px rgba(29, 40, 72, 0.2)'
+          }}>
+            Entendido
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -922,12 +1122,10 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
                 borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)'
               }}>
                 {Array.from({ length: 30 }).map((_, i) => {
-                  // Lógica Real Temporal: Solo se ilumina si hay data en el índice (simulando días pasados)
-                  // Por ahora, como no hay historia en el objeto metricas, se verá gris.
                   const historial = metricas?.historialUltimos30Dias || []; 
                   const diaData = historial[i];
                   
-                  let bgColor = 'var(--color-surface-container-high)'; // Por defecto gris (sin clase)
+                  let bgColor = 'var(--color-surface-container-high)'; 
 
                   if (diaData) {
                     const pct = diaData.asistenciaPct || 0;

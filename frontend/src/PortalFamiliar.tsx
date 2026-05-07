@@ -95,6 +95,11 @@ export default function PortalFamiliar() {
   const [showClubModal, setShowClubModal] = useState(false);
   const [activeClubTab, setActiveClubTab] = useState<'pasadas' | 'proximas'>('pasadas');
 
+  // Notificaciones
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+
   // 1. Cargar Lista de Hijos
   useEffect(() => {
     if (!usuario) {
@@ -145,6 +150,19 @@ export default function PortalFamiliar() {
           setFetchingResumen(false);
       });
   }, [selectedId]);
+
+  // 3. Cargar Notificaciones del Padre
+  useEffect(() => {
+    if (!usuario) return;
+    fetch(`${API}/notificaciones?usuarioId=${usuario.id}`)
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data.data) ? data.data : [];
+        setNotifications(list);
+        setUnreadNotifs(list.filter((n: any) => !n.leida).length);
+      })
+      .catch(err => console.error('Error fetching notifications:', err));
+  }, [usuario, showNotifications]);
 
   if (error) {
     return (
@@ -365,7 +383,110 @@ export default function PortalFamiliar() {
                     </button>
                 </div>
               </div>
+              
+              <button 
+                onClick={() => setShowNotifications(true)}
+                style={{ 
+                  background: 'white', border: 'none', width: '3.5rem', height: '3.5rem', borderRadius: '1.25rem', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)',
+                  boxShadow: 'var(--shadow-md)', cursor: 'pointer', position: 'relative'
+                }}
+              >
+                <Bell size={24} />
+                {unreadNotifs > 0 && (
+                  <span style={{ position: 'absolute', top: -5, right: -5, background: 'var(--color-error)', color: 'white', fontSize: '0.7rem', fontWeight: 900, width: '1.4rem', height: '1.4rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white' }}>
+                    {unreadNotifs}
+                  </span>
+                )}
+              </button>
             </div>
+          </section>
+
+          {/* MODAL NOTIFICACIONES */}
+          {showNotifications && (
+            <div onClick={() => setShowNotifications(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div onClick={(e) => e.stopPropagation()} className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '450px', borderRadius: '2rem', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>Notificaciones</h3>
+                  <button onClick={() => setShowNotifications(false)} style={{ background: 'none', border: 'none', color: 'var(--color-outline)', cursor: 'pointer' }}>
+                    <XCircle size={24} />
+                  </button>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
+                      <Bell size={40} color="var(--color-outline-variant)" style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                      <p style={{ color: 'var(--color-outline)', fontWeight: 600 }}>No tienes notificaciones todavía.</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {notifications.map((n: any) => (
+                        <div key={n.id} style={{ 
+                          padding: '1.25rem', borderRadius: '1.25rem', background: n.leida ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)',
+                          border: n.leida ? '1px solid var(--color-surface-container-high)' : '1px solid var(--color-primary-container)',
+                          position: 'relative'
+                        }}>
+                          {!n.leida && <div style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, borderRadius: '50%', background: 'var(--color-primary)' }}></div>}
+                          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary)' }}>{n.titulo}</h4>
+                          <p style={{ margin: '0.3rem 0 0.5rem', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.4 }}>{n.mensaje}</p>
+                          <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)' }}>{new Date(n.createdAt).toLocaleString('es-ES')}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: '1rem', borderTop: '1px solid var(--color-surface-container-high)' }}>
+                   <button 
+                    onClick={async () => {
+                      // Marcar todas como leídas
+                      const unreadIds = notifications.filter(n => !n.leida).map(n => n.id);
+                      for (const id of unreadIds) {
+                        await fetch(`${API}/notificaciones/${id}/leer`, { method: 'PUT' });
+                      }
+                      setShowNotifications(false);
+                      setUnreadNotifs(0);
+                      setNotifications(prev => prev.map(n => ({ ...n, leida: true })));
+                    }}
+                    style={{ width: '100%', padding: '1rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '1rem', fontWeight: 800, cursor: 'pointer' }}>
+                     Entendido
+                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* AVISOS Y NOTIFICACIONES (Carousel) */}
+          <section style={{ marginBottom: '2.5rem' }}>
+            <div className="notices-carousel">
+              {resumen.avisos.map((aviso: any, idx: number) => (
+                <div key={aviso.id} className="notice-card bento-card" style={{ padding: '1.5rem', background: 'white', border: '1px solid var(--color-surface-container-high)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <div style={{ 
+                    width: '3.5rem', height: '3.5rem', borderRadius: '1rem', 
+                    background: aviso.tipo === 'alert' ? '#FEF2F2' : aviso.tipo === 'error' ? '#FFF1F2' : aviso.tipo === 'success' ? '#F0FDF4' : 'var(--color-surface-dim)',
+                    color: aviso.tipo === 'alert' ? '#EF4444' : aviso.tipo === 'error' ? '#E11D48' : aviso.tipo === 'success' ? '#22C55E' : 'var(--color-primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem'
+                  }}>
+                    {aviso.icono || '📣'}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary)' }}>{aviso.titulo}</h4>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 500, lineHeight: 1.4 }}>{aviso.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Dots del Carousel */}
+            {resumen.avisos.length > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '-0.5rem' }}>
+                {resumen.avisos.map((_: any, idx: number) => (
+                  <div key={idx} style={{ 
+                    width: '0.4rem', height: '0.4rem', borderRadius: '99px', 
+                    background: 'var(--color-outline-variant)', opacity: 0.5 
+                  }}></div>
+                ))}
+              </div>
+            )}
           </section>
 
 

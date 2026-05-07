@@ -45,4 +45,11 @@ export class SesionesController {
   ) {
      return this.sesionesService.updateAsistencias(sessionId, asistencias, tema);
   }
+
+  @Post('validar-docente')
+  validarDocente(
+    @Body() body: { clubId: number, aulaId: number, latitud: number, longitud: number, accuracy?: number, codigoContingencia?: string }
+  ) {
+    return this.sesionesService.validarAsistenciaDocente(body);
+  }
 }

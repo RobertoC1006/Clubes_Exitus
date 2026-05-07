@@ -6,7 +6,7 @@ import {
   BarChart2, BookOpen, CreditCard, RefreshCw,
   GraduationCap, Search, ChevronDown, FileText, ExternalLink,
   Check, Calendar, Clock, History, CheckCircle,
-  Ban, ShieldAlert, UserX, AlertCircle
+  Ban, ShieldAlert, UserX, AlertCircle, MapPin, QrCode, ClipboardList, Navigation, Map
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './index.css';
@@ -56,6 +56,27 @@ interface Pago {
   alumnoId: number;
   alumno: { nombre: string; apellido: string; grado: string };
   club: { nombre: string };
+  creadoEn: string;
+}
+
+interface Aula {
+  id: number;
+  nombre: string;
+  latitud: number;
+  longitud: number;
+  radioPermitido: number;
+  codigoContingencia: string;
+}
+
+interface AsistenciaDocente {
+  id: number;
+  fecha: string;
+  asistenciaDocente: 'PUNTUAL' | 'TARDE' | 'AUSENTE';
+  horaMarcajeDocente: string;
+  latitudDocente: number;
+  longitudDocente: number;
+  aula: { nombre: string };
+  club: { nombre: string, profesor: { nombre: string, apellido: string } };
 }
 
 // ── Colores de estado ──────────────────────────────────────────
@@ -67,10 +88,11 @@ const estadoColor = {
 
 // ── Modal de Club ──────────────────────────────────────────────
 function ClubModal({
-  club, profesores, onSave, onClose,
+  club, profesores, aulas, onSave, onClose,
 }: {
   club: Partial<ClubMetrica> | null;
   profesores: Profesor[];
+  aulas: Aula[];
   onSave: (data: { nombre: string; descripcion: string; precio: number; profesorId: number; horario: any }) => void;
   onClose: () => void;
 }) {
@@ -102,9 +124,26 @@ function ClubModal({
       if (newHorario[dia]) {
         delete newHorario[dia];
       } else {
-        newHorario[dia] = { start: '16:00', end: '17:30' };
+        newHorario[dia] = { 
+          start: '16:00', 
+          end: '17:30',
+          aulaId: aulas[0]?.id || null
+        };
       }
       return newHorario;
+    });
+  };
+
+  const updateAula = (dia: string, aulaId: string) => {
+    setHorario((prev: any) => {
+      let current = prev;
+      if (typeof prev === 'string') {
+        try { current = JSON.parse(prev); } catch { current = {}; }
+      }
+      return {
+        ...current,
+        [dia]: { ...current[dia], aulaId: Number(aulaId) }
+      };
     });
   };
 
@@ -218,13 +257,37 @@ function ClubModal({
                       }}></div>
                     </div>
                     {isActive && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }} onClick={e => e.stopPropagation()}>
-                        <input type="time" value={horario[dia].start}
-                          onChange={e => updateTime(dia, 'start', e.target.value)}
-                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
-                        <input type="time" value={horario[dia].end}
-                          onChange={e => updateTime(dia, 'end', e.target.value)}
-                          style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center' }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-primary)', opacity: 0.7 }}>INICIO / FIN</span>
+                          <div style={{ display: 'flex', gap: '0.2rem' }}>
+                            <input type="time" value={horario[dia].start}
+                              onChange={e => updateTime(dia, 'start', e.target.value)}
+                              style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center', width: '100%' }} />
+                            <input type="time" value={horario[dia].end}
+                              onChange={e => updateTime(dia, 'end', e.target.value)}
+                              style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center', width: '100%' }} />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-primary)', opacity: 0.7 }}>AULA ASIGNADA</span>
+                          <select 
+                            value={horario[dia].aulaId || ''} 
+                            onChange={e => updateAula(dia, e.target.value)}
+                            style={{ 
+                              border: 'none', background: 'white', color: 'var(--color-primary)', 
+                              fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem', 
+                              borderRadius: '0.4rem', width: '100%',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="">Seleccionar...</option>
+                            {aulas.map((a: any) => (
+                              <option key={a.id} value={a.id}>{a.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -283,7 +346,7 @@ const inputStyle: React.CSSProperties = {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte' | 'horarios';
+  const tab = (searchParams.get('tab') || 'panel') as 'panel' | 'clubes' | 'personas' | 'pagos' | 'reporte' | 'horarios' | 'aulas' | 'asistencia-docente';
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -291,6 +354,31 @@ export default function AdminDashboard() {
   const [pagoAlumnoFiltro, setPagoAlumnoFiltro] = useState<number | string>('');
   const [pagoClubFiltro, setPagoClubFiltro] = useState<number | string>('');
   const [tipoFiltroPago, setTipoFiltroPago] = useState<'ALUMNO' | 'CLUB'>('ALUMNO');
+
+  // ── ESTADO: AULAS ────────────────────────────────
+  const [aulas, setAulas] = useState<Aula[]>([]);
+  const [loadingAulas, setLoadingAulas] = useState(false);
+  const [isAulaModalOpen, setIsAulaModalOpen] = useState(false);
+  const [editingAula, setEditingAula] = useState<Aula | null>(null);
+
+  // ── ESTADO: ASISTENCIA DOCENTE ────────────────────
+  const [asistenciaDocente, setAsistenciaDocente] = useState<AsistenciaDocente[]>([]);
+  const [loadingAsistenciaDocente, setLoadingAsistenciaDocente] = useState(false);
+  const [filtroProfesorId, setFiltroProfesorId] = useState<number | string>('');
+
+  // ── CALIBRACIÓN GPS (5 puntos: 4 esquinas + centro) ──────────────────────────────
+  const [calibrando, setCalibrando] = useState(false);
+  const [muestras, setMuestras] = useState<{ lat: number, lng: number, accuracy: number, label: string }[]>([]);
+  const [calibracionProgreso, setCalibracionProgreso] = useState(0);
+  const [calibracionPaso, setCalibracionPaso] = useState(0); // 0-4 (5 puntos)
+  const [calibracionCompletada, setCalibracionCompletada] = useState(false);
+  const PUNTOS_CALIBRACION = [
+    { label: 'Esquina 1 (Frente-Izquierda)', icon: '↖️' },
+    { label: 'Esquina 2 (Frente-Derecha)', icon: '↗️' },
+    { label: 'Esquina 3 (Fondo-Izquierda)', icon: '↙️' },
+    { label: 'Esquina 4 (Fondo-Derecha)', icon: '↘️' },
+    { label: 'Centro del Aula', icon: '⭐' },
+  ];
 
   const DIAS_CALENDARIO = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   const HORAS_START = 8;
@@ -325,6 +413,73 @@ export default function AdminDashboard() {
     if (d.includes('s') || d.includes('sba')) return 'Sábado';
     if (d.includes('d') || d.includes('dom')) return 'Domingo';
     return dia;
+  };
+
+  const fetchAulas = async () => {
+    setLoadingAulas(true);
+    try {
+      const res = await fetch(`${API}/admin/aulas`);
+      const data = await res.json();
+      setAulas(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAulas(false);
+    }
+  };
+
+  const fetchAsistenciaDocente = async () => {
+    setLoadingAsistenciaDocente(true);
+    try {
+      const query = filtroProfesorId ? `?profesorId=${filtroProfesorId}` : '';
+      const res = await fetch(`${API}/admin/asistencia-docente${query}`);
+      const data = await res.json();
+      setAsistenciaDocente(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingAsistenciaDocente(false);
+    }
+  };
+
+  const iniciarCalibracion = () => {
+    setCalibrando(true);
+    setMuestras([]);
+    setCalibracionProgreso(0);
+    setCalibracionPaso(0);
+    setCalibracionCompletada(false);
+  };
+
+  const capturarPuntoCalibrado = () => {
+    const pasoActual = calibracionPaso;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const nuevaMuestra = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          label: PUNTOS_CALIBRACION[pasoActual].label
+        };
+        setMuestras(prev => {
+          const upd = [...prev, nuevaMuestra];
+          setCalibracionProgreso((upd.length / 5) * 100);
+          return upd;
+        });
+
+        if (pasoActual >= 4) {
+          // Completado: 5 puntos capturados
+          setCalibrando(false);
+          setCalibracionCompletada(true);
+        } else {
+          setCalibracionPaso(pasoActual + 1);
+        }
+      },
+      (err) => {
+        console.error(err);
+        alert(`Error GPS en ${PUNTOS_CALIBRACION[pasoActual].label}. Verifica permisos e intenta de nuevo.`);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
   };
 
   const getClubTheme = (clubName: string) => {
@@ -434,6 +589,7 @@ export default function AdminDashboard() {
     type: 'DANGER' | 'WARNING' | 'SUCCESS';
     onConfirm: () => void;
     icon?: React.ReactNode;
+    isAlert?: boolean;
   }>({
     show: false, title: '', message: '', type: 'WARNING', onConfirm: () => { }
   });
@@ -509,6 +665,8 @@ export default function AdminDashboard() {
     if (tab === 'pagos' || modalPagosClub !== false) fetchPagos();
   }, [tab, pagoFiltro, pagoAlumnoFiltro, pagoClubFiltro, modalPagosClub]);
   useEffect(() => { if (tab === 'personas') { fetchAlumnos(); fetchProfesores(); } }, [tab]);
+  useEffect(() => { if (tab === 'aulas') fetchAulas(); }, [tab]);
+  useEffect(() => { if (tab === 'asistencia-docente') fetchAsistenciaDocente(); }, [tab, filtroProfesorId]);
 
   // ── CRUD Clubes ──────────────────────────────────────────────
   const handleSaveClub = async (data: { nombre: string; descripcion: string; precio: number; profesorId: number; horario: any }) => {
@@ -576,10 +734,22 @@ export default function AdminDashboard() {
     const method = isEdit ? 'PUT' : 'POST';
     try {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      if (!res.ok) { const err = await res.json(); alert(err.message ?? 'Error al guardar'); }
-      else { setModalUsuario(false); fetchProfesores(); }
-    } catch { alert('Error de red'); }
-    finally { setSavingPersona(false); }
+      if (!res.ok) {
+        const err = await res.json();
+        setConfirmModal({
+          show: true, title: 'Error', message: err.message ?? 'Error al guardar', type: 'DANGER', isAlert: true, onConfirm: () => { }
+        });
+      } else {
+        setModalUsuario(false);
+        fetchProfesores();
+      }
+    } catch {
+      setConfirmModal({
+        show: true, title: 'Error de Red', message: 'No se pudo conectar con el servidor', type: 'DANGER', isAlert: true, onConfirm: () => { }
+      });
+    } finally {
+      setSavingPersona(false);
+    }
   };
 
   const handleResetPassword = async (id: number) => {
@@ -592,12 +762,36 @@ export default function AdminDashboard() {
       onConfirm: async () => {
         try {
           const res = await fetch(`${API}/admin/usuarios/${id}/reset-password`, { method: 'PATCH' });
-          if (res.ok) alert('Contraseña reseteada con éxito (123456)');
-          else {
+          if (res.ok) {
+            setConfirmModal({
+              show: true,
+              title: 'Éxito',
+              message: 'Contraseña reseteada con éxito (123456)',
+              type: 'SUCCESS',
+              isAlert: true,
+              onConfirm: () => { }
+            });
+          } else {
             const err = await res.json();
-            alert(err.message || 'Error al resetear');
+            setConfirmModal({
+              show: true,
+              title: 'Error',
+              message: err.message || 'Error al resetear',
+              type: 'DANGER',
+              isAlert: true,
+              onConfirm: () => { }
+            });
           }
-        } catch { alert('Error de red'); }
+        } catch { 
+            setConfirmModal({
+                show: true,
+                title: 'Error de Red',
+                message: 'No se pudo conectar con el servidor',
+                type: 'DANGER',
+                isAlert: true,
+                onConfirm: () => { }
+            });
+        }
       }
     });
   };
@@ -627,10 +821,24 @@ export default function AdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, padreId: finalPadreId })
       });
-      if (!res.ok) { const err = await res.json(); alert(err.message ?? 'Error al guardar'); }
-      else { setModalAlumno(false); fetchAlumnos(); fetchMetricas(); fetchProfesores(); }
-    } catch { alert('Error de red'); }
-    finally { setSavingPersona(false); }
+      if (!res.ok) {
+        const err = await res.json();
+        setConfirmModal({
+          show: true, title: 'Error', message: err.message ?? 'Error al guardar', type: 'DANGER', isAlert: true, onConfirm: () => { }
+        });
+      } else {
+        setModalAlumno(false);
+        fetchAlumnos();
+        fetchMetricas();
+        fetchProfesores();
+      }
+    } catch {
+      setConfirmModal({
+        show: true, title: 'Error de Red', message: 'No se pudo conectar con el servidor', type: 'DANGER', isAlert: true, onConfirm: () => { }
+      });
+    } finally {
+      setSavingPersona(false);
+    }
   };
 
   const handleDeleteAlumno = async (id: number) => {
@@ -679,1005 +887,1005 @@ export default function AdminDashboard() {
     <>
       <div className="animate-enter" style={{ paddingBottom: '7rem' }}>
 
-      <div className="pro-container" style={{ paddingBottom: '2.5rem', marginTop: '2rem' }}>
+        <div className="pro-container" style={{ paddingBottom: '2.5rem', marginTop: '2rem' }}>
 
-        {/* ══════════ TAB: PANEL ════════════════════════════ */}
-        {tab === 'panel' && metricas && (
-          <>
-            {/* BENTO MÉTRICAS (Premium) */}
-            <div className="bento-grid" style={{ marginBottom: '2.5rem' }}>
-              <div className="bento-card"
-                onClick={async () => {
-                  if (alumnos.length === 0) await fetchAlumnos();
-                  setIsAlumnosInscritosModalOpen(true);
-                }}
-                style={{
-                  gridColumn: '1 / -1',
-                  background: 'var(--grad-primary)',
-                  padding: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  boxShadow: '0 24px 48px rgba(29,40,72,0.3)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
-              >
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.6)' }}>Alumnos inscritos</p>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '5.5rem', fontWeight: 900, color: 'white', lineHeight: 0.9, letterSpacing: '-0.08em' }}>{metricas.totalAlumnos}</p>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.75rem', fontWeight: 800, border: '1px solid rgba(255,255,255,0.1)' }}>{metricas.totalClubes} clubes</span>
-                    <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', fontSize: '0.75rem', fontWeight: 900 }}>Ver listado completo</span>
-                  </div>
-                </div>
-                <div style={{ opacity: 0.15 }}>
-                  <Users size={140} color="white" />
-                </div>
-                {/* Subtle shine effect */}
-                <div style={{
-                  position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
-                  background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent)',
-                  transform: 'skewX(-25deg)',
-                  animation: 'shimmer 3s infinite'
-                }} />
-              </div>
-
-              <div className="bento-card"
-                onClick={() => setIsRetencionModalOpen(true)}
-                style={{
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <TrendingUp size={16} color="var(--color-success)" />
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
-                  </div>
-                </div>
-                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas?.asistenciaGlobal ?? 0}%</p>
-                <div style={{ marginTop: '1rem', height: '8px', borderRadius: '99px', background: 'var(--color-surface-dim)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${metricas?.asistenciaGlobal ?? 0}%`, background: 'var(--color-success)', borderRadius: '99px', transition: 'width 1s ease' }} />
-                </div>
-                <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver Rankings</p>
-              </div>
-
-              <div className="bento-card"
-                onClick={async () => {
-                  if (profesores.length === 0) await fetchProfesores();
-                  setIsProfesoresModalOpen(true);
-                }}
-                style={{
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-                  <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Award size={16} color="var(--color-primary)" />
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Profesores</p>
-                </div>
-                <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas?.totalProfesores ?? 0}</p>
-                <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700 }}>Personal Activo</p>
-                <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver staff completo</p>
-              </div>
-
-              <div className="bento-card"
-                onClick={() => setIsRankingModalOpen(true)}
-                style={{
-                  gridColumn: '1 / -1',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  background: 'white',
-                  padding: '2rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  border: '1.5px solid var(--color-secondary-container)'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem' }}>
-                    <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                      <Award size={16} color="var(--color-secondary)" />
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Disciplinas</p>
-                  </div>
-                  <h3 style={{ margin: 0, fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-                    {clubesRanking[0]?.nombre || 'Cargando...'}
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-secondary)' }}>{clubesRanking[0]?.asistencia ?? 0}%</p>
-                      <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia Promedio</p>
-                    </div>
-                    <div style={{ width: '2px', height: '2rem', background: 'rgba(0,0,0,0.05)' }}></div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)' }}>{clubesRanking[0]?.inscritos ?? 0}</p>
-                      <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Alumnos Activos</p>
+          {/* ══════════ TAB: PANEL ════════════════════════════ */}
+          {tab === 'panel' && metricas && (
+            <>
+              {/* BENTO MÉTRICAS (Premium) */}
+              <div className="bento-grid" style={{ marginBottom: '2.5rem' }}>
+                <div className="bento-card"
+                  onClick={async () => {
+                    if (alumnos.length === 0) await fetchAlumnos();
+                    setIsAlumnosInscritosModalOpen(true);
+                  }}
+                  style={{
+                    gridColumn: '1 / -1',
+                    background: 'var(--grad-primary)',
+                    padding: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    boxShadow: '0 24px 48px rgba(29,40,72,0.3)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+                >
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.6)' }}>Alumnos inscritos</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '5.5rem', fontWeight: 900, color: 'white', lineHeight: 0.9, letterSpacing: '-0.08em' }}>{metricas.totalAlumnos}</p>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                      <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.75rem', fontWeight: 800, border: '1px solid rgba(255,255,255,0.1)' }}>{metricas.totalClubes} clubes</span>
+                      <span style={{ padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: 'var(--color-secondary)', color: 'var(--color-on-secondary)', fontSize: '0.75rem', fontWeight: 900 }}>Ver listado completo</span>
                     </div>
                   </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
+                  <div style={{ opacity: 0.15 }}>
+                    <Users size={140} color="white" />
+                  </div>
+                  {/* Subtle shine effect */}
                   <div style={{
-                    width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem', background: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 0 1rem auto',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.08)', fontSize: '2rem', fontWeight: 900, color: 'var(--color-secondary)'
-                  }}>
-                    1°
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>VER RANKING COMPLETO <ChevronRight size={14} style={{ verticalAlign: 'middle' }} /></p>
+                    position: 'absolute', top: 0, left: '-100%', width: '50%', height: '100%',
+                    background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent)',
+                    transform: 'skewX(-25deg)',
+                    animation: 'shimmer 3s infinite'
+                  }} />
                 </div>
-              </div>
-            </div>
 
+                <div className="bento-card"
+                  onClick={() => setIsRetencionModalOpen(true)}
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-success-container)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendingUp size={16} color="var(--color-success)" />
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Retención</p>
+                    </div>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas?.asistenciaGlobal ?? 0}%</p>
+                  <div style={{ marginTop: '1rem', height: '8px', borderRadius: '99px', background: 'var(--color-surface-dim)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${metricas?.asistenciaGlobal ?? 0}%`, background: 'var(--color-success)', borderRadius: '99px', transition: 'width 1s ease' }} />
+                  </div>
+                  <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver Rankings</p>
+                </div>
 
-          </>
-        )}
+                <div className="bento-card"
+                  onClick={async () => {
+                    if (profesores.length === 0) await fetchProfesores();
+                    setIsProfesoresModalOpen(true);
+                  }}
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.02)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                    <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'var(--color-primary-fixed)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Award size={16} color="var(--color-primary)" />
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Profesores</p>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '2.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em' }}>{metricas?.totalProfesores ?? 0}</p>
+                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)', fontWeight: 700 }}>Personal Activo</p>
+                  <p style={{ margin: '0.75rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Ver staff completo</p>
+                </div>
 
-        {/* ══════════ TAB: CLUBES ═══════════════════════════ */}
-        {tab === 'clubes' && (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                Disciplinas <span style={{ color: 'var(--color-primary)', fontSize: '0.75rem', verticalAlign: 'middle', marginLeft: '0.4rem', background: 'var(--color-secondary-container)', padding: '0.15rem 0.5rem', borderRadius: '99px' }}>{metricas?.clubes.length ?? 0}</span>
-              </h3>
-              <button onClick={() => setModalClub({})} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}>
-                <PlusCircle size={14} /> Nuevo
-              </button>
-            </div>
-
-
-            {/* SEARCH BAR */}
-            <div style={{ marginBottom: '0.8rem', position: 'relative' }}>
-              <input
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Buscar disciplina o profesor..."
-                style={{ ...inputStyle, paddingLeft: '2.5rem', paddingTop: '0.65rem', paddingBottom: '0.65rem', borderRadius: '1rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.85rem' }}
-              />
-              <BarChart2 size={16} color="var(--color-outline)" style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }} />
-            </div>
-
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {(metricas?.clubes ?? [])
-                .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
-                .slice((currentPageClubes - 1) * ITEMS_PER_PAGE, currentPageClubes * ITEMS_PER_PAGE)
-                .map(club => (
-                  <div key={club.id} className="bento-card" style={{
-                    padding: '1.1rem',
-                    borderLeft: '5px solid var(--color-primary)',
+                <div className="bento-card"
+                  onClick={() => setIsRankingModalOpen(true)}
+                  style={{
+                    gridColumn: '1 / -1',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden',
                     background: 'white',
-                    borderRadius: '1rem'
-                  }}>
-
-                    <div className="card-header-adaptive">
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em', wordBreak: 'break-word' }}>{club.nombre}</h4>
-                        {club.descripcion && (
-                          <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.5, fontWeight: 500 }}>{club.descripcion}</p>
-                        )}
+                    padding: '2rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1.5px solid var(--color-secondary-container)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px) scale(1.01)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem' }}>
+                      <div style={{ width: '2rem', height: '2rem', borderRadius: '0.75rem', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                        <Award size={16} color="var(--color-secondary)" />
                       </div>
-                      <div className="card-actions-adaptive">
-                        <button onClick={() => setModalPagosClub(club)}
-                          title="Ver Pagos del Club"
-                          style={{ ...iconBtnStyle('var(--color-primary-fixed)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
-                          <CreditCard size={16} />
-                        </button>
-                        <button onClick={() => {
-                          setModalSesiones(club);
-                          fetchSesiones(club.id);
-                        }}
-                          title="Ver Asistencia"
-                          style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
-                          <History size={16} />
-                        </button>
-                        <button onClick={() => setModalClub(club)}
-                          style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => setConfirmDelete({ id: club.id, title: club.nombre, type: 'CLUB' })} disabled={deletingId === club.id}
-                          style={{ ...iconBtnStyle('rgba(211, 47, 47, 0.08)', 'var(--color-error)'), width: '2.5rem', height: '2.5rem' }}>
-                          <Trash2 size={16} />
-                        </button>
+                      <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Top Disciplinas</p>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                      {clubesRanking[0]?.nombre || 'Cargando...'}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-secondary)' }}>{clubesRanking[0]?.asistencia ?? 0}%</p>
+                        <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia Promedio</p>
+                      </div>
+                      <div style={{ width: '2px', height: '2rem', background: 'rgba(0,0,0,0.05)' }}></div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <p style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)' }}>{clubesRanking[0]?.inscritos ?? 0}</p>
+                        <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Alumnos Activos</p>
                       </div>
                     </div>
-
-                    <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
-                      <Pill icon={<UserCheck size={12} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
-                      <Pill icon={<Users size={12} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
-                      <Pill icon={<CreditCard size={12} />} label={`S/ ${club.precio?.toFixed(2) ?? '50.00'}`} bg="var(--color-success-container)" color="var(--color-success)" />
-                      {club.horario && (
-                        <Pill icon={<Calendar size={12} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
-                      )}
-                      <Pill icon={<TrendingUp size={12} />} label={`${club.asistencia}%`}
-                        color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
-                        bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
-                    </div>
-
                   </div>
-                ))}
-            </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem', background: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 0 1rem auto',
+                      boxShadow: '0 12px 24px rgba(0,0,0,0.08)', fontSize: '2rem', fontWeight: 900, color: 'var(--color-secondary)'
+                    }}>
+                      1°
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-secondary)', fontWeight: 800 }}>VER RANKING COMPLETO <ChevronRight size={14} style={{ verticalAlign: 'middle' }} /></p>
+                  </div>
+                </div>
+              </div>
 
-            <Pagination
-              current={currentPageClubes}
-              total={Math.ceil(((metricas?.clubes ?? []).filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())).length) / ITEMS_PER_PAGE)}
-              onChange={setCurrentPageClubes}
-            />
-          </>
-        )}
 
-        {/* ══════════ TAB: PERSONAS ════════════════════════ */}
-        {tab === 'personas' && (
-          <>
-            {/* Sub-tabs Admin / Profesores / Padres / Alumnos */}
-            <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', background: 'var(--color-surface-container-low)', padding: '0.2rem', borderRadius: '1.25rem', overflowX: 'auto' }}>
-              {[
-                { id: 'administradores', label: 'Admin', icon: <UserCheck size={16} /> },
-                { id: 'profesores', label: 'Profesores', icon: <GraduationCap size={16} /> },
-                { id: 'padres', label: 'Padres', icon: <Users size={16} /> },
-                { id: 'alumnos', label: 'Alumnos', icon: <BookOpen size={16} /> }
-              ].map(st => (
-                <button key={st.id} onClick={() => setPersonasTab(st.id as any)} style={{
-                  flex: 1, padding: '0.6rem 0.4rem', borderRadius: '1rem', border: 'none', cursor: 'pointer',
-                  fontWeight: 800, fontSize: '0.75rem', whiteSpace: 'nowrap',
-                  background: personasTab === st.id ? 'white' : 'transparent',
-                  color: personasTab === st.id ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
-                  boxShadow: personasTab === st.id ? '0 4px 8px rgba(0,0,0,0.05)' : 'none',
-                  transition: 'all 0.3s ease',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
-                }}>
-                  {st.icon}
-                  {st.label}
+            </>
+          )}
+
+          {/* ══════════ TAB: CLUBES ═══════════════════════════ */}
+          {tab === 'clubes' && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                  Disciplinas <span style={{ color: 'var(--color-primary)', fontSize: '0.75rem', verticalAlign: 'middle', marginLeft: '0.4rem', background: 'var(--color-secondary-container)', padding: '0.15rem 0.5rem', borderRadius: '99px' }}>{metricas?.clubes.length ?? 0}</span>
+                </h3>
+                <button onClick={() => setModalClub({})} className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}>
+                  <PlusCircle size={14} /> Nuevo
                 </button>
-              ))}
-            </div>
+              </div>
 
-            {/* SEARCH BAR PERSONAS */}
-            <div style={{ marginBottom: '1rem', position: 'relative' }}>
-              <input
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre, DNI o datos..."
-                style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }}
-              />
-              <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-            </div>
 
-            {/* ─── Secciones de Usuarios (Admin, Profesores, Padres) ─── */}
-            {['administradores', 'profesores', 'padres'].includes(personasTab) && (
-              <>
-                {(() => {
-                  const rolMap: Record<string, 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'> = {
-                    administradores: 'ADMINISTRADOR',
-                    profesores: 'PROFESOR',
-                    padres: 'PADRE'
-                  };
-                  const rol = rolMap[personasTab];
-                  const itemsFiltered = usuarios.filter(u => u.rol === rol)
-                    .filter(u => (`${u.nombre ?? ''} ${u.apellido ?? ''} ${u.email ?? ''} ${u.dni ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()));
-
-                  const rolLabel = { ADMINISTRADOR: 'Administradores', PROFESOR: 'Profesores', PADRE: 'Padres de Familia' }[rol];
-                  const rolColor = { ADMINISTRADOR: 'var(--color-primary)', PROFESOR: 'var(--color-secondary)', PADRE: 'var(--color-outline)' }[rol];
-                  const rolIcon = { ADMINISTRADOR: <UserCheck size={15} />, PROFESOR: <GraduationCap size={15} />, PADRE: <Users size={15} /> }[rol];
-
-                  return (
-                    <div className="animate-enter">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                          {rolLabel} registrados ({itemsFiltered.length})
-                        </h3>
-                        <button onClick={() => setModalUsuario({ rol })} style={{
-                          display: 'flex', alignItems: 'center', gap: '0.4rem',
-                          background: rolColor, color: 'white', border: 'none',
-                          borderRadius: '99px', padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
-                        }}>
-                          <PlusCircle size={15} /> Nuevo {rol === 'PADRE' ? 'Padre' : rol === 'PROFESOR' ? 'Profesor' : 'Admin'}
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                        {itemsFiltered.length === 0 ? (
-                          <div style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--color-on-surface-variant)' }}>
-                            <Users size={48} strokeWidth={1} style={{ opacity: 0.2 }} />
-                            <p style={{ marginTop: '1rem', fontWeight: 600 }}>No hay {rolLabel.toLowerCase()} registrados</p>
-                          </div>
-                        ) : (
-                          itemsFiltered.slice((pagesUsuarios[rol] - 1) * ITEMS_PER_PAGE, pagesUsuarios[rol] * ITEMS_PER_PAGE).map(u => (
-                            <div key={u.id} className="bento-card" style={{
-                              padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.1rem', background: 'white',
-                              borderLeft: `4px solid ${rolColor}`
-                            }}>
-                              <div style={{
-                                width: '3.2rem', height: '3.2rem', borderRadius: '1rem', flexShrink: 0,
-                                background: u.estado === 'Desactivado' ? 'var(--color-error-container)' : 'var(--color-surface-dim)',
-                                display: 'flex', alignItems: 'center',
-                                justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: u.estado === 'Desactivado' ? 'var(--color-error)' : 'var(--color-primary)',
-                                opacity: u.estado === 'Desactivado' ? 0.6 : 1
-                              }}>
-                                {(u.nombre[0] + (u.apellido[0] ?? '')).toUpperCase()}
-                              </div>
-                              <div style={{ flex: 1, opacity: u.estado === 'Desactivado' ? 0.5 : 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                                    {u.nombre} {u.apellido}
-                                  </p>
-                                  {u.estado === 'Desactivado' && (
-                                    <span style={{ fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-error)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase' }}>Desactivado</span>
-                                  )}
-                                </div>
-                                <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                                  DNI: {u.dni || '---'} • Cel: {u.celular || '---'}
-                                </p>
-                              </div>
-                              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                <button
-                                  onClick={() => {
-                                    const nuevoEstado = u.estado === 'Desactivado' ? 'Activado' : 'Desactivado';
-                                    setConfirmModal({
-                                      show: true,
-                                      title: nuevoEstado === 'Activado' ? 'Activar Usuario' : 'Desactivar Usuario',
-                                      message: `¿Estás seguro de que deseas ${nuevoEstado === 'Activado' ? 'activar' : 'desactivar'} a ${u.nombre}? ${nuevoEstado === 'Activado' ? 'Podrá volver a ingresar al sistema.' : 'No podrá iniciar sesión hasta que sea reactivado.'}`,
-                                      type: nuevoEstado === 'Activado' ? 'SUCCESS' : 'WARNING',
-                                      icon: nuevoEstado === 'Activado' ? <UserCheck size={32} color="var(--color-success)" /> : <Ban size={32} color="var(--color-warning)" />,
-                                      onConfirm: () => handleToggleUsuarioStatus(u.id, nuevoEstado)
-                                    });
-                                  }}
-                                  title={u.estado === 'Desactivado' ? "Activar" : "Desactivar"}
-                                  style={iconBtnStyle(u.estado === 'Desactivado' ? 'var(--color-success-container)' : 'var(--color-surface-container-low)', u.estado === 'Desactivado' ? 'var(--color-success)' : 'var(--color-outline)')}
-                                >
-                                  {u.estado === 'Desactivado' ? <UserCheck size={15} /> : <Ban size={15} />}
-                                </button>
-                                <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
-                                  <Edit2 size={15} />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setConfirmModal({
-                                      show: true,
-                                      title: 'Eliminar Usuario',
-                                      message: `¿Estás seguro de que deseas eliminar permanentemente a ${u.nombre} ${u.apellido}? Esta acción no se puede deshacer y podría afectar registros históricos.`,
-                                      type: 'DANGER',
-                                      icon: <UserX size={32} color="var(--color-error)" />,
-                                      onConfirm: () => handleDeleteUsuario(u.id)
-                                    });
-                                  }}
-                                  title="Eliminar"
-                                  style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}
-                                >
-                                  <Trash2 size={15} />
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      <Pagination
-                        current={pagesUsuarios[rol]}
-                        total={Math.ceil(itemsFiltered.length / ITEMS_PER_PAGE)}
-                        onChange={(p) => setPagesUsuarios(prev => ({ ...prev, [rol]: p }))}
-                      />
-                    </div>
-                  );
-                })()}
-              </>
-            )}
-
-            {/* ─── Sub-tab: ALUMNOS ─── */}
-            {personasTab === 'alumnos' && (
-              <div className="animate-enter">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                    Alumnos registrados ({alumnos.length})
-                  </h3>
-                  <button onClick={() => setModalAlumno({})} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                    background: 'var(--color-secondary)', color: 'white', border: 'none',
-                    borderRadius: '99px', padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
-                  }}>
-                    <GraduationCap size={15} /> Nuevo Alumno
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  {alumnos.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--color-on-surface-variant)' }}>
-                      <Users size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
-                      <p style={{ marginTop: '1rem', fontWeight: 600 }}>No hay alumnos registrados</p>
-                    </div>
-                  ) : alumnos
-                    .filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()))
-                    .slice((currentPageAlumnos - 1) * ITEMS_PER_PAGE, currentPageAlumnos * ITEMS_PER_PAGE)
-                    .map(alumno => (
-                      <div key={alumno.id} className="bento-card" style={{
-                        padding: '1rem 1.15rem',
-                        borderLeft: '4px solid var(--color-secondary)',
-                        background: 'white'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{
-                            width: '3rem', height: '3rem', borderRadius: '1.2rem', flexShrink: 0,
-                            background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)',
-                            boxShadow: 'var(--shadow-sm)'
-                          }}>
-                            {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                              {alumno.nombre} {alumno.apellido}
-                            </p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
-                              <span style={{ fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{alumno.grado}</span>
-                              {alumno.padre ? (
-                                <>
-                                  <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-outline)', fontWeight: 700 }}>Padre: {alumno.padre.nombre}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-error)', fontWeight: 800 }}>⚠️ Sin Padre</span>
-                                </>
-                              )}
-                              {alumno.inscripciones.length > 0 && (
-                                <>
-                                  <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 800 }}>{alumno.inscripciones.length} clubes</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: '0.4rem' }}>
-                            <button onClick={() => setModalAlumno(alumno)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
-                              <Edit2 size={15} />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setConfirmModal({
-                                  show: true,
-                                  title: 'Eliminar Alumno',
-                                  message: `¿Estás seguro de que deseas eliminar permanentemente a ${alumno.nombre} ${alumno.apellido}? Esta acción no se puede deshacer y eliminará todas sus inscripciones y registros asociados.`,
-                                  type: 'DANGER',
-                                  icon: <UserX size={32} color="var(--color-error)" />,
-                                  onConfirm: () => handleDeleteAlumno(alumno.id)
-                                });
-                              }}
-                              title="Eliminar Alumno"
-                              style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-
-                <Pagination
-                  current={currentPageAlumnos}
-                  total={Math.ceil(alumnos.filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase())).length / ITEMS_PER_PAGE)}
-                  onChange={setCurrentPageAlumnos}
+              {/* SEARCH BAR */}
+              <div style={{ marginBottom: '0.8rem', position: 'relative' }}>
+                <input
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Buscar disciplina o profesor..."
+                  style={{ ...inputStyle, paddingLeft: '2.5rem', paddingTop: '0.65rem', paddingBottom: '0.65rem', borderRadius: '1rem', border: '1.5px solid var(--color-surface-container-high)', fontSize: '0.85rem' }}
                 />
-              </div>
-            )}
-          </>
-        )}
-
-        {/* ══════════ TAB: PAGOS ════════════════════════════ */}
-        {tab === 'pagos' && (
-          <div className="animate-enter">
-            <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-                    Gestión <span style={{ color: 'var(--color-secondary)' }}>Financiera</span>
-                  </h2>
-                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                    Seguimiento de pagos y comprobantes ({pagos.length})
-                  </p>
-                </div>
-
-                <div style={{ background: 'var(--color-surface-container-high)', padding: '0.3rem', borderRadius: '1.1rem', display: 'flex', gap: '0.2rem' }}>
-                  {[
-                    { id: 'ALUMNO', label: 'Por Alumno', icon: <Users size={14} /> },
-                    { id: 'CLUB', label: 'Por Club', icon: <Award size={14} /> }
-                  ].map(mode => (
-                    <button
-                      key={mode.id}
-                      onClick={() => { setTipoFiltroPago(mode.id as any); if (mode.id === 'ALUMNO') setPagoClubFiltro(''); else { setPagoAlumnoFiltro(''); setSearchTerm(''); } }}
-                      style={{
-                        padding: '0.5rem 1rem', borderRadius: '0.9rem', border: 'none', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                        background: tipoFiltroPago === mode.id ? 'white' : 'transparent',
-                        color: tipoFiltroPago === mode.id ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
-                        boxShadow: tipoFiltroPago === mode.id ? 'var(--shadow-sm)' : 'none',
-                        transition: 'all 0.3s ease',
-                        display: 'flex', alignItems: 'center', gap: '0.4rem'
-                      }}>
-                      {mode.icon} {mode.label}
-                    </button>
-                  ))}
-                </div>
+                <BarChart2 size={16} color="var(--color-outline)" style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }} />
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', flex: 2, minWidth: '280px' }}>
-                  <input
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    placeholder={tipoFiltroPago === 'ALUMNO' ? "Buscar por nombre del alumno..." : "Buscar por nombre del club..."}
-                    style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', height: '3.2rem' }}
-                  />
-                  <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-                </div>
 
-                <div style={{ position: 'relative', flex: 1, minWidth: '160px' }}>
-                  <select value={pagoFiltro} onChange={e => setPagoFiltro(e.target.value)} style={{
-                    ...inputStyle, padding: '0.5rem 2.8rem 0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 750,
-                    borderRadius: '1.25rem', background: 'white', appearance: 'none', height: '3.2rem'
-                  }}>
-                    <option value="">Todos los Estados</option>
-                    <option value="PENDIENTE">⏳ Pendientes</option>
-                    <option value="PAGADO">✅ Pagados</option>
-                    <option value="RECHAZADO">❌ Rechazados</option>
-                  </select>
-                  <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1.1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                </div>
-              </div>
-            </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {(metricas?.clubes ?? [])
+                  .filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()))
+                  .slice((currentPageClubes - 1) * ITEMS_PER_PAGE, currentPageClubes * ITEMS_PER_PAGE)
+                  .map(club => (
+                    <div key={club.id} className="bento-card" style={{
+                      padding: '1.1rem',
+                      borderLeft: '5px solid var(--color-primary)',
+                      background: 'white',
+                      borderRadius: '1rem'
+                    }}>
 
-            {/* 💡 ESTUDIANTE SELECCIONADO: DETALLE ESPECIAL */}
-            {tipoFiltroPago === 'ALUMNO' && searchTerm.length >= 3 && alumnos.some(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())) && (
-              (() => {
-                const matchedAlumno = alumnos.find(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase()));
-                if (!matchedAlumno) return null;
-                const filteredPagos = pagos.filter(p => Number(p.alumnoId) === matchedAlumno.id);
-                if (filteredPagos.length === 0) return null;
-
-                return (
-                  <div className="bento-card animate-enter" style={{ padding: '1.25rem', background: 'var(--grad-primary)', color: 'white', marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', right: '-2rem', top: '-2rem', opacity: 0.1 }}>
-                      <Users size={120} color="white" />
-                    </div>
-                    <div style={{ position: 'relative', zIndex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.1em' }}>Estatus del Alumno</span>
-                          <h3 style={{ margin: '0.15rem 0 0', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
-                            {matchedAlumno.nombre} {matchedAlumno.apellido}
-                          </h3>
+                      <div className="card-header-adaptive">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem', color: 'var(--color-primary)', letterSpacing: '-0.04em', wordBreak: 'break-word' }}>{club.nombre}</h4>
+                          {club.descripcion && (
+                            <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-on-surface-variant)', lineHeight: 1.5, fontWeight: 500 }}>{club.descripcion}</p>
+                          )}
                         </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
-                          <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pagados</p>
-                          <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PAGADO').length}</p>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
-                          <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pendientes</p>
-                          <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PENDIENTE').length}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {(() => {
-                const results = pagos
-                  .filter(p => {
-                    const search = searchTerm.toLowerCase();
-                    if (search.length < 3) return true;
-                    if (tipoFiltroPago === 'ALUMNO') {
-                      return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
-                    } else {
-                      return p.club.nombre.toLowerCase().includes(search);
-                    }
-                  })
-                  .filter(p => pagoFiltro === '' || p.estado === pagoFiltro);
-
-                const pageResults = results.slice((currentPagePagos - 1) * 4, currentPagePagos * 4);
-
-                return (
-                  <>
-                    {pageResults.map(pago => {
-                      const colors = estadoColor[pago.estado];
-                      const isExpanded = expandedPagoId === pago.id;
-                      return (
-                        <div
-                          key={pago.id}
-                          className="bento-card"
-                          style={{
-                            padding: '1rem 1.25rem',
-                            background: 'white',
-                            cursor: 'pointer',
-                            border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-high)',
-                            boxShadow: isExpanded ? 'var(--shadow-lg)' : 'var(--shadow-sm)',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                        <div className="card-actions-adaptive">
+                          <button onClick={() => setModalPagosClub(club)}
+                            title="Ver Pagos del Club"
+                            style={{ ...iconBtnStyle('var(--color-primary-fixed)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
+                            <CreditCard size={16} />
+                          </button>
+                          <button onClick={() => {
+                            setModalSesiones(club);
+                            fetchSesiones(club.id);
                           }}
-                          onClick={() => setExpandedPagoId(isExpanded ? null : pago.id)}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                              <div style={{
-                                width: '2.8rem', height: '2.8rem', borderRadius: '0.85rem',
-                                background: isExpanded ? 'var(--color-primary-container)' : 'var(--color-surface-dim)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.3s ease', flexShrink: 0
-                              }}>
-                                <CreditCard size={18} color={isExpanded ? 'white' : 'var(--color-primary)'} />
-                              </div>
-                              <div>
-                                <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
-                                  {pago.alumno.nombre} {pago.alumno.apellido}
-                                </p>
-                                <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                                  {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
-                                </p>
-                              </div>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <span style={{
-                                background: colors.bg, color: colors.fg,
-                                padding: '0.3rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
-                                textTransform: 'uppercase', letterSpacing: '0.05em'
-                              }}>
-                                {pago.estado}
-                              </span>
-                              <ChevronDown size={14} color="var(--color-outline)" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
-                            </div>
-                          </div>
+                            title="Ver Asistencia"
+                            style={{ ...iconBtnStyle('var(--color-secondary-container)', 'var(--color-on-secondary-container)'), width: '2.5rem', height: '2.5rem' }}>
+                            <History size={16} />
+                          </button>
+                          <button onClick={() => setModalClub(club)}
+                            style={{ ...iconBtnStyle('var(--color-surface-dim)', 'var(--color-primary)'), width: '2.5rem', height: '2.5rem' }}>
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => setConfirmDelete({ id: club.id, title: club.nombre, type: 'CLUB' })} disabled={deletingId === club.id}
+                            style={{ ...iconBtnStyle('rgba(211, 47, 47, 0.08)', 'var(--color-error)'), width: '2.5rem', height: '2.5rem' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
 
-                          {isExpanded && (
-                            <div className="animate-enter" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1.5px dashed var(--color-surface-container-high)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }} onClick={e => e.stopPropagation()}>
-                              <div style={{
-                                background: 'var(--color-surface-container-low)', borderRadius: '1rem', overflow: 'hidden', border: '1px solid var(--color-surface-container-high)',
-                                position: 'relative', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem', flexWrap: 'wrap' }}>
+                        <Pill icon={<UserCheck size={12} />} label={club.profesor} bg="var(--color-primary-container)" color="white" />
+                        <Pill icon={<Users size={12} />} label={`${club.inscritos} alumnos`} bg="var(--color-surface-container-high)" color="var(--color-primary)" />
+                        <Pill icon={<CreditCard size={12} />} label={`S/ ${club.precio?.toFixed(2) ?? '50.00'}`} bg="var(--color-success-container)" color="var(--color-success)" />
+                        {club.horario && (
+                          <Pill icon={<Calendar size={12} />} label={formatHorarioShort(club.horario)} bg="var(--color-secondary-container)" color="var(--color-on-secondary-container)" />
+                        )}
+                        <Pill icon={<TrendingUp size={12} />} label={`${club.asistencia}%`}
+                          color={club.asistencia >= 85 ? 'var(--color-success)' : 'var(--color-error)'}
+                          bg={club.asistencia >= 85 ? 'var(--color-success-container)' : 'var(--color-error-container)'} />
+                      </div>
+
+                    </div>
+                  ))}
+              </div>
+
+              <Pagination
+                current={currentPageClubes}
+                total={Math.ceil(((metricas?.clubes ?? []).filter(c => (c.nombre?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) || (c.profesor?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())).length) / ITEMS_PER_PAGE)}
+                onChange={setCurrentPageClubes}
+              />
+            </>
+          )}
+
+          {/* ══════════ TAB: PERSONAS ════════════════════════ */}
+          {tab === 'personas' && (
+            <>
+              {/* Sub-tabs Admin / Profesores / Padres / Alumnos */}
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', background: 'var(--color-surface-container-low)', padding: '0.2rem', borderRadius: '1.25rem', overflowX: 'auto' }}>
+                {[
+                  { id: 'administradores', label: 'Admin', icon: <UserCheck size={16} /> },
+                  { id: 'profesores', label: 'Profesores', icon: <GraduationCap size={16} /> },
+                  { id: 'padres', label: 'Padres', icon: <Users size={16} /> },
+                  { id: 'alumnos', label: 'Alumnos', icon: <BookOpen size={16} /> }
+                ].map(st => (
+                  <button key={st.id} onClick={() => setPersonasTab(st.id as any)} style={{
+                    flex: 1, padding: '0.6rem 0.4rem', borderRadius: '1rem', border: 'none', cursor: 'pointer',
+                    fontWeight: 800, fontSize: '0.75rem', whiteSpace: 'nowrap',
+                    background: personasTab === st.id ? 'white' : 'transparent',
+                    color: personasTab === st.id ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
+                    boxShadow: personasTab === st.id ? '0 4px 8px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.3s ease',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                  }}>
+                    {st.icon}
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* SEARCH BAR PERSONAS */}
+              <div style={{ marginBottom: '1rem', position: 'relative' }}>
+                <input
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por nombre, DNI o datos..."
+                  style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', border: '1.5px solid var(--color-surface-container-high)' }}
+                />
+                <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
+
+              {/* ─── Secciones de Usuarios (Admin, Profesores, Padres) ─── */}
+              {['administradores', 'profesores', 'padres'].includes(personasTab) && (
+                <>
+                  {(() => {
+                    const rolMap: Record<string, 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'> = {
+                      administradores: 'ADMINISTRADOR',
+                      profesores: 'PROFESOR',
+                      padres: 'PADRE'
+                    };
+                    const rol = rolMap[personasTab];
+                    const itemsFiltered = usuarios.filter(u => u.rol === rol)
+                      .filter(u => (`${u.nombre ?? ''} ${u.apellido ?? ''} ${u.email ?? ''} ${u.dni ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()));
+
+                    const rolLabel = { ADMINISTRADOR: 'Administradores', PROFESOR: 'Profesores', PADRE: 'Padres de Familia' }[rol];
+                    const rolColor = { ADMINISTRADOR: 'var(--color-primary)', PROFESOR: 'var(--color-secondary)', PADRE: 'var(--color-outline)' }[rol];
+                    const rolIcon = { ADMINISTRADOR: <UserCheck size={15} />, PROFESOR: <GraduationCap size={15} />, PADRE: <Users size={15} /> }[rol];
+
+                    return (
+                      <div className="animate-enter">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                            {rolLabel} registrados ({itemsFiltered.length})
+                          </h3>
+                          <button onClick={() => setModalUsuario({ rol })} style={{
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            background: rolColor, color: 'white', border: 'none',
+                            borderRadius: '99px', padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                          }}>
+                            <PlusCircle size={15} /> Nuevo {rol === 'PADRE' ? 'Padre' : rol === 'PROFESOR' ? 'Profesor' : 'Admin'}
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                          {itemsFiltered.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--color-on-surface-variant)' }}>
+                              <Users size={48} strokeWidth={1} style={{ opacity: 0.2 }} />
+                              <p style={{ marginTop: '1rem', fontWeight: 600 }}>No hay {rolLabel.toLowerCase()} registrados</p>
+                            </div>
+                          ) : (
+                            itemsFiltered.slice((pagesUsuarios[rol] - 1) * ITEMS_PER_PAGE, pagesUsuarios[rol] * ITEMS_PER_PAGE).map(u => (
+                              <div key={u.id} className="bento-card" style={{
+                                padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.1rem', background: 'white',
+                                borderLeft: `4px solid ${rolColor}`
                               }}>
-                                {pago.urlComprobante ? (
-                                  <img src={pago.urlComprobante.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/')} alt="Comprobante" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '350px', cursor: 'zoom-in' }} onClick={() => setViewerImage(pago.urlComprobante)} />
-                                ) : (
-                                  <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-outline)' }}>
-                                    <FileText size={40} opacity={0.2} style={{ marginBottom: '0.5rem' }} />
-                                    <p style={{ fontSize: '0.75rem', fontWeight: 600 }}>Sin comprobante</p>
+                                <div style={{
+                                  width: '3.2rem', height: '3.2rem', borderRadius: '1rem', flexShrink: 0,
+                                  background: u.estado === 'Desactivado' ? 'var(--color-error-container)' : 'var(--color-surface-dim)',
+                                  display: 'flex', alignItems: 'center',
+                                  justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: u.estado === 'Desactivado' ? 'var(--color-error)' : 'var(--color-primary)',
+                                  opacity: u.estado === 'Desactivado' ? 0.6 : 1
+                                }}>
+                                  {(u.nombre[0] + (u.apellido[0] ?? '')).toUpperCase()}
+                                </div>
+                                <div style={{ flex: 1, opacity: u.estado === 'Desactivado' ? 0.5 : 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                                      {u.nombre} {u.apellido}
+                                    </p>
+                                    {u.estado === 'Desactivado' && (
+                                      <span style={{ fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-error)', color: 'white', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase' }}>Desactivado</span>
+                                    )}
                                   </div>
+                                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                                    DNI: {u.dni || '---'} • Cel: {u.celular || '---'}
+                                  </p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                  <button
+                                    onClick={() => {
+                                      const nuevoEstado = u.estado === 'Desactivado' ? 'Activado' : 'Desactivado';
+                                      setConfirmModal({
+                                        show: true,
+                                        title: nuevoEstado === 'Activado' ? 'Activar Usuario' : 'Desactivar Usuario',
+                                        message: `¿Estás seguro de que deseas ${nuevoEstado === 'Activado' ? 'activar' : 'desactivar'} a ${u.nombre}? ${nuevoEstado === 'Activado' ? 'Podrá volver a ingresar al sistema.' : 'No podrá iniciar sesión hasta que sea reactivado.'}`,
+                                        type: nuevoEstado === 'Activado' ? 'SUCCESS' : 'WARNING',
+                                        icon: nuevoEstado === 'Activado' ? <UserCheck size={32} color="var(--color-success)" /> : <Ban size={32} color="var(--color-warning)" />,
+                                        onConfirm: () => handleToggleUsuarioStatus(u.id, nuevoEstado)
+                                      });
+                                    }}
+                                    title={u.estado === 'Desactivado' ? "Activar" : "Desactivar"}
+                                    style={iconBtnStyle(u.estado === 'Desactivado' ? 'var(--color-success-container)' : 'var(--color-surface-container-low)', u.estado === 'Desactivado' ? 'var(--color-success)' : 'var(--color-outline)')}
+                                  >
+                                    {u.estado === 'Desactivado' ? <UserCheck size={15} /> : <Ban size={15} />}
+                                  </button>
+                                  <button onClick={() => setModalUsuario(u)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
+                                    <Edit2 size={15} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setConfirmModal({
+                                        show: true,
+                                        title: 'Eliminar Usuario',
+                                        message: `¿Estás seguro de que deseas eliminar permanentemente a ${u.nombre} ${u.apellido}? Esta acción no se puede deshacer y podría afectar registros históricos.`,
+                                        type: 'DANGER',
+                                        icon: <UserX size={32} color="var(--color-error)" />,
+                                        onConfirm: () => handleDeleteUsuario(u.id)
+                                      });
+                                    }}
+                                    title="Eliminar"
+                                    style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        <Pagination
+                          current={pagesUsuarios[rol]}
+                          total={Math.ceil(itemsFiltered.length / ITEMS_PER_PAGE)}
+                          onChange={(p) => setPagesUsuarios(prev => ({ ...prev, [rol]: p }))}
+                        />
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
+
+              {/* ─── Sub-tab: ALUMNOS ─── */}
+              {personasTab === 'alumnos' && (
+                <div className="animate-enter">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                      Alumnos registrados ({alumnos.length})
+                    </h3>
+                    <button onClick={() => setModalAlumno({})} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                      background: 'var(--color-secondary)', color: 'white', border: 'none',
+                      borderRadius: '99px', padding: '0.55rem 1rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                    }}>
+                      <GraduationCap size={15} /> Nuevo Alumno
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {alumnos.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '3rem 2rem', color: 'var(--color-on-surface-variant)' }}>
+                        <Users size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
+                        <p style={{ marginTop: '1rem', fontWeight: 600 }}>No hay alumnos registrados</p>
+                      </div>
+                    ) : alumnos
+                      .filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase()))
+                      .slice((currentPageAlumnos - 1) * ITEMS_PER_PAGE, currentPageAlumnos * ITEMS_PER_PAGE)
+                      .map(alumno => (
+                        <div key={alumno.id} className="bento-card" style={{
+                          padding: '1rem 1.15rem',
+                          borderLeft: '4px solid var(--color-secondary)',
+                          background: 'white'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{
+                              width: '3rem', height: '3rem', borderRadius: '1.2rem', flexShrink: 0,
+                              background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center',
+                              justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)',
+                              boxShadow: 'var(--shadow-sm)'
+                            }}>
+                              {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                                {alumno.nombre} {alumno.apellido}
+                              </p>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>{alumno.grado}</span>
+                                {alumno.padre ? (
+                                  <>
+                                    <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-outline)', fontWeight: 700 }}>Padre: {alumno.padre.nombre}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-error)', fontWeight: 800 }}>⚠️ Sin Padre</span>
+                                  </>
+                                )}
+                                {alumno.inscripciones.length > 0 && (
+                                  <>
+                                    <span style={{ color: 'var(--color-outline-variant)' }}>•</span>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 800 }}>{alumno.inscripciones.length} clubes</span>
+                                  </>
                                 )}
                               </div>
-                              {pago.observacion && (
-                                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem', borderRadius: '0.6rem', fontWeight: 500 }}>
-                                  “{pago.observacion}”
-                                </p>
-                              )}
                             </div>
-                          )}
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <button onClick={() => setModalAlumno(alumno)} style={iconBtnStyle('var(--color-surface-container-low)', 'var(--color-primary)')}>
+                                <Edit2 size={15} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setConfirmModal({
+                                    show: true,
+                                    title: 'Eliminar Alumno',
+                                    message: `¿Estás seguro de que deseas eliminar permanentemente a ${alumno.nombre} ${alumno.apellido}? Esta acción no se puede deshacer y eliminará todas sus inscripciones y registros asociados.`,
+                                    type: 'DANGER',
+                                    icon: <UserX size={32} color="var(--color-error)" />,
+                                    onConfirm: () => handleDeleteAlumno(alumno.id)
+                                  });
+                                }}
+                                title="Eliminar Alumno"
+                                style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
 
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.85rem' }}>
-                            {pago.monto && (
-                              <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                                S/ {pago.monto.toFixed(2)}
-                              </p>
-                            )}
+                  <Pagination
+                    current={currentPageAlumnos}
+                    total={Math.ceil(alumnos.filter(a => (`${a.nombre ?? ''} ${a.apellido ?? ''} ${a.grado ?? ''}`).toLowerCase().includes(searchTerm.toLowerCase())).length / ITEMS_PER_PAGE)}
+                    onChange={setCurrentPageAlumnos}
+                  />
+                </div>
+              )}
+            </>
+          )}
 
-                            {pago.estado === 'PENDIENTE' && (
-                              <div style={{ display: 'flex', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
-                                <button
-                                  disabled={validandoPago === pago.id}
-                                  onClick={() => setPaymentActionModal({ show: true, type: 'VALIDAR', pago, observacion: '' })}
-                                  style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                                  <Check size={16} strokeWidth={3} />
-                                </button>
-                                <button
-                                  disabled={validandoPago === pago.id}
-                                  onClick={() => setPaymentActionModal({ show: true, type: 'RECHAZAR', pago, observacion: '' })}
-                                  style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                                  <X size={16} strokeWidth={3} />
-                                </button>
+          {/* ══════════ TAB: PAGOS ════════════════════════════ */}
+          {tab === 'pagos' && (
+            <div className="animate-enter">
+              <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                      Gestión <span style={{ color: 'var(--color-secondary)' }}>Financiera</span>
+                    </h2>
+                    <p style={{ margin: '0.15rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                      Seguimiento de pagos y comprobantes ({pagos.length})
+                    </p>
+                  </div>
+
+                  <div style={{ background: 'var(--color-surface-container-high)', padding: '0.3rem', borderRadius: '1.1rem', display: 'flex', gap: '0.2rem' }}>
+                    {[
+                      { id: 'ALUMNO', label: 'Por Alumno', icon: <Users size={14} /> },
+                      { id: 'CLUB', label: 'Por Club', icon: <Award size={14} /> }
+                    ].map(mode => (
+                      <button
+                        key={mode.id}
+                        onClick={() => { setTipoFiltroPago(mode.id as any); if (mode.id === 'ALUMNO') setPagoClubFiltro(''); else { setPagoAlumnoFiltro(''); setSearchTerm(''); } }}
+                        style={{
+                          padding: '0.5rem 1rem', borderRadius: '0.9rem', border: 'none', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
+                          background: tipoFiltroPago === mode.id ? 'white' : 'transparent',
+                          color: tipoFiltroPago === mode.id ? 'var(--color-primary)' : 'var(--color-on-surface-variant)',
+                          boxShadow: tipoFiltroPago === mode.id ? 'var(--shadow-sm)' : 'none',
+                          transition: 'all 0.3s ease',
+                          display: 'flex', alignItems: 'center', gap: '0.4rem'
+                        }}>
+                        {mode.icon} {mode.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', flex: 2, minWidth: '280px' }}>
+                    <input
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      placeholder={tipoFiltroPago === 'ALUMNO' ? "Buscar por nombre del alumno..." : "Buscar por nombre del club..."}
+                      style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.25rem', height: '3.2rem' }}
+                    />
+                    <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  </div>
+
+                  <div style={{ position: 'relative', flex: 1, minWidth: '160px' }}>
+                    <select value={pagoFiltro} onChange={e => setPagoFiltro(e.target.value)} style={{
+                      ...inputStyle, padding: '0.5rem 2.8rem 0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: 750,
+                      borderRadius: '1.25rem', background: 'white', appearance: 'none', height: '3.2rem'
+                    }}>
+                      <option value="">Todos los Estados</option>
+                      <option value="PENDIENTE">⏳ Pendientes</option>
+                      <option value="PAGADO">✅ Pagados</option>
+                      <option value="RECHAZADO">❌ Rechazados</option>
+                    </select>
+                    <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1.1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* 💡 ESTUDIANTE SELECCIONADO: DETALLE ESPECIAL */}
+              {tipoFiltroPago === 'ALUMNO' && searchTerm.length >= 3 && alumnos.some(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())) && (
+                (() => {
+                  const matchedAlumno = alumnos.find(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTerm.toLowerCase()));
+                  if (!matchedAlumno) return null;
+                  const filteredPagos = pagos.filter(p => Number(p.alumnoId) === matchedAlumno.id);
+                  if (filteredPagos.length === 0) return null;
+
+                  return (
+                    <div className="bento-card animate-enter" style={{ padding: '1.25rem', background: 'var(--grad-primary)', color: 'white', marginBottom: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', right: '-2rem', top: '-2rem', opacity: 0.1 }}>
+                        <Users size={120} color="white" />
+                      </div>
+                      <div style={{ position: 'relative', zIndex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.1em' }}>Estatus del Alumno</span>
+                            <h3 style={{ margin: '0.15rem 0 0', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                              {matchedAlumno.nombre} {matchedAlumno.apellido}
+                            </h3>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                          <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
+                            <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pagados</p>
+                            <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PAGADO').length}</p>
+                          </div>
+                          <div style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '1rem', flex: 1, backdropFilter: 'blur(10px)' }}>
+                            <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase' }}>Pendientes</p>
+                            <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900 }}>{filteredPagos.filter(p => p.estado === 'PENDIENTE').length}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {(() => {
+                  const results = pagos
+                    .filter(p => {
+                      const search = searchTerm.toLowerCase();
+                      if (search.length < 3) return true;
+                      if (tipoFiltroPago === 'ALUMNO') {
+                        return (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(search);
+                      } else {
+                        return p.club.nombre.toLowerCase().includes(search);
+                      }
+                    })
+                    .filter(p => pagoFiltro === '' || p.estado === pagoFiltro);
+
+                  const pageResults = results.slice((currentPagePagos - 1) * 4, currentPagePagos * 4);
+
+                  return (
+                    <>
+                      {pageResults.map(pago => {
+                        const colors = estadoColor[pago.estado];
+                        const isExpanded = expandedPagoId === pago.id;
+                        return (
+                          <div
+                            key={pago.id}
+                            className="bento-card"
+                            style={{
+                              padding: '1rem 1.25rem',
+                              background: 'white',
+                              cursor: 'pointer',
+                              border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-high)',
+                              boxShadow: isExpanded ? 'var(--shadow-lg)' : 'var(--shadow-sm)',
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                            onClick={() => setExpandedPagoId(isExpanded ? null : pago.id)}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                <div style={{
+                                  width: '2.8rem', height: '2.8rem', borderRadius: '0.85rem',
+                                  background: isExpanded ? 'var(--color-primary-container)' : 'var(--color-surface-dim)',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  transition: 'all 0.3s ease', flexShrink: 0
+                                }}>
+                                  <CreditCard size={18} color={isExpanded ? 'white' : 'var(--color-primary)'} />
+                                </div>
+                                <div>
+                                  <p style={{ margin: 0, fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)', letterSpacing: '-0.01em' }}>
+                                    {pago.alumno.nombre} {pago.alumno.apellido}
+                                  </p>
+                                  <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                                    {pago.club.nombre} • <span style={{ color: 'var(--color-primary)' }}>{pago.mes}</span>
+                                  </p>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span style={{
+                                  background: colors.bg, color: colors.fg,
+                                  padding: '0.3rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
+                                  textTransform: 'uppercase', letterSpacing: '0.05em'
+                                }}>
+                                  {pago.estado}
+                                </span>
+                                <ChevronDown size={14} color="var(--color-outline)" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
+                              </div>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="animate-enter" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1.5px dashed var(--color-surface-container-high)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }} onClick={e => e.stopPropagation()}>
+                                <div style={{
+                                  background: 'var(--color-surface-container-low)', borderRadius: '1rem', overflow: 'hidden', border: '1px solid var(--color-surface-container-high)',
+                                  position: 'relative', minHeight: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}>
+                                  {pago.urlComprobante ? (
+                                    <img src={pago.urlComprobante.replace('/upload/', '/upload/w_800,c_limit,q_auto,f_auto/')} alt="Comprobante" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '350px', cursor: 'zoom-in' }} onClick={() => setViewerImage(pago.urlComprobante)} />
+                                  ) : (
+                                    <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-outline)' }}>
+                                      <FileText size={40} opacity={0.2} style={{ marginBottom: '0.5rem' }} />
+                                      <p style={{ fontSize: '0.75rem', fontWeight: 600 }}>Sin comprobante</p>
+                                    </div>
+                                  )}
+                                </div>
+                                {pago.observacion && (
+                                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', background: 'var(--color-surface-container-low)', padding: '0.6rem', borderRadius: '0.6rem', fontWeight: 500 }}>
+                                    “{pago.observacion}”
+                                  </p>
+                                )}
                               </div>
                             )}
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.85rem' }}>
+                              {pago.monto && (
+                                <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                                  S/ {pago.monto.toFixed(2)}
+                                </p>
+                              )}
+
+                              {pago.estado === 'PENDIENTE' && (
+                                <div style={{ display: 'flex', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                                  <button
+                                    disabled={validandoPago === pago.id}
+                                    onClick={() => setPaymentActionModal({ show: true, type: 'VALIDAR', pago, observacion: '' })}
+                                    style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
+                                    <Check size={16} strokeWidth={3} />
+                                  </button>
+                                  <button
+                                    disabled={validandoPago === pago.id}
+                                    onClick={() => setPaymentActionModal({ show: true, type: 'RECHAZAR', pago, observacion: '' })}
+                                    style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
+                                    <X size={16} strokeWidth={3} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <Pagination
+                        current={currentPagePagos}
+                        total={Math.ceil(results.length / 4)}
+                        onChange={setCurrentPagePagos}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* ══════════ TAB: HORARIOS ═════════════════════════ */}
+          {tab === 'horarios' && (
+            <div className="animate-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Header */}
+              <div style={{ marginBottom: isMobile ? '0.5rem' : '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: isMobile ? '1.4rem' : '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                  Cronograma <span style={{ color: 'var(--color-secondary)' }}>Extracurricular</span>
+                </h3>
+                {!isMobile && <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión centralizada de horarios y espacios</p>}
+              </div>
+
+              {/* Filtros */}
+              <div style={{
+                background: isMobile ? 'var(--color-surface-container-low)' : 'transparent',
+                padding: isMobile ? '0.75rem' : '0',
+                borderRadius: '1.25rem',
+                display: 'flex',
+                flexDirection: 'row',
+                gap: '0.6rem',
+                width: '100%'
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                  <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Disciplina</label>
+                  <select
+                    value={filtroClubHorario}
+                    onChange={e => setFiltroClubHorario(e.target.value)}
+                    style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
+                  >
+                    <option value="">Todas</option>
+                    {(metricas?.clubes ?? []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
+                  <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Profesor</label>
+                  <select
+                    value={filtroProfHorario}
+                    onChange={e => setFiltroProfHorario(e.target.value)}
+                    style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
+                  >
+                    <option value="">Cualquier</option>
+                    {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Mobile Day Selector */}
+              <div className="mobile-day-selector" style={{
+                display: 'none',
+                gap: '0.5rem',
+                overflowX: 'auto',
+                paddingBottom: '0.5rem',
+                scrollbarWidth: 'none'
+              }}>
+                {DIAS_CALENDARIO.map(dia => (
+                  <button
+                    key={dia}
+                    onClick={() => setActiveDayMobile(dia)}
+                    style={{
+                      padding: '0.6rem 1.2rem',
+                      borderRadius: '1rem',
+                      border: 'none',
+                      background: activeDayMobile === dia ? 'var(--grad-primary)' : 'var(--color-surface-container-low)',
+                      color: activeDayMobile === dia ? 'white' : 'var(--color-outline)',
+                      fontWeight: 800,
+                      fontSize: '0.75rem',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    {dia}
+                  </button>
+                ))}
+              </div>
+
+              {/* Calendar Pro Container */}
+              <div className="calendar-pro-wrapper" style={{
+                background: 'rgb(241, 243, 245)', // Lighter background for the container
+                borderRadius: '1.5rem',
+                border: '1px solid var(--color-surface-container-high)',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)'
+              }}>
+                <div style={{ display: 'flex', position: 'relative' }}>
+
+                  {/* Time Axis (Left) */}
+                  <div style={{
+                    width: '64px',
+                    flexShrink: 0,
+                    borderRight: '1px solid rgba(0,0,0,0.08)',
+                    background: 'rgba(255,255,255,0.8)',
+                    paddingTop: '40px'
+                  }}>
+                    {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => HORAS_START + i).map(h => (
+                      <div key={h} style={{
+                        height: `${ROW_HEIGHT}px`,
+                        position: 'relative',
+                        display: 'flex',
+                        justifyContent: 'center'
+                      }}>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 900,
+                          color: 'var(--color-primary)',
+                          position: 'absolute',
+                          top: '-8px',
+                          background: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          zIndex: 10
+                        }}>
+                          {h}:00
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Grid Area */}
+                  <div className="calendar-grid-container" style={{
+                    flex: 1,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, 1fr)',
+                    position: 'relative',
+                    background: 'white' // White grid for cards to stand out on
+                  }}>
+                    {DIAS_CALENDARIO.map((dia, dIdx) => {
+                      const clubsDelDiaRaw = (metricas?.clubes ?? [])
+                        .map(c => {
+                          let parsed = c.horario;
+                          if (typeof c.horario === 'string') {
+                            try { parsed = JSON.parse(c.horario); } catch { parsed = null; }
+                          }
+
+                          // Normalizer: allow finding the day even if it has encoding issues
+                          let config = null;
+                          if (parsed) {
+                            const keys = Object.keys(parsed);
+                            const matchingKey = keys.find(k => normalizeDay(k) === dia);
+                            if (matchingKey) config = parsed[matchingKey];
+                          }
+
+                          return { ...c, horarioParsed: parsed, config };
+                        })
+                        .filter(c => {
+                          const matchesFiltro = (!filtroClubHorario || c.id === Number(filtroClubHorario)) &&
+                            (!filtroProfHorario || c.profesorId === Number(filtroProfHorario));
+                          return matchesFiltro && c.config;
+                        });
+
+                      // Overlap Detection
+                      const processedClubs = clubsDelDiaRaw.map((club, i) => {
+                        const concurrent = clubsDelDiaRaw.filter((other, j) => {
+                          if (i === j) return false;
+                          const s1 = timeToMinutes(club.config.start);
+                          const e1 = timeToMinutes(club.config.end);
+                          const s2 = timeToMinutes(other.config.start);
+                          const e2 = timeToMinutes(other.config.end);
+                          // Check if time ranges overlap
+                          return s1 < e2 && s2 < e1;
+                        });
+
+                        // For a simple split, we look at position in the concurrent list
+                        // This is a basic "smart grid" approach
+                        const colIndex = concurrent.filter(other => other.id < club.id).length;
+                        const maxCols = concurrent.length + 1;
+
+                        return { ...club, colIndex, maxCols };
+                      });
+
+                      return (
+                        <div key={dia} className={`calendar-day-col ${activeDayMobile === dia ? 'is-active-mobile' : ''}`} style={{
+                          borderRight: dIdx < 6 ? '1px solid var(--color-surface-container-lowest)' : 'none',
+                          position: 'relative',
+                          minHeight: `${(HORAS_END - HORAS_START + 1) * ROW_HEIGHT}px`
+                        }}>
+                          {/* Day Header */}
+                          <div style={{
+                            height: '40px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderBottom: '1px solid var(--color-surface-container-high)',
+                            background: 'rgba(255,255,255,0.3)',
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 5
+                          }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dia}</span>
+                          </div>
+
+                          {/* Hour Lines Background */}
+                          <div style={{ position: 'absolute', inset: '40px 0 0 0', pointerEvents: 'none' }}>
+                            {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => (
+                              <div key={i} style={{ height: `${ROW_HEIGHT}px`, borderBottom: '1px solid rgba(0,0,0,0.06)' }}></div>
+                            ))}
+                          </div>
+
+                          {/* Session Cards */}
+                          <div style={{ position: 'absolute', inset: '40px 4px 0 4px' }}>
+                            {processedClubs.map(club => {
+                              const width = 100 / club.maxCols;
+                              const left = club.colIndex * width;
+                              const theme = getClubTheme(club.nombre);
+
+                              return (
+                                <div key={`${club.id}-${dia}`}
+                                  className="schedule-card-pro"
+                                  style={{
+                                    position: 'absolute',
+                                    left: `${left}%`,
+                                    width: `calc(${width}% - 4px)`,
+                                    top: `${getPosForTime(club.config.start)}px`,
+                                    height: `${getHeightForDuration(club.config.start, club.config.end)}px`,
+                                    padding: '0.5rem',
+                                    background: 'white',
+                                    borderRadius: '0.8rem',
+                                    zIndex: 2,
+                                    borderLeft: `4px solid ${theme.main}`,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.15rem',
+                                    transition: 'all 0.3s',
+                                    boxSizing: 'border-box',
+                                    margin: '0 2px'
+                                  }}
+                                >
+                                  <div style={{
+                                    position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: theme.grad, opacity: 0.8
+                                  }}></div>
+                                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {club.nombre}
+                                  </p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    <Clock size={10} color={theme.main} />
+                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: theme.main }}>{club.config.start}</span>
+                                  </div>
+
+                                  <div className="card-hover-extra" style={{
+                                    position: 'absolute', inset: 0, background: theme.grad, color: 'white',
+                                    padding: '0.6rem', opacity: 0, visibility: 'hidden', transition: 'all 0.3s', zIndex: 10,
+                                    display: 'flex', flexDirection: 'column', justifyContent: 'center'
+                                  }}>
+                                    <p style={{ margin: '0 0 0.2rem', fontSize: '0.8rem', fontWeight: 900 }}>{club.nombre}</p>
+                                    <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, opacity: 0.9 }}>Prof. {club.profesor}</p>
+                                    <div style={{ marginTop: '0.4rem', background: 'rgba(255,255,255,0.25)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 900, alignSelf: 'flex-start' }}>
+                                      {club.config.start} - {club.config.end}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
                     })}
+                  </div>
 
-                    <Pagination
-                      current={currentPagePagos}
-                      total={Math.ceil(results.length / 4)}
-                      onChange={setCurrentPagePagos}
-                    />
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* ══════════ TAB: HORARIOS ═════════════════════════ */}
-        {tab === 'horarios' && (
-          <div className="animate-enter" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Header */}
-            <div style={{ marginBottom: isMobile ? '0.5rem' : '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: isMobile ? '1.4rem' : '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-                Cronograma <span style={{ color: 'var(--color-secondary)' }}>Extracurricular</span>
-              </h3>
-              {!isMobile && <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión centralizada de horarios y espacios</p>}
-            </div>
-
-            {/* Filtros */}
-            <div style={{ 
-              background: isMobile ? 'var(--color-surface-container-low)' : 'transparent',
-              padding: isMobile ? '0.75rem' : '0',
-              borderRadius: '1.25rem',
-              display: 'flex', 
-              flexDirection: 'row',
-              gap: '0.6rem',
-              width: '100%'
-            }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
-                <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Disciplina</label>
-                <select
-                  value={filtroClubHorario}
-                  onChange={e => setFiltroClubHorario(e.target.value)}
-                  style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
-                >
-                  <option value="">Todas</option>
-                  {(metricas?.clubes ?? []).map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1, minWidth: 0 }}>
-                <label style={{ ...labelStyle, marginBottom: 0, fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Profesor</label>
-                <select
-                  value={filtroProfHorario}
-                  onChange={e => setFiltroProfHorario(e.target.value)}
-                  style={{ ...inputStyle, padding: '0 0.5rem', borderRadius: '0.85rem', fontSize: '0.75rem', height: isMobile ? '2.6rem' : '3rem' }}
-                >
-                  <option value="">Cualquier</option>
-                  {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Mobile Day Selector */}
-            <div className="mobile-day-selector" style={{
-              display: 'none',
-              gap: '0.5rem',
-              overflowX: 'auto',
-              paddingBottom: '0.5rem',
-              scrollbarWidth: 'none'
-            }}>
-              {DIAS_CALENDARIO.map(dia => (
-                <button
-                  key={dia}
-                  onClick={() => setActiveDayMobile(dia)}
-                  style={{
-                    padding: '0.6rem 1.2rem',
-                    borderRadius: '1rem',
-                    border: 'none',
-                    background: activeDayMobile === dia ? 'var(--grad-primary)' : 'var(--color-surface-container-low)',
-                    color: activeDayMobile === dia ? 'white' : 'var(--color-outline)',
-                    fontWeight: 800,
-                    fontSize: '0.75rem',
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  {dia}
-                </button>
-              ))}
-            </div>
-
-            {/* Calendar Pro Container */}
-            <div className="calendar-pro-wrapper" style={{
-              background: 'rgb(241, 243, 245)', // Lighter background for the container
-              borderRadius: '1.5rem',
-              border: '1px solid var(--color-surface-container-high)',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ display: 'flex', position: 'relative' }}>
-
-                {/* Time Axis (Left) */}
-                <div style={{
-                  width: '64px',
-                  flexShrink: 0,
-                  borderRight: '1px solid rgba(0,0,0,0.08)',
-                  background: 'rgba(255,255,255,0.8)',
-                  paddingTop: '40px'
-                }}>
-                  {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => HORAS_START + i).map(h => (
-                    <div key={h} style={{
-                      height: `${ROW_HEIGHT}px`,
-                      position: 'relative',
-                      display: 'flex',
-                      justifyContent: 'center'
-                    }}>
-                      <span style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 900,
-                        color: 'var(--color-primary)',
-                        position: 'absolute',
-                        top: '-8px',
-                        background: 'white',
-                        padding: '2px 6px',
-                        borderRadius: '6px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        zIndex: 10
-                      }}>
-                        {h}:00
-                      </span>
-                    </div>
-                  ))}
                 </div>
-
-                {/* Grid Area */}
-                <div className="calendar-grid-container" style={{
-                  flex: 1,
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  position: 'relative',
-                  background: 'white' // White grid for cards to stand out on
-                }}>
-                  {DIAS_CALENDARIO.map((dia, dIdx) => {
-                    const clubsDelDiaRaw = (metricas?.clubes ?? [])
-                      .map(c => {
-                        let parsed = c.horario;
-                        if (typeof c.horario === 'string') {
-                          try { parsed = JSON.parse(c.horario); } catch { parsed = null; }
-                        }
-
-                        // Normalizer: allow finding the day even if it has encoding issues
-                        let config = null;
-                        if (parsed) {
-                          const keys = Object.keys(parsed);
-                          const matchingKey = keys.find(k => normalizeDay(k) === dia);
-                          if (matchingKey) config = parsed[matchingKey];
-                        }
-
-                        return { ...c, horarioParsed: parsed, config };
-                      })
-                      .filter(c => {
-                        const matchesFiltro = (!filtroClubHorario || c.id === Number(filtroClubHorario)) &&
-                          (!filtroProfHorario || c.profesorId === Number(filtroProfHorario));
-                        return matchesFiltro && c.config;
-                      });
-
-                    // Overlap Detection
-                    const processedClubs = clubsDelDiaRaw.map((club, i) => {
-                      const concurrent = clubsDelDiaRaw.filter((other, j) => {
-                        if (i === j) return false;
-                        const s1 = timeToMinutes(club.config.start);
-                        const e1 = timeToMinutes(club.config.end);
-                        const s2 = timeToMinutes(other.config.start);
-                        const e2 = timeToMinutes(other.config.end);
-                        // Check if time ranges overlap
-                        return s1 < e2 && s2 < e1;
-                      });
-
-                      // For a simple split, we look at position in the concurrent list
-                      // This is a basic "smart grid" approach
-                      const colIndex = concurrent.filter(other => other.id < club.id).length;
-                      const maxCols = concurrent.length + 1;
-
-                      return { ...club, colIndex, maxCols };
-                    });
-
-                    return (
-                      <div key={dia} className={`calendar-day-col ${activeDayMobile === dia ? 'is-active-mobile' : ''}`} style={{
-                        borderRight: dIdx < 6 ? '1px solid var(--color-surface-container-lowest)' : 'none',
-                        position: 'relative',
-                        minHeight: `${(HORAS_END - HORAS_START + 1) * ROW_HEIGHT}px`
-                      }}>
-                        {/* Day Header */}
-                        <div style={{
-                          height: '40px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderBottom: '1px solid var(--color-surface-container-high)',
-                          background: 'rgba(255,255,255,0.3)',
-                          position: 'sticky',
-                          top: 0,
-                          zIndex: 5
-                        }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{dia}</span>
-                        </div>
-
-                        {/* Hour Lines Background */}
-                        <div style={{ position: 'absolute', inset: '40px 0 0 0', pointerEvents: 'none' }}>
-                          {Array.from({ length: HORAS_END - HORAS_START + 1 }, (_, i) => (
-                            <div key={i} style={{ height: `${ROW_HEIGHT}px`, borderBottom: '1px solid rgba(0,0,0,0.06)' }}></div>
-                          ))}
-                        </div>
-
-                        {/* Session Cards */}
-                        <div style={{ position: 'absolute', inset: '40px 4px 0 4px' }}>
-                          {processedClubs.map(club => {
-                            const width = 100 / club.maxCols;
-                            const left = club.colIndex * width;
-                            const theme = getClubTheme(club.nombre);
-
-                            return (
-                              <div key={`${club.id}-${dia}`}
-                                className="schedule-card-pro"
-                                style={{
-                                  position: 'absolute',
-                                  left: `${left}%`,
-                                  width: `calc(${width}% - 4px)`,
-                                  top: `${getPosForTime(club.config.start)}px`,
-                                  height: `${getHeightForDuration(club.config.start, club.config.end)}px`,
-                                  padding: '0.5rem',
-                                  background: 'white',
-                                  borderRadius: '0.8rem',
-                                  zIndex: 2,
-                                  borderLeft: `4px solid ${theme.main}`,
-                                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                  overflow: 'hidden',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '0.15rem',
-                                  transition: 'all 0.3s',
-                                  boxSizing: 'border-box',
-                                  margin: '0 2px'
-                                }}
-                              >
-                                <div style={{
-                                  position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: theme.grad, opacity: 0.8
-                                }}></div>
-                                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {club.nombre}
-                                </p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                  <Clock size={10} color={theme.main} />
-                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: theme.main }}>{club.config.start}</span>
-                                </div>
-
-                                <div className="card-hover-extra" style={{
-                                  position: 'absolute', inset: 0, background: theme.grad, color: 'white',
-                                  padding: '0.6rem', opacity: 0, visibility: 'hidden', transition: 'all 0.3s', zIndex: 10,
-                                  display: 'flex', flexDirection: 'column', justifyContent: 'center'
-                                }}>
-                                  <p style={{ margin: '0 0 0.2rem', fontSize: '0.8rem', fontWeight: 900 }}>{club.nombre}</p>
-                                  <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 700, opacity: 0.9 }}>Prof. {club.profesor}</p>
-                                  <div style={{ marginTop: '0.4rem', background: 'rgba(255,255,255,0.25)', padding: '0.25rem 0.5rem', borderRadius: '6px', fontSize: '0.6rem', fontWeight: 900, alignSelf: 'flex-start' }}>
-                                    {club.config.start} - {club.config.end}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
               </div>
-            </div>
 
-            <style>{`
+              <style>{`
               @media (max-width: 900px) {
                 .mobile-day-selector { display: flex !important; }
                 .calendar-grid-container { grid-template-columns: 1fr !important; }
@@ -1696,77 +1904,226 @@ export default function AdminDashboard() {
               }
               .mobile-day-selector::-webkit-scrollbar { display: none; }
             `}</style>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* ══════════ TAB: REPORTE ══════════════════════════ */}
-        {tab === 'reporte' && (
-          <div style={{ textAlign: 'center', paddingTop: '1rem' }}>
-            <div className="bento-card" style={{
-              background: 'linear-gradient(135deg, var(--color-primary), #2a3c74)', borderRadius: '2rem',
-              padding: '2.5rem 2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden'
-            }}>
-              <div style={{ position: 'absolute', bottom: '-15%', right: '-5%', opacity: 0.1 }}>
-                <FileText size={160} color="white" />
-              </div>
-              <div style={{ position: 'relative', zIndex: 1, textAlign: 'left' }}>
-                <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
-                  Inteligencia de Datos
-                </h3>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.88rem', margin: '0 0 1.5rem', lineHeight: 1.5, fontWeight: 500 }}>
-                  Genera reportes detallados de asistencia y rendimiento por disciplina.
-                </p>
-                <button onClick={handleExportarCSV} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem' }}>
-                  <Download size={16} /> Exportar Consolidado (.csv)
+          {/* ══════════ TAB: AULAS ════════════════════════════ */}
+          {tab === 'aulas' && (
+            <div className="animate-enter">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                    Gestión de <span style={{ color: 'var(--color-secondary)' }}>Aulas</span>
+                  </h3>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Configura los puntos de marcaje QR y GPS</p>
+                </div>
+                <button
+                  onClick={() => { setEditingAula(null); setIsAulaModalOpen(true); }}
+                  style={{
+                    background: 'var(--color-primary)', color: 'white', border: 'none',
+                    padding: '0.75rem 1.5rem', borderRadius: '1rem', fontWeight: 800,
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+                    boxShadow: '0 8px 20px rgba(var(--color-primary-rgb), 0.2)'
+                  }}
+                >
+                  <MapPin size={18} /> Nueva Aula
                 </button>
               </div>
+
+              {loadingAulas ? (
+                <div style={{ padding: '4rem', textAlign: 'center' }}><RefreshCw className="spin" size={30} color="var(--color-primary)" /></div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                  {aulas.map(aula => (
+                    <div key={aula.id} className="bento-card" style={{ padding: '1.5rem', position: 'relative' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                        <div style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-primary)', width: '3rem', height: '3rem', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Map size={24} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => { setEditingAula(aula); setIsAulaModalOpen(true); }} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-primary)' }}><FileText size={16} /></button>
+                          <button onClick={() => setConfirmModal({ 
+                            show: true, 
+                            title: 'Eliminar Aula', 
+                            message: `¿Estás seguro de que deseas eliminar el aula "${aula.nombre}"? Esta acción no se puede deshacer.`, 
+                            type: 'DANGER',
+                            onConfirm: async () => { 
+                              await fetch(`${API}/admin/aulas/${aula.id}`, { method: 'DELETE' }); 
+                              fetchAulas(); 
+                              setConfirmModal(prev => ({ ...prev, show: false }));
+                            } 
+                          })} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                      <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)' }}>{aula.nombre}</h4>
+                      <p style={{ margin: '0.5rem 0', fontSize: '0.8rem', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Navigation size={12} /> {aula.latitud.toFixed(6)}, {aula.longitud.toFixed(6)}
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-high)' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-secondary)' }}>Radio: {aula.radioPermitido}m</span>
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/pase-lista?aulaId=${aula.id}`;
+                            // Aquí podrías generar un QR para imprimir
+                            window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(JSON.stringify({ aulaId: aula.id }))}`, '_blank');
+                          }}
+                          style={{ background: 'var(--color-secondary-container)', color: 'var(--color-secondary)', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                        >
+                          <QrCode size={14} /> Imprimir QR
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+          )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 12, height: 2, background: 'var(--color-primary)', borderRadius: 2 }}></div>
-                Reportes Individuales
-              </p>
+          {/* ══════════ TAB: ASISTENCIA DOCENTE ═══════════════ */}
+          {tab === 'asistencia-docente' && (
+            <div className="animate-enter">
+              <div style={{ marginBottom: '2rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+                  Registro de <span style={{ color: 'var(--color-secondary)' }}>Asistencia Docente</span>
+                </h3>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Auditoría de puntualidad y presencia física</p>
+              </div>
 
-              {(metricas?.clubes ?? [])
-                .slice((currentPageReportes - 1) * ITEMS_PER_PAGE, currentPageReportes * ITEMS_PER_PAGE)
-                .map(club => (
-                  <button key={club.id}
-                    onClick={() => window.open(`${API}/admin/reporte/asistencia?clubId=${club.id}`, '_blank')}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      background: 'var(--color-surface-container-lowest)', border: 'none',
-                      borderRadius: '1rem', padding: '1rem 1.25rem', fontWeight: 700, fontSize: '0.9rem',
-                      color: 'var(--color-primary)', cursor: 'pointer',
-                    }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <BookOpen size={16} color="var(--color-secondary)" /> {club.nombre}
-                    </span>
-                    <ChevronRight size={16} color="var(--color-on-surface-variant)" />
+              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Filtrar por Profesor</label>
+                    <select value={filtroProfesorId} onChange={e => setFiltroProfesorId(e.target.value)} style={inputStyle}>
+                      <option value="">Todos los profesores</option>
+                      {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
+                    </select>
+                  </div>
+                  <button onClick={fetchAsistenciaDocente} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '0.85rem 1.5rem', borderRadius: '1rem', fontWeight: 800, cursor: 'pointer' }}>
+                    <Search size={20} />
                   </button>
-                ))}
+                </div>
+              </div>
 
-              <Pagination
-                current={currentPageReportes}
-                total={Math.ceil((metricas?.clubes ?? []).length / ITEMS_PER_PAGE)}
-                onChange={setCurrentPageReportes}
-              />
+              {loadingAsistenciaDocente ? (
+                <div style={{ padding: '4rem', textAlign: 'center' }}><RefreshCw className="spin" size={30} color="var(--color-primary)" /></div>
+              ) : (
+                <div style={{ background: 'white', borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid var(--color-surface-container-high)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--color-surface-container-low)', textAlign: 'left' }}>
+                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Fecha / Hora</th>
+                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Profesor</th>
+                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Disciplina / Aula</th>
+                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Estado</th>
+                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>GPS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {asistenciaDocente.map(reg => (
+                        <tr key={reg.id} style={{ borderBottom: '1px solid var(--color-surface-container-low)' }}>
+                          <td style={{ padding: '1.25rem' }}>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{new Date(reg.fecha).toLocaleDateString()}</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)' }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString() : 'N/A'}</p>
+                          </td>
+                          <td style={{ padding: '1.25rem' }}>
+                            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
+                          </td>
+                          <td style={{ padding: '1.25rem' }}>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 600 }}>{reg.aula?.nombre || 'Sin aula'}</p>
+                          </td>
+                          <td style={{ padding: '1.25rem' }}>
+                            <span style={{
+                              padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 900,
+                              background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
+                              color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
+                            }}>
+                              {reg.asistenciaDocente || 'PENDIENTE'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1.25rem' }}>
+                            {reg.latitudDocente ? (
+                              <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none' }}>
+                                <MapPin size={14} /> Ver mapa
+                              </a>
+                            ) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+          )}
+          {tab === 'reporte' && (
+            <div style={{ textAlign: 'center', paddingTop: '1rem' }}>
+              <div className="bento-card" style={{
+                background: 'linear-gradient(135deg, var(--color-primary), #2a3c74)', borderRadius: '2rem',
+                padding: '2.5rem 2rem', marginBottom: '2rem', position: 'relative', overflow: 'hidden'
+              }}>
+                <div style={{ position: 'absolute', bottom: '-15%', right: '-5%', opacity: 0.1 }}>
+                  <FileText size={160} color="white" />
+                </div>
+                <div style={{ position: 'relative', zIndex: 1, textAlign: 'left' }}>
+                  <h3 style={{ color: 'white', fontWeight: 900, fontSize: '1.5rem', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
+                    Inteligencia de Datos
+                  </h3>
+                  <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.88rem', margin: '0 0 1.5rem', lineHeight: 1.5, fontWeight: 500 }}>
+                    Genera reportes detallados de asistencia y rendimiento por disciplina.
+                  </p>
+                  <button onClick={handleExportarCSV} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem' }}>
+                    <Download size={16} /> Exportar Consolidado (.csv)
+                  </button>
+                </div>
+              </div>
 
-            <p style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)' }}>
-              Formato CSV con BOM para compatibilidad con Microsoft Excel
-            </p>
-          </div>
-        )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: 12, height: 2, background: 'var(--color-primary)', borderRadius: 2 }}></div>
+                  Reportes Individuales
+                </p>
 
+                {(metricas?.clubes ?? [])
+                  .slice((currentPageReportes - 1) * ITEMS_PER_PAGE, currentPageReportes * ITEMS_PER_PAGE)
+                  .map(club => (
+                    <button key={club.id}
+                      onClick={() => window.open(`${API}/admin/reporte/asistencia?clubId=${club.id}`, '_blank')}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        background: 'var(--color-surface-container-lowest)', border: 'none',
+                        borderRadius: '1rem', padding: '1rem 1.25rem', fontWeight: 700, fontSize: '0.9rem',
+                        color: 'var(--color-primary)', cursor: 'pointer',
+                      }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <BookOpen size={16} color="var(--color-secondary)" /> {club.nombre}
+                      </span>
+                      <ChevronRight size={16} color="var(--color-on-surface-variant)" />
+                    </button>
+                  ))}
+
+                <Pagination
+                  current={currentPageReportes}
+                  total={Math.ceil((metricas?.clubes ?? []).length / ITEMS_PER_PAGE)}
+                  onChange={setCurrentPageReportes}
+                />
+              </div>
+
+              <p style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: 'var(--color-on-surface-variant)' }}>
+                Formato CSV con BOM para compatibilidad con Microsoft Excel
+              </p>
+            </div>
+          )}
+
+        </div>
       </div>
-    </div>
 
-    {/* ── SECCIÓN DE MODALES (Fuera de animación para fijar posición) ── */}
+      {/* ── SECCIÓN DE MODALES (Fuera de animación para fijar posición) ── */}
       {modalClub !== false && (
         <ClubModal
           club={modalClub as Partial<ClubMetrica>}
           profesores={profesores}
+          aulas={aulas}
           onSave={handleSaveClub}
           onClose={() => setModalClub(false)}
         />
@@ -1790,7 +2147,7 @@ export default function AdminDashboard() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
         }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
           <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px', 
+            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px',
             overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
           }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1800,7 +2157,7 @@ export default function AdminDashboard() {
                 </h3>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Listado Global y Asignación</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsAlumnosInscritosModalOpen(false)}
                 style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
               >
@@ -1809,86 +2166,86 @@ export default function AdminDashboard() {
             </div>
             <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
 
-            <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-              <input
-                value={searchTermAlumnosModal}
-                onChange={e => { setSearchTermAlumnosModal(e.target.value); setCurrentPageAlumnosModal(1); }}
-                placeholder="Buscar alumno por nombre o apellido..."
-                style={{ ...inputStyle, paddingLeft: '3.2rem', borderRadius: '1.25rem', height: '3.5rem', background: 'var(--color-surface-container-lowest)', fontSize: '1rem' }}
-              />
-              <Search size={22} color="var(--color-outline)" style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)' }} />
-            </div>
+              <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                <input
+                  value={searchTermAlumnosModal}
+                  onChange={e => { setSearchTermAlumnosModal(e.target.value); setCurrentPageAlumnosModal(1); }}
+                  placeholder="Buscar alumno por nombre o apellido..."
+                  style={{ ...inputStyle, paddingLeft: '3.2rem', borderRadius: '1.25rem', height: '3.5rem', background: 'var(--color-surface-container-lowest)', fontSize: '1rem' }}
+                />
+                <Search size={22} color="var(--color-outline)" style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {(() => {
-                const filtered = alumnos.filter(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTermAlumnosModal.toLowerCase()));
-                const paginated = filtered.slice((currentPageAlumnosModal - 1) * 4, currentPageAlumnosModal * 4);
-                const totalPages = Math.ceil(filtered.length / 4);
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {(() => {
+                  const filtered = alumnos.filter(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTermAlumnosModal.toLowerCase()));
+                  const paginated = filtered.slice((currentPageAlumnosModal - 1) * 4, currentPageAlumnosModal * 4);
+                  const totalPages = Math.ceil(filtered.length / 4);
 
 
-                if (filtered.length === 0) return (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-outline)' }}>
-                    <Users size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
-                    <p style={{ marginTop: '1rem', fontWeight: 600 }}>No se encontraron alumnos</p>
-                  </div>
-                );
+                  if (filtered.length === 0) return (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-outline)' }}>
+                      <Users size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
+                      <p style={{ marginTop: '1rem', fontWeight: 600 }}>No se encontraron alumnos</p>
+                    </div>
+                  );
 
-                return (
-                  <>
-                    {paginated.map(alumno => (
-                      <div key={alumno.id} style={{
-                        padding: '1.1rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
-                        border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        transition: 'transform 0.2s ease'
-                      }}>
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                          <div style={{
-                            width: '3.2rem', height: '3.2rem', borderRadius: '1rem',
-                            background: 'var(--grad-secondary)', color: 'var(--color-on-secondary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem'
-                          }}>
-                            {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
-                          </div>
-
-                          <div>
-                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                              {alumno.nombre} {alumno.apellido}
-                            </p>
-                            <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-                              {alumno.grado} • {alumno.padre ? `Padre: ${alumno.padre.nombre}` : 'Sin tutor'}
-                            </p>
-                          </div>
-
-                        </div>
-                        <div style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
-                          {alumno.inscripciones.length > 0 ? alumno.inscripciones.map((ins, idx) => (
-                            <span key={idx} style={{
-                              fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-primary-container)',
-                              color: 'white', padding: '0.25rem 0.6rem', borderRadius: '99px', textTransform: 'uppercase'
+                  return (
+                    <>
+                      {paginated.map(alumno => (
+                        <div key={alumno.id} style={{
+                          padding: '1.1rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
+                          border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          transition: 'transform 0.2s ease'
+                        }}>
+                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <div style={{
+                              width: '3.2rem', height: '3.2rem', borderRadius: '1rem',
+                              background: 'var(--grad-secondary)', color: 'var(--color-on-secondary)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem'
                             }}>
-                              {ins.club.nombre}
-                            </span>
-                          )) : (
-                            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-error)', fontStyle: 'italic' }}>
-                              Sin clubes
-                            </span>
-                          )}
+                              {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
+                            </div>
+
+                            <div>
+                              <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                                {alumno.nombre} {alumno.apellido}
+                              </p>
+                              <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                                {alumno.grado} • {alumno.padre ? `Padre: ${alumno.padre.nombre}` : 'Sin tutor'}
+                              </p>
+                            </div>
+
+                          </div>
+                          <div style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
+                            {alumno.inscripciones.length > 0 ? alumno.inscripciones.map((ins, idx) => (
+                              <span key={idx} style={{
+                                fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-primary-container)',
+                                color: 'white', padding: '0.25rem 0.6rem', borderRadius: '99px', textTransform: 'uppercase'
+                              }}>
+                                {ins.club.nombre}
+                              </span>
+                            )) : (
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-error)', fontStyle: 'italic' }}>
+                                Sin clubes
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    <Pagination
-                      current={currentPageAlumnosModal}
-                      total={totalPages}
-                      onChange={setCurrentPageAlumnosModal}
-                    />
-                  </>
-                );
-              })()}
+                      ))}
+                      <Pagination
+                        current={currentPageAlumnosModal}
+                        total={totalPages}
+                        onChange={setCurrentPageAlumnosModal}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* MODAL: PROFESORES */}
       {isProfesoresModalOpen && (
@@ -1907,7 +2264,7 @@ export default function AdminDashboard() {
                 </h3>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión de Docentes</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsProfesoresModalOpen(false)}
                 style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
               >
@@ -1916,71 +2273,71 @@ export default function AdminDashboard() {
             </div>
             <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {profesores.length > 0 ? (
-                <>
-                  {profesores
-                    .slice((currentPageProfesores - 1) * 4, currentPageProfesores * 4)
-                    .map((prof, i) => (
-                      <div key={prof.id} style={{
-                        padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
-                        border: '1px solid var(--color-surface-container-low)',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                          <div style={{
-                            width: '3rem', height: '3rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)'
-                          }}>
-                            {prof.nombre.charAt(0)}{prof.apellido.charAt(0)}
-                          </div>
-                          <div>
-                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-                              DNI: {prof.dni || '---'} • Cel: {prof.celular || '---'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div style={{
-                          background: 'var(--color-surface-container-lowest)', padding: '0.8rem 1rem',
-                          borderRadius: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
-                          border: '1px solid var(--color-surface-container-low)'
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {profesores.length > 0 ? (
+                  <>
+                    {profesores
+                      .slice((currentPageProfesores - 1) * 4, currentPageProfesores * 4)
+                      .map((prof, i) => (
+                        <div key={prof.id} style={{
+                          padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
+                          border: '1px solid var(--color-surface-container-low)',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                         }}>
-                          {prof.clubes && prof.clubes.length > 0 ? prof.clubes.map((c: any) => (
-                            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-secondary)' }}></div>
-                                <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
-                              </div>
-                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-surface-container-high)' }}>
-                                {formatHorarioShort(c.horario)}
-                              </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                            <div style={{
+                              width: '3rem', height: '3rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)'
+                            }}>
+                              {prof.nombre.charAt(0)}{prof.apellido.charAt(0)}
                             </div>
-                          )) : (
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontStyle: 'italic', textAlign: 'center' }}>Sin clubes asignados</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  <Pagination
-                    current={currentPageProfesores}
-                    total={Math.ceil(profesores.length / 4)}
-                    onChange={setCurrentPageProfesores}
-                  />
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+                                DNI: {prof.dni || '---'} • Cel: {prof.celular || '---'}
+                              </p>
+                            </div>
+                          </div>
 
-                </>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                  <Users size={48} color="var(--color-surface-container-high)" style={{ marginBottom: '1rem' }} />
-                  <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>Cargando staff docente...</p>
-                </div>
-              )}
+                          <div style={{
+                            background: 'var(--color-surface-container-lowest)', padding: '0.8rem 1rem',
+                            borderRadius: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
+                            border: '1px solid var(--color-surface-container-low)'
+                          }}>
+                            {prof.clubes && prof.clubes.length > 0 ? prof.clubes.map((c: any) => (
+                              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-secondary)' }}></div>
+                                  <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
+                                </div>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-surface-container-high)' }}>
+                                  {formatHorarioShort(c.horario)}
+                                </span>
+                              </div>
+                            )) : (
+                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontStyle: 'italic', textAlign: 'center' }}>Sin clubes asignados</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    <Pagination
+                      current={currentPageProfesores}
+                      total={Math.ceil(profesores.length / 4)}
+                      onChange={setCurrentPageProfesores}
+                    />
+
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+                    <Users size={48} color="var(--color-surface-container-high)" style={{ marginBottom: '1rem' }} />
+                    <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>Cargando staff docente...</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* MODAL: RANKING DISCIPLINAS */}
       {isRankingModalOpen && (
@@ -1999,7 +2356,7 @@ export default function AdminDashboard() {
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Ranking de Disciplinas</h3>
                 <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Por Nivel de Asistencia</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsRankingModalOpen(false)}
                 style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
               >
@@ -2073,11 +2430,11 @@ export default function AdminDashboard() {
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                   Historial <span style={{ color: 'var(--color-secondary)' }}>de Clases</span>
+                  Historial <span style={{ color: 'var(--color-secondary)' }}>de Clases</span>
                 </h3>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>{modalSesiones.nombre}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setModalSesiones(null)}
                 style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
               >
@@ -2085,109 +2442,109 @@ export default function AdminDashboard() {
               </button>
             </div>
             <div style={{ padding: '1.5rem', overflowY: 'auto', maxHeight: '75vh' }}>
-                <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                  Sesiones y asistencias del club: {modalSesiones.nombre}
-                </p>
+              <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                Sesiones y asistencias del club: {modalSesiones.nombre}
+              </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ background: 'var(--color-primary-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'white', textTransform: 'uppercase', opacity: 0.8 }}>Total Sesiones</p>
-                  <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>{sesionesClub.length}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: 'var(--color-primary-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'white', textTransform: 'uppercase', opacity: 0.8 }}>Total Sesiones</p>
+                    <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>{sesionesClub.length}</p>
+                  </div>
+                  <History size={24} color="white" style={{ opacity: 0.4 }} />
                 </div>
-                <History size={24} color="white" style={{ opacity: 0.4 }} />
-              </div>
-              <div style={{ background: 'var(--color-surface-container-high)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Última Clase</p>
-                  <p style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                    {sesionesClub.length > 0 ? new Date(sesionesClub[0].fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : '---'}
-                  </p>
+                <div style={{ background: 'var(--color-surface-container-high)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Última Clase</p>
+                    <p style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                      {sesionesClub.length > 0 ? new Date(sesionesClub[0].fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : '---'}
+                    </p>
+                  </div>
+                  <Calendar size={20} color="var(--color-primary)" style={{ opacity: 0.3 }} />
                 </div>
-                <Calendar size={20} color="var(--color-primary)" style={{ opacity: 0.3 }} />
               </div>
-            </div>
 
-            {loadingSesiones ? (
-              <div style={{ padding: '3rem', textAlign: 'center' }}>
-                <div className="animate-spin" style={{ width: '2.5rem', height: '2.5rem', border: '3px solid var(--color-surface-dim)', borderTopColor: 'var(--color-secondary)', borderRadius: '50%', margin: '0 auto' }}></div>
-              </div>
-            ) : sesionesClub.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-outline)' }}>
-                No hay sesiones registradas aún.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {sesionesClub
-                  .slice((currentPageSesiones - 1) * 4, currentPageSesiones * 4)
-                  .map((sesion) => {
-                    const pres = sesion.asistencias.filter((a: any) => a.estado === 'PRESENTE').length;
-                    const aus = sesion.asistencias.filter((a: any) => a.estado === 'AUSENTE').length;
-                    const isExpanded = expandedSesionId === sesion.id;
+              {loadingSesiones ? (
+                <div style={{ padding: '3rem', textAlign: 'center' }}>
+                  <div className="animate-spin" style={{ width: '2.5rem', height: '2.5rem', border: '3px solid var(--color-surface-dim)', borderTopColor: 'var(--color-secondary)', borderRadius: '50%', margin: '0 auto' }}></div>
+                </div>
+              ) : sesionesClub.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-outline)' }}>
+                  No hay sesiones registradas aún.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {sesionesClub
+                    .slice((currentPageSesiones - 1) * 4, currentPageSesiones * 4)
+                    .map((sesion) => {
+                      const pres = sesion.asistencias.filter((a: any) => a.estado === 'PRESENTE').length;
+                      const aus = sesion.asistencias.filter((a: any) => a.estado === 'AUSENTE').length;
+                      const isExpanded = expandedSesionId === sesion.id;
 
-                    return (
-                      <div key={sesion.id} style={{
-                        padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
-                        border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
-                        boxShadow: isExpanded ? 'var(--shadow-md)' : '0 2px 4px rgba(0,0,0,0.02)',
-                        transition: 'all 0.3s ease'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                              {new Date(sesion.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
-                            </p>
-                            <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                              {sesion.tema || 'Sin tema específico'}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
-                              <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{pres}</span>
-                              <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{aus}</span>
+                      return (
+                        <div key={sesion.id} style={{
+                          padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
+                          border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
+                          boxShadow: isExpanded ? 'var(--shadow-md)' : '0 2px 4px rgba(0,0,0,0.02)',
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+                                {new Date(sesion.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
+                              </p>
+                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>
+                                {sesion.tema || 'Sin tema específico'}
+                              </p>
                             </div>
-                            <button
-                              onClick={() => setExpandedSesionId(isExpanded ? null : sesion.id)}
-                              style={{ border: 'none', background: 'none', color: isExpanded ? 'var(--color-primary)' : 'var(--color-secondary)', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', padding: 0 }}
-                            >
-                              {isExpanded ? 'OCULTAR ↑' : 'DETALLES ↓'}
-                            </button>
-                          </div>
-                        </div>
-
-                        {isExpanded && (
-                          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
-                            {sesion.asistencias.length > 0 ? (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {sesion.asistencias.map((a: any) => (
-                                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
-                                    <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{a.alumno.nombre} {a.alumno.apellido}</span>
-                                    <span style={{
-                                      padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
-                                      background: a.estado === 'PRESENTE' ? 'var(--color-success-container)' : a.estado === 'AUSENTE' ? 'var(--color-error-container)' : 'var(--color-warning-container)',
-                                      color: a.estado === 'PRESENTE' ? 'var(--color-success)' : a.estado === 'AUSENTE' ? 'var(--color-error)' : 'var(--color-warning)'
-                                    }}>
-                                      {a.estado}
-                                    </span>
-                                  </div>
-                                ))}
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
+                                <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{pres}</span>
+                                <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{aus}</span>
                               </div>
-                            ) : (
-                              <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', textAlign: 'center' }}>No hay registros en esta sesión.</p>
-                            )}
+                              <button
+                                onClick={() => setExpandedSesionId(isExpanded ? null : sesion.id)}
+                                style={{ border: 'none', background: 'none', color: isExpanded ? 'var(--color-primary)' : 'var(--color-secondary)', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', padding: 0 }}
+                              >
+                                {isExpanded ? 'OCULTAR ↑' : 'DETALLES ↓'}
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
 
-                <Pagination current={currentPageSesiones} total={Math.ceil(sesionesClub.length / ITEMS_PER_PAGE)} onChange={setCurrentPageSesiones} />
-              </div>
-            )}
+                          {isExpanded && (
+                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
+                              {sesion.asistencias.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                  {sesion.asistencias.map((a: any) => (
+                                    <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                                      <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{a.alumno.nombre} {a.alumno.apellido}</span>
+                                      <span style={{
+                                        padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
+                                        background: a.estado === 'PRESENTE' ? 'var(--color-success-container)' : a.estado === 'AUSENTE' ? 'var(--color-error-container)' : 'var(--color-warning-container)',
+                                        color: a.estado === 'PRESENTE' ? 'var(--color-success)' : a.estado === 'AUSENTE' ? 'var(--color-error)' : 'var(--color-warning)'
+                                      }}>
+                                        {a.estado}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', textAlign: 'center' }}>No hay registros en esta sesión.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                  <Pagination current={currentPageSesiones} total={Math.ceil(sesionesClub.length / ITEMS_PER_PAGE)} onChange={setCurrentPageSesiones} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
       {modalAlumno !== false && (
@@ -2215,7 +2572,7 @@ export default function AdminDashboard() {
                 </h3>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Asistencia y Tendencias</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsRetencionModalOpen(false)}
                 style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
               >
@@ -2224,100 +2581,100 @@ export default function AdminDashboard() {
             </div>
             <div style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
 
-            {/* Centered Pill Switcher for Rankings */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
-              <div style={{
-                display: 'flex', background: 'var(--color-surface-container-low)',
-                padding: '0.3rem', borderRadius: '1.5rem', gap: '0.2rem',
-                border: '1px solid var(--color-surface-container-high)',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
-              }}>
-                {[
-                  { id: 'asistencias', label: 'Asistencias', color: 'var(--color-success)', icon: <Award size={16} /> },
-                  { id: 'ausencias', label: 'Ausencias', color: 'var(--color-error)', icon: <AlertTriangle size={16} /> },
-                  { id: 'justificaciones', label: 'Justificaciones', color: '#EAB308', icon: <History size={16} /> }
-                ].map(st => (
-                  <button
-                    key={st.id}
-                    onClick={() => { setRankingSubTab(st.id as any); setCurrentPageRetencion(1); }}
-                    title={st.label}
-                    style={{
-                      padding: '1rem', borderRadius: '1.2rem', border: 'none', cursor: 'pointer',
-                      background: rankingSubTab === st.id ? st.color : 'transparent',
-                      color: rankingSubTab === st.id ? 'white' : 'var(--color-outline)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: rankingSubTab === st.id ? `0 4px 12px ${st.color}44` : 'none',
-                      width: '3.5rem', height: '3.5rem'
-                    }}
-                  >
-                    {st.icon}
-                  </button>
-                ))}
+              {/* Centered Pill Switcher for Rankings */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
+                <div style={{
+                  display: 'flex', background: 'var(--color-surface-container-low)',
+                  padding: '0.3rem', borderRadius: '1.5rem', gap: '0.2rem',
+                  border: '1px solid var(--color-surface-container-high)',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                }}>
+                  {[
+                    { id: 'asistencias', label: 'Asistencias', color: 'var(--color-success)', icon: <Award size={16} /> },
+                    { id: 'ausencias', label: 'Ausencias', color: 'var(--color-error)', icon: <AlertTriangle size={16} /> },
+                    { id: 'justificaciones', label: 'Justificaciones', color: '#EAB308', icon: <History size={16} /> }
+                  ].map(st => (
+                    <button
+                      key={st.id}
+                      onClick={() => { setRankingSubTab(st.id as any); setCurrentPageRetencion(1); }}
+                      title={st.label}
+                      style={{
+                        padding: '1rem', borderRadius: '1.2rem', border: 'none', cursor: 'pointer',
+                        background: rankingSubTab === st.id ? st.color : 'transparent',
+                        color: rankingSubTab === st.id ? 'white' : 'var(--color-outline)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: rankingSubTab === st.id ? `0 4px 12px ${st.color}44` : 'none',
+                        width: '3.5rem', height: '3.5rem'
+                      }}
+                    >
+                      {st.icon}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {(() => {
-                const dataKey = rankingSubTab === 'asistencias' ? 'rankingAsistencias' :
-                  rankingSubTab === 'ausencias' ? 'rankingAusencias' : 'rankingJustificaciones';
-                const list = metricas[dataKey] || [];
-                const paginated = list.slice((currentPageRetencion - 1) * 4, currentPageRetencion * 4);
-                const totalPages = Math.ceil(list.length / 4);
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {(() => {
+                  const dataKey = rankingSubTab === 'asistencias' ? 'rankingAsistencias' :
+                    rankingSubTab === 'ausencias' ? 'rankingAusencias' : 'rankingJustificaciones';
+                  const list = metricas[dataKey] || [];
+                  const paginated = list.slice((currentPageRetencion - 1) * 4, currentPageRetencion * 4);
+                  const totalPages = Math.ceil(list.length / 4);
 
-                const currentThemeColor = rankingSubTab === 'asistencias' ? 'var(--color-success)' :
-                  rankingSubTab === 'ausencias' ? 'var(--color-error)' : '#EAB308';
+                  const currentThemeColor = rankingSubTab === 'asistencias' ? 'var(--color-success)' :
+                    rankingSubTab === 'ausencias' ? 'var(--color-error)' : '#EAB308';
 
-                if (list.length === 0) return (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--color-surface-container-lowest)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-surface-container-high)' }}>
-                    <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>No hay datos suficientes para generar este ranking.</p>
-                  </div>
-                );
+                  if (list.length === 0) return (
+                    <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--color-surface-container-lowest)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-surface-container-high)' }}>
+                      <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>No hay datos suficientes para generar este ranking.</p>
+                    </div>
+                  );
 
-                return (
-                  <>
-                    {paginated.map((item, i) => (
-                      <div key={i} className="ranking-item" style={{
-                        padding: '1.25rem', borderRadius: '1.5rem', background: 'white',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        border: '1px solid var(--color-surface-container-low)',
-                        transition: 'all 0.3s',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
-                      }}>
-                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                          <div style={{
-                            width: '2.8rem', height: '2.8rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem',
-                            color: currentThemeColor, border: `2px solid ${currentThemeColor}11`
-                          }}>{(currentPageRetencion - 1) * 4 + i + 1}</div>
+                  return (
+                    <>
+                      {paginated.map((item, i) => (
+                        <div key={i} className="ranking-item" style={{
+                          padding: '1.25rem', borderRadius: '1.5rem', background: 'white',
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          border: '1px solid var(--color-surface-container-low)',
+                          transition: 'all 0.3s',
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
+                        }}>
+                          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                            <div style={{
+                              width: '2.8rem', height: '2.8rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem',
+                              color: currentThemeColor, border: `2px solid ${currentThemeColor}11`
+                            }}>{(currentPageRetencion - 1) * 4 + i + 1}</div>
 
-                          <div>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{item.alumno}</p>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{item.club}</p>
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{item.alumno}</p>
+                              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{item.club}</p>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', background: 'var(--color-surface-dim)', padding: '0.6rem 1.2rem', borderRadius: '1.2rem', border: '1px solid var(--color-surface-container-high)' }}>
+                            <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: currentThemeColor, letterSpacing: '-0.03em' }}>{item.cuenta}</p>
+                            <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registros</p>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right', background: 'var(--color-surface-dim)', padding: '0.6rem 1.2rem', borderRadius: '1.2rem', border: '1px solid var(--color-surface-container-high)' }}>
-                          <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: currentThemeColor, letterSpacing: '-0.03em' }}>{item.cuenta}</p>
-                          <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registros</p>
-                        </div>
-                      </div>
-                    ))}
-                    <style>{`
+                      ))}
+                      <style>{`
                       .ranking-item:hover {
                         transform: translateX(5px);
                         border-color: ${currentThemeColor}33;
                         background: var(--color-surface-container-lowest);
                       }
                     `}</style>
-                    <Pagination current={currentPageRetencion} total={totalPages} onChange={setCurrentPageRetencion} />
-                  </>
-                );
-              })()}
+                      <Pagination current={currentPageRetencion} total={totalPages} onChange={setCurrentPageRetencion} />
+                    </>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
 
       {/* ── ALUMNO MODAL ─────────────────────────────────── */}
@@ -2330,6 +2687,169 @@ export default function AdminDashboard() {
           onSave={handleSaveAlumno}
           onClose={() => setModalAlumno(false)}
         />
+      )}
+
+      {/* ── AULA MODAL ───────────────────────────────────── */}
+      {isAulaModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsAulaModalOpen(false)}>
+          <div style={{ background: 'white', borderRadius: '1.5rem', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)' }}>{editingAula ? 'Editar' : 'Nueva'} Aula</h3>
+              <button onClick={() => setIsAulaModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-outline)' }}><X size={24} /></button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const data = {
+                nombre: formData.get('nombre') as string,
+                latitud: parseFloat(formData.get('latitud') as string),
+                longitud: parseFloat(formData.get('longitud') as string),
+                radioPermitido: parseInt(formData.get('radioPermitido') as string),
+                codigoContingencia: formData.get('codigoContingencia') as string,
+              };
+              const url = editingAula ? `${API}/admin/aulas/${editingAula.id}` : `${API}/admin/aulas`;
+              const method = editingAula ? 'PUT' : 'POST';
+              await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+              setIsAulaModalOpen(false);
+              fetchAulas();
+            }} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={labelStyle}>Nombre del Aula / Punto de Marcaje</label>
+                <input name="nombre" defaultValue={editingAula?.nombre} required style={inputStyle} placeholder="Ej: Aula 203, Campo de Fútbol" />
+              </div>
+
+              <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1rem', borderRadius: '1rem', border: '1px dashed var(--color-primary-container)' }}>
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>Calibración GPS — 5 Puntos del Aula</p>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 600 }}>Captura las 4 esquinas y el centro del aula para máxima precisión.</p>
+
+                {/* Coordenadas finales (promedio / centroide) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Latitud (centroide)</label>
+                    <input name="latitud" value={
+                      calibracionCompletada && muestras.length === 5
+                        ? (muestras.reduce((a, b) => a + b.lat, 0) / muestras.length).toFixed(7)
+                        : (muestras.length > 0 && !calibrando
+                          ? (muestras.reduce((a, b) => a + b.lat, 0) / muestras.length).toFixed(7)
+                          : (editingAula?.latitud?.toString() || ''))
+                    } readOnly style={{ ...inputStyle, fontSize: '0.8rem', background: calibracionCompletada ? '#e8f5e9' : undefined }} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Longitud (centroide)</label>
+                    <input name="longitud" value={
+                      calibracionCompletada && muestras.length === 5
+                        ? (muestras.reduce((a, b) => a + b.lng, 0) / muestras.length).toFixed(7)
+                        : (muestras.length > 0 && !calibrando
+                          ? (muestras.reduce((a, b) => a + b.lng, 0) / muestras.length).toFixed(7)
+                          : (editingAula?.longitud?.toString() || ''))
+                    } readOnly style={{ ...inputStyle, fontSize: '0.8rem', background: calibracionCompletada ? '#e8f5e9' : undefined }} />
+                  </div>
+                </div>
+
+                {/* Mostrar puntos capturados */}
+                {muestras.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    {muestras.map((m, i) => (
+                      <div key={i} style={{
+                        padding: '0.25rem 0.5rem', borderRadius: '0.5rem',
+                        background: 'var(--color-primary-fixed)', fontSize: '0.6rem',
+                        fontWeight: 700, color: 'var(--color-primary)',
+                        display: 'flex', alignItems: 'center', gap: '0.25rem'
+                      }}>
+                        <span>{PUNTOS_CALIBRACION[i]?.icon}</span>
+                        <span>±{m.accuracy.toFixed(0)}m</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Barra de progreso */}
+                <div style={{ height: '6px', background: 'var(--color-surface-container-high)', borderRadius: '3px', marginBottom: '0.75rem', overflow: 'hidden' }}>
+                  <div style={{ width: `${calibracionProgreso}%`, height: '100%', background: calibracionCompletada ? '#4caf50' : 'var(--color-secondary)', transition: 'width 0.4s ease' }}></div>
+                </div>
+
+                {/* Estado de calibración */}
+                {calibrando && (
+                  <div style={{
+                    background: 'var(--color-primary-fixed)', padding: '0.75rem', borderRadius: '0.75rem',
+                    marginBottom: '0.75rem', textAlign: 'center'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
+                      {PUNTOS_CALIBRACION[calibracionPaso]?.icon} Paso {calibracionPaso + 1}/5
+                    </p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                      Ve a: <strong>{PUNTOS_CALIBRACION[calibracionPaso]?.label}</strong>
+                    </p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)' }}>
+                      Presiona "Capturar" cuando estés en posición
+                    </p>
+                  </div>
+                )}
+
+                {calibracionCompletada && (
+                  <div style={{
+                    background: '#e8f5e9', padding: '0.75rem', borderRadius: '0.75rem',
+                    marginBottom: '0.75rem', textAlign: 'center', border: '1px solid #a5d6a7'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#2e7d32' }}>
+                      ✅ Calibración completa — 5/5 puntos capturados
+                    </p>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.65rem', color: '#558b2f' }}>
+                      Precisión prom: ±{(muestras.reduce((a, b) => a + b.accuracy, 0) / muestras.length).toFixed(1)}m
+                    </p>
+                  </div>
+                )}
+
+                {!calibrando && !calibracionCompletada && (
+                  <button type="button" onClick={iniciarCalibracion} style={{
+                    width: '100%', height: '3rem', borderRadius: '0.75rem', border: 'none',
+                    background: 'var(--color-secondary)', color: 'white', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                  }}>
+                    <Navigation size={18} />
+                    {muestras.length > 0 ? 'Recalibrar (reinicia los 5 puntos)' : 'Iniciar Calibración de 5 Puntos'}
+                  </button>
+                )}
+
+                {calibrando && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button type="button" onClick={capturarPuntoCalibrado} style={{
+                      flex: 2, height: '3rem', borderRadius: '0.75rem', border: 'none',
+                      background: 'var(--color-primary)', color: 'white', fontWeight: 900,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      fontSize: '0.95rem'
+                    }}>
+                      <Navigation size={18} />
+                      Capturar {PUNTOS_CALIBRACION[calibracionPaso]?.icon}
+                    </button>
+                    <button type="button" onClick={() => { setCalibrando(false); setMuestras([]); setCalibracionProgreso(0); }} style={{
+                      flex: 1, height: '3rem', borderRadius: '0.75rem', border: 'none',
+                      background: 'var(--color-surface-dim)', color: 'var(--color-outline)', fontWeight: 700,
+                      cursor: 'pointer', fontSize: '0.8rem'
+                    }}>
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Radio (Metros)</label>
+                  <input name="radioPermitido" type="number" defaultValue={editingAula?.radioPermitido || 10} required min="3" max="50" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Cód. Contingencia</label>
+                  <input name="codigoContingencia" defaultValue={editingAula?.codigoContingencia || Math.random().toString(36).substring(2, 8).toUpperCase()} required style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setIsAulaModalOpen(false)} style={{ flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none', background: 'var(--color-surface-dim)', color: 'var(--color-primary)', fontWeight: 800, cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" style={{ flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none', background: 'var(--color-primary)', color: 'white', fontWeight: 900, cursor: 'pointer' }}>Guardar Aula</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* ── MODAL PAGOS CLUB ─────────────────────────────── */}
@@ -2503,12 +3023,12 @@ export default function AdminDashboard() {
             padding: '2.5rem', textAlign: 'center', boxShadow: '0 40px 100px rgba(0,0,0,0.5)',
             position: 'relative', overflow: 'hidden'
           }} onClick={e => e.stopPropagation()} className="animate-pop">
-            
+
             <div style={{
               width: '5.5rem', height: '5.5rem', borderRadius: '2.2rem',
-              background: confirmModal.type === 'DANGER' ? 'var(--color-error-container)' : 
-                         confirmModal.type === 'SUCCESS' ? 'var(--color-success-container)' : 
-                         'var(--color-warning-container)',
+              background: confirmModal.type === 'DANGER' ? 'var(--color-error-container)' :
+                confirmModal.type === 'SUCCESS' ? 'var(--color-success-container)' :
+                  'var(--color-warning-container)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1.5rem'
             }}>
@@ -2523,31 +3043,33 @@ export default function AdminDashboard() {
             </p>
 
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                style={{
-                  flex: 1, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
-                  background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
-                  fontWeight: 800, cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
+              {!confirmModal.isAlert && (
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                  style={{
+                    flex: 1, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
+                    background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
+                    fontWeight: 800, cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
               <button
                 onClick={() => {
-                  confirmModal.onConfirm();
+                  if (confirmModal.onConfirm) confirmModal.onConfirm();
                   setConfirmModal(prev => ({ ...prev, show: false }));
                 }}
                 style={{
                   flex: 1.5, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
-                  background: confirmModal.type === 'DANGER' ? 'var(--color-error)' : 
-                             confirmModal.type === 'SUCCESS' ? 'var(--color-success)' : 
-                             'var(--color-warning)',
+                  background: confirmModal.type === 'DANGER' ? 'var(--color-error)' :
+                    confirmModal.type === 'SUCCESS' ? 'var(--color-success)' :
+                      'var(--color-warning)',
                   color: 'white', fontWeight: 900, fontSize: '1rem', cursor: 'pointer',
                   boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
                 }}
               >
-                Confirmar
+                {confirmModal.isAlert ? 'Entendido' : 'Confirmar'}
               </button>
             </div>
           </div>
@@ -2918,8 +3440,8 @@ function UsuarioModal({
             </div>
           ) : (
             <div style={{ marginTop: '0.5rem' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => onResetPassword(usuario.id!)}
                 style={{
                   width: '100%', height: '3rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-error)',
