@@ -1982,24 +1982,28 @@ export default function AdminDashboard() {
           {/* ══════════ TAB: ASISTENCIA DOCENTE ═══════════════ */}
           {tab === 'asistencia-docente' && (
             <div className="animate-enter">
-              <div style={{ marginBottom: '2rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
+              <div style={{ marginBottom: isMobile ? '1.5rem' : '2rem' }}>
+                <h3 style={{ margin: 0, fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
                   Registro de <span style={{ color: 'var(--color-secondary)' }}>Asistencia Docente</span>
                 </h3>
                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>Auditoría de puntualidad y presencia física</p>
               </div>
 
-              <div style={{ background: 'white', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+              <div style={{ background: 'white', padding: isMobile ? '1.25rem' : '1.5rem', borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-end' }}>
                   <div style={{ flex: 1 }}>
                     <label style={labelStyle}>Filtrar por Profesor</label>
-                    <select value={filtroProfesorId} onChange={e => setFiltroProfesorId(e.target.value)} style={inputStyle}>
-                      <option value="">Todos los profesores</option>
-                      {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
-                    </select>
+                    <div style={{ position: 'relative' }}>
+                      <select value={filtroProfesorId} onChange={e => setFiltroProfesorId(e.target.value)} style={{ ...inputStyle, paddingRight: '2.5rem' }}>
+                        <option value="">Todos los profesores</option>
+                        {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>)}
+                      </select>
+                      <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    </div>
                   </div>
-                  <button onClick={fetchAsistenciaDocente} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '0.85rem 1.5rem', borderRadius: '1rem', fontWeight: 800, cursor: 'pointer' }}>
+                  <button onClick={fetchAsistenciaDocente} style={{ background: 'var(--color-primary)', color: 'white', border: 'none', padding: '0.85rem 1.5rem', borderRadius: '1rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     <Search size={20} />
+                    {isMobile && <span>Buscar Asistencia</span>}
                   </button>
                 </div>
               </div>
@@ -2007,52 +2011,113 @@ export default function AdminDashboard() {
               {loadingAsistenciaDocente ? (
                 <div style={{ padding: '4rem', textAlign: 'center' }}><RefreshCw className="spin" size={30} color="var(--color-primary)" /></div>
               ) : (
-                <div style={{ background: 'white', borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid var(--color-surface-container-high)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--color-surface-container-low)', textAlign: 'left' }}>
-                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Fecha / Hora</th>
-                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Profesor</th>
-                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Disciplina / Aula</th>
-                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Estado</th>
-                        <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>GPS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {asistenciaDocente.map(reg => (
-                        <tr key={reg.id} style={{ borderBottom: '1px solid var(--color-surface-container-low)' }}>
-                          <td style={{ padding: '1.25rem' }}>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{new Date(reg.fecha).toLocaleDateString()}</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)' }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString() : 'N/A'}</p>
-                          </td>
-                          <td style={{ padding: '1.25rem' }}>
-                            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
-                          </td>
-                          <td style={{ padding: '1.25rem' }}>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 600 }}>{reg.aula?.nombre || 'Sin aula'}</p>
-                          </td>
-                          <td style={{ padding: '1.25rem' }}>
-                            <span style={{
-                              padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 900,
-                              background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
-                              color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
-                            }}>
-                              {reg.asistenciaDocente || 'PENDIENTE'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1.25rem' }}>
-                            {reg.latitudDocente ? (
-                              <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none' }}>
-                                <MapPin size={14} /> Ver mapa
-                              </a>
-                            ) : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <>
+                  {isMobile ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {asistenciaDocente.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'white', borderRadius: '1.5rem', border: '1px dashed var(--color-surface-container-high)' }}>
+                          <History size={48} color="var(--color-surface-container-high)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                          <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>No hay registros de asistencia para mostrar.</p>
+                        </div>
+                      ) : (
+                        asistenciaDocente.map(reg => (
+                          <div key={reg.id} className="bento-card" style={{ padding: '1.25rem', background: 'white', borderRadius: '1.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem', background: 'var(--color-surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)', fontWeight: 900 }}>
+                                  {(reg.club.profesor.nombre[0] + (reg.club.profesor.apellido[0] ?? '')).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p style={{ margin: 0, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
+                                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{new Date(reg.fecha).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                              <span style={{
+                                padding: '0.3rem 0.7rem', borderRadius: '99px', fontSize: '0.65rem', fontWeight: 900,
+                                background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
+                                color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
+                              }}>
+                                {reg.asistenciaDocente || 'PENDIENTE'}
+                              </span>
+                            </div>
+
+                            <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1rem', borderRadius: '1rem', border: '1px solid var(--color-surface-container-low)', marginBottom: '1rem' }}>
+                              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
+                              <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 700 }}>Aula: {reg.aula?.nombre || 'Sin aula'}</p>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-outline)' }}>
+                                <Clock size={14} />
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'N/A'}</span>
+                              </div>
+                              {reg.latitudDocente && (
+                                <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ background: 'var(--color-primary-fixed)', color: 'var(--color-primary)', padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <MapPin size={14} /> Ver mapa
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ background: 'white', borderRadius: '1.5rem', overflow: 'hidden', border: '1px solid var(--color-surface-container-high)', boxShadow: 'var(--shadow-sm)' }}>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--color-surface-container-low)', textAlign: 'left' }}>
+                              <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha / Hora</th>
+                              <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Profesor</th>
+                              <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Disciplina / Aula</th>
+                              <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estado</th>
+                              <th style={{ padding: '1.25rem', fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>GPS</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {asistenciaDocente.length === 0 ? (
+                              <tr>
+                                <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-outline)', fontStyle: 'italic' }}>No hay registros de asistencia.</td>
+                              </tr>
+                            ) : (
+                              asistenciaDocente.map(reg => (
+                                <tr key={reg.id} style={{ borderBottom: '1px solid var(--color-surface-container-low)', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-container-lowest)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                  <td style={{ padding: '1.25rem' }}>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{new Date(reg.fecha).toLocaleDateString()}</p>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{reg.horaMarcajeDocente ? new Date(reg.horaMarcajeDocente).toLocaleTimeString() : 'N/A'}</p>
+                                  </td>
+                                  <td style={{ padding: '1.25rem' }}>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{reg.club.profesor.nombre} {reg.club.profesor.apellido}</p>
+                                  </td>
+                                  <td style={{ padding: '1.25rem' }}>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-primary)' }}>{reg.club.nombre}</p>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 700 }}>{reg.aula?.nombre || 'Sin aula'}</p>
+                                  </td>
+                                  <td style={{ padding: '1.25rem' }}>
+                                    <span style={{
+                                      padding: '0.4rem 0.8rem', borderRadius: '0.75rem', fontSize: '0.7rem', fontWeight: 900,
+                                      background: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success-container)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning-container)' : 'var(--color-error-container)',
+                                      color: reg.asistenciaDocente === 'PUNTUAL' ? 'var(--color-success)' : reg.asistenciaDocente === 'TARDE' ? 'var(--color-warning)' : 'var(--color-error)'
+                                    }}>
+                                      {reg.asistenciaDocente || 'PENDIENTE'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '1.25rem' }}>
+                                    {reg.latitudDocente ? (
+                                      <a href={`https://www.google.com/maps?q=${reg.latitudDocente},${reg.longitudDocente}`} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', fontWeight: 800, textDecoration: 'none' }}>
+                                        <MapPin size={14} /> Ver mapa
+                                      </a>
+                                    ) : '-'}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
