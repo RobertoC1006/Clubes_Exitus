@@ -353,6 +353,7 @@ export default function Dashboard() {
             )}
           </button>
         </div>
+        </div>
       )}
 
       {/* 🔹 TAB CONTENT: INICIO */}
@@ -1121,12 +1122,10 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
                 borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)'
               }}>
                 {Array.from({ length: 30 }).map((_, i) => {
-                  // Lógica Real Temporal: Solo se ilumina si hay data en el índice (simulando días pasados)
-                  // Por ahora, como no hay historia en el objeto metricas, se verá gris.
                   const historial = metricas?.historialUltimos30Dias || []; 
                   const diaData = historial[i];
                   
-                  let bgColor = 'var(--color-surface-container-high)'; // Por defecto gris (sin clase)
+                  let bgColor = 'var(--color-surface-container-high)'; 
 
                   if (diaData) {
                     const pct = diaData.asistenciaPct || 0;
