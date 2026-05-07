@@ -1005,17 +1005,18 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
       background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(20px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
       animation: 'fadeIn 0.3s ease'
     }} onClick={onClose}>
       <div
-        className="metrics-modal-container"
+        className="metrics-modal-container discrete-scroll"
         style={{
           background: 'white', borderRadius: '2.5rem', width: '100%', 
-          padding: '2.5rem', boxShadow: '0 50px 100px rgba(0,0,0,0.5)', position: 'relative',
-          overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 50px 100px rgba(0,0,0,0.5)', position: 'relative',
+          overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)',
           animation: 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-          display: 'flex', flexDirection: 'column', gap: '2rem'
+          display: 'flex', flexDirection: 'column',
+          maxHeight: '90vh'
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -1096,7 +1097,7 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
 
         {/* CONTENIDO: RACHA DE EXCELENCIA */}
         {active === 'racha' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             {/* Visualización Central Premium */}
             <div style={{
               textAlign: 'center', padding: '3rem 2rem',
@@ -1164,7 +1165,7 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
                 })}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)' }}>Asistencia:</span>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#a7f3d0' }}></div>
@@ -1215,11 +1216,25 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
         .discrete-scroll::-webkit-scrollbar-track { background: transparent; }
         .discrete-scroll::-webkit-scrollbar-thumb { background: var(--color-surface-container-high); borderRadius: 10px; }
         .metrics-modal-container {
-          max-width: 520px;
+          max-width: 540px;
+          padding: 1.25rem;
+          gap: 1.5rem;
         }
         @media (min-width: 900px) {
           .metrics-modal-container {
             max-width: 900px !important;
+            padding: 2.5rem !important;
+            gap: 2.5rem !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .metrics-modal-container {
+            border-radius: 1.5rem !important;
+            padding: 1rem !important;
+            gap: 1.25rem !important;
+          }
+          .metrics-modal-container h3 {
+            font-size: 1.4rem !important;
           }
         }
       `}</style>
