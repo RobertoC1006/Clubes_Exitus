@@ -455,39 +455,6 @@ export default function PortalFamiliar() {
             </div>
           )}
           
-          {/* AVISOS Y NOTIFICACIONES (Carousel) */}
-          <section style={{ marginBottom: '2.5rem' }}>
-            <div className="notices-carousel">
-              {resumen.avisos.map((aviso: any, idx: number) => (
-                <div key={aviso.id} className="notice-card bento-card" style={{ padding: '1.5rem', background: 'white', border: '1px solid var(--color-surface-container-high)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ 
-                    width: '3.5rem', height: '3.5rem', borderRadius: '1rem', 
-                    background: aviso.tipo === 'alert' ? '#FEF2F2' : aviso.tipo === 'error' ? '#FFF1F2' : aviso.tipo === 'success' ? '#F0FDF4' : 'var(--color-surface-dim)',
-                    color: aviso.tipo === 'alert' ? '#EF4444' : aviso.tipo === 'error' ? '#E11D48' : aviso.tipo === 'success' ? '#22C55E' : 'var(--color-primary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem'
-                  }}>
-                    {aviso.icono || '📣'}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-primary)' }}>{aviso.titulo}</h4>
-                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 500, lineHeight: 1.4 }}>{aviso.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Dots del Carousel */}
-            {resumen.avisos.length > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '-0.5rem' }}>
-                {resumen.avisos.map((_: any, idx: number) => (
-                  <div key={idx} style={{ 
-                    width: '0.4rem', height: '0.4rem', borderRadius: '99px', 
-                    background: 'var(--color-outline-variant)', opacity: 0.5 
-                  }}></div>
-                ))}
-              </div>
-            )}
-          </section>
 
 
 
