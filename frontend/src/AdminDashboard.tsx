@@ -124,8 +124,8 @@ function ClubModal({
       if (newHorario[dia]) {
         delete newHorario[dia];
       } else {
-        newHorario[dia] = { 
-          start: '16:00', 
+        newHorario[dia] = {
+          start: '16:00',
           end: '17:30',
           aulaId: aulas[0]?.id || null
         };
@@ -272,12 +272,12 @@ function ClubModal({
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                           <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-primary)', opacity: 0.7 }}>AULA ASIGNADA</span>
-                          <select 
-                            value={horario[dia].aulaId || ''} 
+                          <select
+                            value={horario[dia].aulaId || ''}
                             onChange={e => updateAula(dia, e.target.value)}
-                            style={{ 
-                              border: 'none', background: 'white', color: 'var(--color-primary)', 
-                              fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem', 
+                            style={{
+                              border: 'none', background: 'white', color: 'var(--color-primary)',
+                              fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem',
                               borderRadius: '0.4rem', width: '100%',
                               cursor: 'pointer'
                             }}
@@ -782,15 +782,15 @@ export default function AdminDashboard() {
               onConfirm: () => { }
             });
           }
-        } catch { 
-            setConfirmModal({
-                show: true,
-                title: 'Error de Red',
-                message: 'No se pudo conectar con el servidor',
-                type: 'DANGER',
-                isAlert: true,
-                onConfirm: () => { }
-            });
+        } catch {
+          setConfirmModal({
+            show: true,
+            title: 'Error de Red',
+            message: 'No se pudo conectar con el servidor',
+            type: 'DANGER',
+            isAlert: true,
+            onConfirm: () => { }
+          });
         }
       }
     });
@@ -1942,16 +1942,16 @@ export default function AdminDashboard() {
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button onClick={() => { setEditingAula(aula); setIsAulaModalOpen(true); }} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-primary)' }}><FileText size={16} /></button>
-                          <button onClick={() => setConfirmModal({ 
-                            show: true, 
-                            title: 'Eliminar Aula', 
-                            message: `¿Estás seguro de que deseas eliminar el aula "${aula.nombre}"? Esta acción no se puede deshacer.`, 
+                          <button onClick={() => setConfirmModal({
+                            show: true,
+                            title: 'Eliminar Aula',
+                            message: `¿Estás seguro de que deseas eliminar el aula "${aula.nombre}"? Esta acción no se puede deshacer.`,
                             type: 'DANGER',
-                            onConfirm: async () => { 
-                              await fetch(`${API}/admin/aulas/${aula.id}`, { method: 'DELETE' }); 
-                              fetchAulas(); 
+                            onConfirm: async () => {
+                              await fetch(`${API}/admin/aulas/${aula.id}`, { method: 'DELETE' });
+                              fetchAulas();
                               setConfirmModal(prev => ({ ...prev, show: false }));
-                            } 
+                            }
                           })} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
                         </div>
                       </div>
@@ -1967,7 +1967,7 @@ export default function AdminDashboard() {
                             // Aquí podrías generar un QR para imprimir
                             window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(JSON.stringify({ aulaId: aula.id }))}`, '_blank');
                           }}
-                          style={{ background: 'var(--color-secondary-container)', color: 'var(--color-secondary)', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                          style={{ background: 'var(--color-secondary-container)', color: 'var(--color-primary)', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                         >
                           <QrCode size={14} /> Imprimir QR
                         </button>
