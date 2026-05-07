@@ -547,6 +547,9 @@ export default function AdminDashboard() {
   const [currentPagePagos, setCurrentPagePagos] = useState(1);
   const [currentPageReportes, setCurrentPageReportes] = useState(1);
   const [currentPageRanking, setCurrentPageRanking] = useState(1);
+  const [currentPageAsistenciaDocente, setCurrentPageAsistenciaDocente] = useState(1);
+  const ITEMS_PER_PAGE_DOCENTE = 4;
+
 
   // Retención Modal state
   const [isRetencionModalOpen, setIsRetencionModalOpen] = useState(false);
@@ -579,6 +582,7 @@ export default function AdminDashboard() {
     setFiltroProfHorario('');
     setFiltroClubHorario('');
     setPagesUsuarios({ ADMINISTRADOR: 1, PROFESOR: 1, PADRE: 1 });
+    setCurrentPageAsistenciaDocente(1);
   }, [tab, personasTab]);
 
   // Confirm Modal state
@@ -2020,7 +2024,9 @@ export default function AdminDashboard() {
                           <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>No hay registros de asistencia para mostrar.</p>
                         </div>
                       ) : (
-                        asistenciaDocente.map(reg => (
+                        asistenciaDocente
+                          .slice((currentPageAsistenciaDocente - 1) * ITEMS_PER_PAGE_DOCENTE, currentPageAsistenciaDocente * ITEMS_PER_PAGE_DOCENTE)
+                          .map(reg => (
                           <div key={reg.id} className="bento-card" style={{ padding: '1.25rem', background: 'white', borderRadius: '1.25rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -2080,7 +2086,9 @@ export default function AdminDashboard() {
                                 <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-outline)', fontStyle: 'italic' }}>No hay registros de asistencia.</td>
                               </tr>
                             ) : (
-                              asistenciaDocente.map(reg => (
+                              asistenciaDocente
+                                .slice((currentPageAsistenciaDocente - 1) * ITEMS_PER_PAGE_DOCENTE, currentPageAsistenciaDocente * ITEMS_PER_PAGE_DOCENTE)
+                                .map(reg => (
                                 <tr key={reg.id} style={{ borderBottom: '1px solid var(--color-surface-container-low)', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-container-lowest)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                   <td style={{ padding: '1.25rem' }}>
                                     <p style={{ margin: 0, fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-primary)' }}>{new Date(reg.fecha).toLocaleDateString()}</p>
@@ -2117,6 +2125,12 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   )}
+
+                  <Pagination
+                    current={currentPageAsistenciaDocente}
+                    total={Math.ceil(asistenciaDocente.length / ITEMS_PER_PAGE_DOCENTE)}
+                    onChange={setCurrentPageAsistenciaDocente}
+                  />
                 </>
               )}
             </div>
