@@ -179,7 +179,7 @@ export default function Dashboard() {
         const list = Array.isArray(data.data) ? data.data : [];
         setNotificaciones(list);
         // Auto-abrir si hay notificaciones no leídas de "Nuevo Club" o "Nuevo Alumno"
-        const tieneNovedades = list.some(n => !n.leida);
+        const tieneNovedades = list.some((n: any) => !n.leida);
         if (tieneNovedades) {
             setShowAlertsModal(true);
         }
@@ -190,13 +190,13 @@ export default function Dashboard() {
   const leerNotificacion = async (id: number) => {
     try {
       await fetch(`${API}/notificaciones/${id}/leer`, { method: 'PUT' });
-      setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
+      setNotificaciones(prev => prev.map((n: any) => n.id === id ? { ...n, leida: true } : n));
     } catch (err) {
       console.error("Error marking notification as read:", err);
     }
   };
 
-  const unreadCount = notificaciones.filter(n => !n.leida).length + alertas.length;
+  const unreadCount = notificaciones.filter((n: any) => !n.leida).length + alertas.length;
 
   const activeClubs = useMemo(() => {
     // Forzar hora de Perú (America/Lima) para las comparaciones

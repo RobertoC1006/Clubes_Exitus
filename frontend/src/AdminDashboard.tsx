@@ -1946,9 +1946,11 @@ export default function AdminDashboard() {
                             show: true, 
                             title: 'Eliminar Aula', 
                             message: `¿Estás seguro de que deseas eliminar el aula "${aula.nombre}"? Esta acción no se puede deshacer.`, 
+                            type: 'DANGER',
                             onConfirm: async () => { 
                               await fetch(`${API}/admin/aulas/${aula.id}`, { method: 'DELETE' }); 
                               fetchAulas(); 
+                              setConfirmModal(prev => ({ ...prev, show: false }));
                             } 
                           })} style={{ background: 'var(--color-surface-container-low)', border: 'none', padding: '0.5rem', borderRadius: '0.6rem', cursor: 'pointer', color: 'var(--color-error)' }}><Trash2 size={16} /></button>
                         </div>
