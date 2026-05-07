@@ -1005,12 +1005,13 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
       background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(20px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
       animation: 'fadeIn 0.3s ease'
     }} onClick={onClose}>
       <div
+        className="metrics-modal-container"
         style={{
-          background: 'white', borderRadius: '2.5rem', width: '100%', maxWidth: '520px',
+          background: 'white', borderRadius: '2.5rem', width: '100%', 
           padding: '2.5rem', boxShadow: '0 50px 100px rgba(0,0,0,0.5)', position: 'relative',
           overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)',
           animation: 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
@@ -1041,7 +1042,7 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
         {/* CONTENIDO: ASISTENCIA PROMEDIO */}
         {active === 'asistencia' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', position: 'relative', zIndex: 5 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
               <div style={{ background: 'var(--grad-primary)', padding: '1.8rem 1.5rem', borderRadius: '2.2rem', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(29, 40, 72, 0.2)' }}>
                 <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.8 }}>Puntaje Global</p>
                 <p style={{ margin: '0.5rem 0 0', fontSize: '2.8rem', fontWeight: 950, letterSpacing: '-0.05em', lineHeight: 1 }}>{metricas?.asistenciaPct ?? 0}%</p>
@@ -1058,7 +1059,14 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Desglose por Club</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '280px', overflowY: 'auto', paddingRight: '0.5rem' }} className="discrete-scroll">
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                gap: '1rem', 
+                maxHeight: '400px', 
+                overflowY: 'auto', 
+                paddingRight: '0.5rem' 
+              }} className="discrete-scroll">
                 {clubes.map(club => {
                   const pct = club.asistenciaPct || 0;
                   const isLow = pct < 70;
@@ -1088,14 +1096,14 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
 
         {/* CONTENIDO: RACHA DE EXCELENCIA */}
         {active === 'racha' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.8rem' }}>
-            {/* Visualización Central - Amarillo Institucional */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
             {/* Visualización Central Premium */}
             <div style={{
               textAlign: 'center', padding: '3rem 2rem',
               background: 'linear-gradient(135deg, #facc15, #eab308, #fbbf24)', 
               borderRadius: '2.5rem', color: 'var(--color-primary)', position: 'relative', overflow: 'hidden',
-              boxShadow: '0 30px 60px -12px rgba(234, 179, 8, 0.3)'
+              boxShadow: '0 30px 60px -12px rgba(234, 179, 8, 0.3)',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center'
             }}>
               <Zap size={200} style={{ position: 'absolute', right: '-40px', top: '-40px', opacity: 0.1, color: 'white' }} />
               <div style={{ position: 'relative', zIndex: 2 }}>
@@ -1110,6 +1118,8 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
                 <p style={{ margin: '0.6rem 0 0', fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.85 }}>Sesiones Invictas</p>
               </div>
             </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
             {/* Mapa de Calor Mensual Mejorado */}
             <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.5rem', borderRadius: '2rem', border: '1px solid var(--color-surface-container-high)' }}>
@@ -1181,7 +1191,8 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         <button
           onClick={onClose}
@@ -1203,6 +1214,14 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
         .discrete-scroll::-webkit-scrollbar { width: 4px; }
         .discrete-scroll::-webkit-scrollbar-track { background: transparent; }
         .discrete-scroll::-webkit-scrollbar-thumb { background: var(--color-surface-container-high); borderRadius: 10px; }
+        .metrics-modal-container {
+          max-width: 520px;
+        }
+        @media (min-width: 900px) {
+          .metrics-modal-container {
+            max-width: 900px !important;
+          }
+        }
       `}</style>
     </div>
   );
