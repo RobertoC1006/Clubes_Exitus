@@ -104,7 +104,6 @@ export class PadreService {
     }
 
     // 4. Calendario (Sesiones de este mes en Perú: Reales + Proyectadas)
-    const now = new Date();
     const hoy = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
