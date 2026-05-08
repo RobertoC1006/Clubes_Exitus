@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Search, Check, X, ArrowLeft, Send, Loader2, StickyNote, WifiOff, Users, AlertCircle, BookOpen, ShieldAlert, CheckCircle2, QrCode, Navigation } from 'lucide-react';
 import { db } from './db';
 import { useUser } from './UserContext';
+import { useRole } from './hooks/useRole';
+import { normalizeDay } from './utils/formatters';
 import './index.css';
 import { API_BASE_URL } from './config';
 import { fetchWithAuth } from './utils/fetchWithAuth';
@@ -13,7 +15,7 @@ const API = API_BASE_URL;
 export default function PaseLista() {
   const navigate = useNavigate();
   const { clubId } = useParams();
-  const { usuario } = useUser();
+  const { usuario, isAdmin } = useRole();
   const [alumnos, setAlumnos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,7 +39,6 @@ export default function PaseLista() {
     return () => clearInterval(timer);
   }, []);
 
-  const isAdmin = usuario?.rol?.toUpperCase() === 'ADMINISTRADOR';
 
   // Estado para la nota seleccionada
   const [noteAlumnoId, setNoteAlumnoId] = useState<number | null>(null);
@@ -116,18 +117,6 @@ export default function PaseLista() {
     fetchData();
   }, [clubId]);
 
-  const normalizeDay = (dia: string) => {
-    if (!dia) return '';
-    const d = dia.toLowerCase();
-    if (d.includes('lun')) return 'Lunes';
-    if (d.includes('mar')) return 'Martes';
-    if (d.includes('mi') || d.includes('mirc')) return 'Miércoles';
-    if (d.includes('jue')) return 'Jueves';
-    if (d.includes('vie')) return 'Viernes';
-    if (d.includes('s') || d.includes('sba')) return 'Sábado';
-    if (d.includes('d') || d.includes('dom')) return 'Domingo';
-    return dia;
-  };
 
   let isActuallyLive = false;
   try {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
+import { useRole } from './hooks/useRole';
 import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock, History, RefreshCw, ChevronRight, Zap, Target, Star } from 'lucide-react';
 import './index.css';
 
@@ -77,7 +78,7 @@ export default function PortalFamiliar() {
   const navigate = useNavigate();
   const semana = getSemanaActual();
 
-  const { usuario } = useUser();
+  const { usuario } = useRole();
   const [hijos, setHijos] = useState<Hijo[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [resumen, setResumen] = useState<Resumen | null>(null);

@@ -6,84 +6,14 @@ import {
   BookOpen, Award, Bell, X, Info
 } from 'lucide-react';
 import { useUser } from './UserContext';
+import { useRole } from './hooks/useRole';
+import { normalizeDay, formatHorarioShort, formatHorarioFull } from './utils/formatters';
 import './index.css';
 import { API_BASE_URL } from './config';
 import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
-// ── Helpers ────────────────────────────────────────────────────
-function normalizeDay(dia: string) {
-  if (!dia) return '';
-  const d = dia.toLowerCase();
-  if (d.includes('lun')) return 'Lunes';
-  if (d.includes('mar')) return 'Martes';
-  if (d.includes('mi') || d.includes('mirc')) return 'Miércoles';
-  if (d.includes('jue')) return 'Jueves';
-  if (d.includes('vie')) return 'Viernes';
-  if (d.includes('s') || d.includes('sba')) return 'Sábado';
-  if (d.includes('d') || d.includes('dom')) return 'Domingo';
-  return dia;
-}
-
-function formatHorarioShort(horario: any): string {
-  if (!horario) return 'Por definir';
-  let h = horario;
-  if (typeof h === 'string') {
-    try { h = JSON.parse(h); } catch { return 'Error horario'; }
-  }
-  if (!h || typeof h !== 'object') return 'Por definir';
-  if (h.texto) return h.texto;
-
-  const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const dias = Object.keys(h).filter(d => DIAS_VALIDOS.includes(normalizeDay(d)));
-  
-  if (dias.length === 0) return 'Sin horario';
-
-  if (dias.length === 1) {
-    const d = dias[0];
-    const conf = h[d];
-    if (!conf || !conf.start) return 'Sin horario';
-    return `${d.slice(0, 3)} ${conf.start}-${conf.end}`;
-  }
-
-  const validSessions = dias.map(d => h[d]).filter(conf => conf && conf.start);
-  if (validSessions.length === 0) return 'Sin horario';
-
-  const times = validSessions.map(conf => `${conf.start}-${conf.end}`);
-  const allSame = times.every(t => t === times[0]);
-
-  if (allSame) {
-    const diasStr = dias.map(d => d.slice(0, 3)).join(', ');
-    return `${diasStr} ${times[0]}`;
-  }
-
-  const d = dias[0];
-  return `${d.slice(0, 3)} ${h[d].start}+`;
-}
-
-function formatHorarioFull(horario: any): string {
-  if (!horario) return 'Sin horario';
-  let h = horario;
-  if (typeof h === 'string') {
-    try { h = JSON.parse(h); } catch { return 'Horario inválido'; }
-  }
-  if (!h || typeof h !== 'object') return 'Sin horario';
-  if (h.texto) return h.texto;
-
-  const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const dias = Object.keys(h).filter(d => DIAS_VALIDOS.includes(normalizeDay(d)));
-  
-  if (dias.length === 0) return 'Sin horario';
-  
-  return dias.map(d => {
-    const conf = h[d];
-    if (!conf || !conf.start) return '';
-    const s = conf.start || '';
-    const e = conf.end || '';
-    return `${d.slice(0, 3)} ${s}-${e}`;
-  }).filter(Boolean).join(' • ');
-}
 
 function getActiveClubs(clubes: any[]) {
   const now = new Date();
@@ -113,7 +43,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tab = (searchParams.get('tab') || 'inicio') as 'inicio' | 'clubes' | 'horarios';
-  const { usuario } = useUser();
+  const { usuario, isAdmin } = useRole();
   const [clubes, setClubes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -139,7 +69,7 @@ export default function Dashboard() {
     if (!usuario) return;
 
     // 🔹 Profesor ve SOLO sus clubes. Admin ve todos.
-    const url = usuario.rol === 'ADMINISTRADOR'
+    const url = isAdmin
       ? `${API}/clubes`
       : `${API}/clubes/mis-clubes/${usuario.id}`;
 
