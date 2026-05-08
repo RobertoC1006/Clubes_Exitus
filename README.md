@@ -38,7 +38,7 @@ El sistema viene con una base de datos precargada (Seed) con perfiles de prueba.
 
 | Rol | Usuario (DNI) | Contraseña | Perfil de Prueba |
 | :--- | :--- | :--- | :--- |
-| **Administrador** | `43285174` | `123456 (default)` | Juan Francisco Lippe Guzmán (Encargado de clubes) |
+| **Administrador** | `71105971` | `12345678` | Administrador General (Sistema) |
 
 ---
 

@@ -1,8 +1,10 @@
-import { Controller, Post, Get, Put, Param, Body, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Param, Body, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { SesionesService } from './sesiones.service';
 import { EstadoAsistencia } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('sesiones')
+@UseGuards(JwtAuthGuard)
 export class SesionesController {
   constructor(private readonly sesionesService: SesionesService) {}
 

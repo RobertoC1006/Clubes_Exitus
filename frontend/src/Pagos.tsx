@@ -3,6 +3,7 @@ import { useUser } from './UserContext';
 import { CheckCircle2, Clock, AlertCircle, Search, Users, ExternalLink, Loader2, Bell, Upload, Image, RefreshCw, X } from 'lucide-react';
 import './index.css';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -31,7 +32,7 @@ export default function Pagos() {
 
     // Solo los padres deben cargar datos aquí
     if (isPadre) {
-      fetch(`${API}/padre/pagos/${usuario.id}`)
+      fetchWithAuth(`/padre/pagos/${usuario.id}`)
         .then(res => res.json())
         .then(data => {
           setPadreData(data);
@@ -71,7 +72,7 @@ export default function Pagos() {
       const urlComprobante = cloudData.secure_url;
 
       // 2. Registro en nuestra DB
-      const resp = await fetch(`${API}/pagos`, {
+      const resp = await fetchWithAuth('/pagos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

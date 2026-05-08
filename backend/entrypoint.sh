@@ -18,5 +18,8 @@ done
 
 echo "Database is ready."
 
+echo "Running seeds..."
+npx prisma db seed
+
 echo "Starting the application..."
 npm run start:prod

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
@@ -264,9 +265,12 @@ export class AdminService {
       const existe = await this.prisma.usuario.findUnique({ where: { dni: data.dni } });
       if (existe) throw new ConflictException(`El DNI ${data.dni} ya está registrado`);
     }
-    // La contraseña siempre es la default — el frontend no puede enviarla
+
+    // Hashear la contraseña por defecto
+    const hashedPassword = await bcrypt.hash('123456', 10);
+
     return this.prisma.usuario.create({
-      data: { ...data, password: '123456', mustChangePassword: true, estado: 'Activado' },
+      data: { ...data, password: hashedPassword, mustChangePassword: true, estado: 'Activado' },
       select: { id: true, nombre: true, apellido: true, email: true, rol: true, dni: true, celular: true, estado: true },
     });
   }
@@ -284,9 +288,12 @@ export class AdminService {
   async resetPassword(id: number) {
     const existe = await this.prisma.usuario.findUnique({ where: { id } });
     if (!existe) throw new NotFoundException(`Usuario #${id} no encontrado`);
+
+    const hashedPassword = await bcrypt.hash('123456', 10);
+
     await this.prisma.usuario.update({
       where: { id },
-      data: { password: '123456', mustChangePassword: true },
+      data: { password: hashedPassword, mustChangePassword: true },
     });
     return { message: `Contraseña de ${existe.nombre} ${existe.apellido} reseteada correctamente` };
   }

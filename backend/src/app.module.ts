@@ -10,8 +10,20 @@ import { PagosModule } from './pagos/pagos.module';
 import { PadreModule } from './padre/padre.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
+import { ConfigModule } from '@nestjs/config';
+
 @Module({
-  imports: [PrismaModule, ClubesModule, SesionesModule, AdminModule, AuthModule, PagosModule, PadreModule, NotificacionesModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule, 
+    ClubesModule, 
+    SesionesModule, 
+    AdminModule, 
+    AuthModule, 
+    PagosModule, 
+    PadreModule, 
+    NotificacionesModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

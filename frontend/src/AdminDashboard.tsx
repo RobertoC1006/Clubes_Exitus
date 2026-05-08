@@ -12,6 +12,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import './index.css';
 
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -418,7 +419,7 @@ export default function AdminDashboard() {
   const fetchAulas = async () => {
     setLoadingAulas(true);
     try {
-      const res = await fetch(`${API}/admin/aulas`);
+      const res = await fetchWithAuth('/admin/aulas');
       const data = await res.json();
       setAulas(data);
     } catch (e) {
@@ -432,7 +433,7 @@ export default function AdminDashboard() {
     setLoadingAsistenciaDocente(true);
     try {
       const query = filtroProfesorId ? `?profesorId=${filtroProfesorId}` : '';
-      const res = await fetch(`${API}/admin/asistencia-docente${query}`);
+      const res = await fetchWithAuth(`/admin/asistencia-docente${query}`);
       const data = await res.json();
       setAsistenciaDocente(data);
     } catch (e) {
@@ -612,7 +613,7 @@ export default function AdminDashboard() {
   const fetchMetricas = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API}/admin/metricas`);
+      const res = await fetchWithAuth('/admin/metricas');
       if (!res.ok) throw new Error('Error al cargar métricas');
       setMetricas(await res.json());
     } catch (e: any) { setError(e.message); }
@@ -622,8 +623,8 @@ export default function AdminDashboard() {
   const fetchProfesores = useCallback(async () => {
     try {
       const [profRes, usrRes] = await Promise.all([
-        fetch(`${API}/admin/profesores`),
-        fetch(`${API}/admin/usuarios`),
+        fetchWithAuth('/admin/profesores'),
+        fetchWithAuth('/admin/usuarios'),
       ]);
       setProfesores(await profRes.json());
       setUsuarios(await usrRes.json());
@@ -632,7 +633,7 @@ export default function AdminDashboard() {
 
   const fetchAlumnos = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/admin/alumnos`);
+      const res = await fetchWithAuth('/admin/alumnos');
       setAlumnos(await res.json());
     } catch { /* silently fail */ }
   }, []);
@@ -640,7 +641,7 @@ export default function AdminDashboard() {
   const fetchSesiones = async (clubId: number) => {
     setLoadingSesiones(true);
     try {
-      const res = await fetch(`${API}/admin/clubes/${clubId}/sesiones`);
+      const res = await fetchWithAuth(`/admin/clubes/${clubId}/sesiones`);
       if (!res.ok) throw new Error();
       setSesionesClub(await res.json());
       setCurrentPageSesiones(1);
@@ -659,7 +660,7 @@ export default function AdminDashboard() {
       if (pagoAlumnoFiltro) url += `alumnoId=${pagoAlumnoFiltro}&`;
       if (pagoClubFiltro) url += `clubId=${pagoClubFiltro}&`;
 
-      const res = await fetch(url);
+      const res = await fetchWithAuth(url.replace(API, ''));
       setPagos(await res.json());
     } catch { /* silently fail */ }
   }, [pagoFiltro, pagoAlumnoFiltro, pagoClubFiltro]);
@@ -675,16 +676,16 @@ export default function AdminDashboard() {
   // ── CRUD Clubes ──────────────────────────────────────────────
   const handleSaveClub = async (data: { nombre: string; descripcion: string; precio: number; profesorId: number; horario: any }) => {
     const isEdit = modalClub && 'id' in modalClub && modalClub.id;
-    const url = isEdit ? `${API}/admin/clubes/${modalClub.id}` : `${API}/admin/clubes`;
+    const path = isEdit ? `/admin/clubes/${modalClub.id}` : `/admin/clubes`;
     const method = isEdit ? 'PUT' : 'POST';
-    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    await fetchWithAuth(path, { method, body: JSON.stringify(data) });
     setModalClub(false);
     fetchMetricas();
   };
 
   const handleDeleteClub = async (id: number) => {
     setDeletingId(id);
-    await fetch(`${API}/admin/clubes/${id}`, { method: 'DELETE' });
+    await fetchWithAuth(`/admin/clubes/${id}`, { method: 'DELETE' });
     setDeletingId(null);
     setConfirmDelete(null);
     fetchMetricas();
@@ -693,9 +694,8 @@ export default function AdminDashboard() {
   // ── Validar Pago ─────────────────────────────────────────────
   const handleValidarPago = async (id: number, estado: 'PAGADO' | 'RECHAZADO', observacion = '') => {
     setValidandoPago(id);
-    await fetch(`${API}/pagos/${id}/validar`, {
+    await fetchWithAuth(`/pagos/${id}/validar`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado, observacion }),
     });
     setValidandoPago(null);
@@ -704,9 +704,8 @@ export default function AdminDashboard() {
 
   const handleToggleUsuarioStatus = async (id: number, estado: string) => {
     try {
-      await fetch(`${API}/admin/usuarios/${id}/status`, {
+      await fetchWithAuth(`/admin/usuarios/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ estado }),
       });
       fetchProfesores();
@@ -715,7 +714,7 @@ export default function AdminDashboard() {
 
   const handleDeleteUsuario = async (id: number) => {
     try {
-      const res = await fetch(`${API}/admin/usuarios/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/admin/usuarios/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchProfesores();
         fetchAlumnos();
@@ -734,10 +733,10 @@ export default function AdminDashboard() {
   const handleSaveUsuario = async (data: Partial<Usuario>) => {
     setSavingPersona(true);
     const isEdit = modalUsuario && 'id' in modalUsuario && (modalUsuario as any).id;
-    const url = isEdit ? `${API}/admin/usuarios/${(modalUsuario as any).id}` : `${API}/admin/usuarios`;
+    const path = isEdit ? `/admin/usuarios/${(modalUsuario as any).id}` : `/admin/usuarios`;
     const method = isEdit ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      const res = await fetchWithAuth(path, { method, body: JSON.stringify(data) });
       if (!res.ok) {
         const err = await res.json();
         setConfirmModal({
@@ -765,7 +764,7 @@ export default function AdminDashboard() {
       icon: <RefreshCw size={32} color="var(--color-warning)" />,
       onConfirm: async () => {
         try {
-          const res = await fetch(`${API}/admin/usuarios/${id}/reset-password`, { method: 'PATCH' });
+          const res = await fetchWithAuth(`/admin/usuarios/${id}/reset-password`, { method: 'PATCH' });
           if (res.ok) {
             setConfirmModal({
               show: true,
@@ -803,15 +802,14 @@ export default function AdminDashboard() {
   const handleSaveAlumno = async (data: { nombre: string; apellido: string; grado: string; padreId?: number; clubIds?: number[]; nuevoPadre?: any }) => {
     setSavingPersona(true);
     const isEdit = modalAlumno && 'id' in modalAlumno && (modalAlumno as any).id;
-    const url = isEdit ? `${API}/admin/alumnos/${(modalAlumno as any).id}` : `${API}/admin/alumnos`;
+    const path = isEdit ? `/admin/alumnos/${(modalAlumno as any).id}` : `/admin/alumnos`;
     const method = isEdit ? 'PUT' : 'POST';
     try {
       // Si hay un nuevo padre, lo creamos primero
       let finalPadreId = data.padreId;
       if (data.nuevoPadre) {
-        const pRes = await fetch(`${API}/admin/usuarios`, {
+        const pRes = await fetchWithAuth('/admin/usuarios', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...data.nuevoPadre, rol: 'PADRE' })
         });
         if (pRes.ok) {
@@ -820,9 +818,8 @@ export default function AdminDashboard() {
         }
       }
 
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(path, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, padreId: finalPadreId })
       });
       if (!res.ok) {
@@ -847,7 +844,7 @@ export default function AdminDashboard() {
 
   const handleDeleteAlumno = async (id: number) => {
     try {
-      const res = await fetch(`${API}/admin/alumnos/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/admin/alumnos/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchAlumnos();
         fetchMetricas();
@@ -1952,7 +1949,7 @@ export default function AdminDashboard() {
                             message: `¿Estás seguro de que deseas eliminar el aula "${aula.nombre}"? Esta acción no se puede deshacer.`,
                             type: 'DANGER',
                             onConfirm: async () => {
-                              await fetch(`${API}/admin/aulas/${aula.id}`, { method: 'DELETE' });
+                              await fetchWithAuth(`/admin/aulas/${aula.id}`, { method: 'DELETE' });
                               fetchAulas();
                               setConfirmModal(prev => ({ ...prev, show: false }));
                             }
@@ -2786,9 +2783,9 @@ export default function AdminDashboard() {
                 radioPermitido: parseInt(formData.get('radioPermitido') as string),
                 codigoContingencia: formData.get('codigoContingencia') as string,
               };
-              const url = editingAula ? `${API}/admin/aulas/${editingAula.id}` : `${API}/admin/aulas`;
+              const path = editingAula ? `/admin/aulas/${editingAula.id}` : `/admin/aulas`;
               const method = editingAula ? 'PUT' : 'POST';
-              await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+              await fetchWithAuth(path, { method, body: JSON.stringify(data) });
               setIsAulaModalOpen(false);
               fetchAulas();
             }} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>

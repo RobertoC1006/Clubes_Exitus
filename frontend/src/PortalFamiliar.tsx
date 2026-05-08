@@ -5,6 +5,7 @@ import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, 
 import './index.css';
 
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -107,7 +108,7 @@ export default function PortalFamiliar() {
       return;
     }
 
-    fetch(`${API}/padre/hijos/${usuario.id}`)
+    fetchWithAuth(`/padre/hijos/${usuario.id}`)
       .then(res => {
         if (!res.ok) throw new Error('El servidor no responde (Hijos)');
         return res.json();
@@ -133,7 +134,7 @@ export default function PortalFamiliar() {
     if (!selectedId) return;
     setFetchingResumen(true);
     setError(null);
-    fetch(`${API}/padre/resumen-hijo/${selectedId}`)
+    fetchWithAuth(`/padre/resumen-hijo/${selectedId}`)
       .then(res => {
         if (!res.ok) throw new Error('Servidor devolvió un error (Resumen)');
         return res.json();
@@ -154,7 +155,7 @@ export default function PortalFamiliar() {
   // 3. Cargar Notificaciones del Padre
   useEffect(() => {
     if (!usuario) return;
-    fetch(`${API}/notificaciones?usuarioId=${usuario.id}`)
+    fetchWithAuth(`/notificaciones?usuarioId=${usuario.id}`)
       .then(res => res.json())
       .then(data => {
         const list = Array.isArray(data.data) ? data.data : [];

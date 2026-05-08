@@ -8,6 +8,7 @@ import {
 import { useUser } from './UserContext';
 import './index.css';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -142,7 +143,7 @@ export default function Dashboard() {
       ? `${API}/clubes`
       : `${API}/clubes/mis-clubes/${usuario.id}`;
 
-    fetch(url)
+    fetchWithAuth(url.replace(API, ''))
       .then(res => res.json())
       .then(data => {
         setClubes(Array.isArray(data) ? data : []);
@@ -156,7 +157,7 @@ export default function Dashboard() {
 
     // 🔹 Cargar métricas del dashboard
     setLoadingDashboard(true);
-    fetch(`${API}/clubes/profesor-dashboard/${usuario.id}`)
+    fetchWithAuth(`/clubes/profesor-dashboard/${usuario.id}`)
       .then(res => res.json())
       .then(data => {
         setMetricas(data.metricas);
@@ -173,7 +174,7 @@ export default function Dashboard() {
       });
 
     // 🔹 Cargar notificaciones (Novedades de asignación, etc)
-    fetch(`${API}/notificaciones?usuarioId=${usuario.id}`)
+    fetchWithAuth(`/notificaciones?usuarioId=${usuario.id}`)
       .then(res => res.json())
       .then(data => {
         const list = Array.isArray(data.data) ? data.data : [];
@@ -189,7 +190,7 @@ export default function Dashboard() {
 
   const leerNotificacion = async (id: number) => {
     try {
-      await fetch(`${API}/notificaciones/${id}/leer`, { method: 'PUT' });
+      await fetchWithAuth(`/notificaciones/${id}/leer`, { method: 'PUT' });
       setNotificaciones(prev => prev.map((n: any) => n.id === id ? { ...n, leida: true } : n));
     } catch (err) {
       console.error("Error marking notification as read:", err);

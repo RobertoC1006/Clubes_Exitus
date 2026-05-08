@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, Users, Loader2, ChevronRight, Clock, Trophy } from
 import { useUser } from './UserContext';
 import './index.css';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -22,8 +23,8 @@ export default function HistorialAsistencia() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`${API}/sesiones?clubId=${clubId}`).then(res => res.json()),
-      fetch(`${API}/clubes/${clubId}`).then(res => res.json())
+      fetchWithAuth(`/sesiones?clubId=${clubId}`).then(res => res.json()),
+      fetchWithAuth(`/clubes/${clubId}`).then(res => res.json())
     ])
       .then(([sesionesData, clubData]) => {
         setSesiones(Array.isArray(sesionesData) ? sesionesData : []);

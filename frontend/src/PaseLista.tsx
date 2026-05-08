@@ -6,6 +6,7 @@ import { db } from './db';
 import { useUser } from './UserContext';
 import './index.css';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -60,16 +61,16 @@ export default function PaseLista() {
         setLoading(true);
         
         // 1. Traer datos del club para el horario
-        const resClub = await fetch(`${API}/clubes/${clubId}`);
+        const resClub = await fetchWithAuth(`/clubes/${clubId}`);
         const clubData = await resClub.json();
         setClub(clubData);
 
         // 2. Traer alumnos del club
-        const resAlumnos = await fetch(`${API}/clubes/${clubId}/alumnos`);
+        const resAlumnos = await fetchWithAuth(`/clubes/${clubId}/alumnos`);
         const alumnosData = await resAlumnos.json();
         
         // 3. Traer sesión de hoy si ya fue marcada
-        const resSesionHoy = await fetch(`${API}/sesiones/hoy/${clubId}`);
+        const resSesionHoy = await fetchWithAuth(`/sesiones/hoy/${clubId}`);
         const textSesionHoy = await resSesionHoy.text();
         let sesionHoy = null;
         if (textSesionHoy) {
@@ -231,7 +232,7 @@ export default function PaseLista() {
         payload.codigoContingencia = qrData.toUpperCase();
       }
 
-      const res = await fetch(`${API}/sesiones/validar-docente`, {
+      const res = await fetchWithAuth('/sesiones/validar-docente', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -383,7 +384,7 @@ export default function PaseLista() {
           : `${API}/sesiones`;
         
         const method = existingSessionId ? 'PUT' : 'POST';
-        const res = await fetch(url, {
+        const res = await fetchWithAuth(url.replace(API, ''), {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)

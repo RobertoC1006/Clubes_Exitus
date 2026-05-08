@@ -45,7 +45,12 @@ export default function Login() {
         throw new Error(data.message || 'Credenciales inválidas');
       }
 
-      const user = await response.json();
+      const data = await response.json();
+      const { user, access_token } = data;
+
+      // Guardar token y usuario
+      localStorage.setItem('access_token', access_token);
+
       const initials = (user.nombre[0] + (user.apellido?.[0] ?? '')).toUpperCase();
       const sesion: UsuarioSesion = { ...user, initials };
 

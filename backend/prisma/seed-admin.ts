@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
   const dni = '71105971';
-  const password = '12345678';
+  const plainPassword = '12345678';
+  const hashedPassword = await bcrypt.hash(plainPassword, 10);
   
   const admin = await prisma.usuario.findUnique({
     where: { dni },
@@ -16,7 +18,7 @@ async function main() {
         nombre: 'Admin',
         apellido: 'Clubes',
         dni,
-        password,
+        password: hashedPassword,
         rol: 'ADMINISTRADOR',
       },
     });
@@ -27,10 +29,10 @@ async function main() {
       where: { dni },
       data: {
         rol: 'ADMINISTRADOR',
-        password,
+        password: hashedPassword,
       },
     });
-    console.log(`Admin user already exists. Credentials and role updated.`);
+    console.log(`Admin user already exists. Credentials and role updated with hashed password.`);
   }
 }
 

@@ -4,6 +4,7 @@ import { useUser } from './UserContext';
 import { useState, useEffect, useRef } from 'react';
 
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -25,7 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     if (!usuario) return;
     setLoadingNotifs(true);
     try {
-      const res = await fetch(`${API}/notificaciones?usuarioId=${usuario.id}&page=${page}`);
+      const res = await fetchWithAuth(`/notificaciones?usuarioId=${usuario.id}&page=${page}`);
       const data = await res.json();
       if (append) {
         setNotificaciones(prev => [...prev, ...data.items]);
@@ -61,7 +62,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const handleMarkAsRead = async (id: number) => {
     try {
-      await fetch(`${API}/notificaciones/${id}/leer`, { method: 'PUT' });
+      await fetchWithAuth(`/notificaciones/${id}/leer`, { method: 'PUT' });
       setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {
