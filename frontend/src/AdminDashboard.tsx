@@ -14,6 +14,9 @@ import './index.css';
 import { API_BASE_URL } from './config';
 import { fetchWithAuth } from './utils/fetchWithAuth';
 import { normalizeDay, formatHorarioShort, formatHorarioFull } from './utils/formatters';
+import { Pagination } from './components/ui/Pagination';
+import { StatusPill as Pill } from './components/ui/StatusPill';
+import { ImageViewer } from './components/ui/ImageViewer';
 
 const API = API_BASE_URL;
 
@@ -3331,51 +3334,7 @@ function PagosClubModal({ clubId, clubNombre, pagos, onAction, onShowImage, onCl
 
 
 // ── Sub-componentes ────────────────────────────────────────────
-function Pill({ icon, label, color, bg }: { icon: React.ReactNode; label: string; color?: string; bg?: string }) {
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-      background: bg ?? 'var(--color-surface-container-low)',
-      color: color ?? 'var(--color-on-surface-variant)',
-      padding: '0.2rem 0.65rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 700,
-    }}>
-      {icon} {label}
-    </span>
-  );
-}
 
-function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
-  if (total <= 1) return null;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginTop: '1.25rem', padding: '0.5rem 0' }}>
-      <button
-        disabled={current === 1}
-        onClick={() => onChange(current - 1)}
-        style={{ ...iconBtnStyle(current === 1 ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 'var(--color-primary)'), opacity: current === 1 ? 0.3 : 1, width: '2.2rem', height: '2.2rem', boxShadow: current === 1 ? 'none' : 'var(--shadow-sm)' }}>
-        <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
-      </button>
-      <div style={{
-        background: 'var(--color-surface-container-low)',
-        padding: '0.4rem 1rem',
-        borderRadius: '99px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
-      }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>{current}</span>
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', opacity: 0.5 }}>/</span>
-        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)' }}>{total}</span>
-      </div>
-      <button
-        disabled={current === total}
-        onClick={() => onChange(current + 1)}
-        style={{ ...iconBtnStyle(current === total ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)', 'var(--color-primary)'), opacity: current === total ? 0.3 : 1, width: '2.2rem', height: '2.2rem', boxShadow: current === total ? 'none' : 'var(--shadow-sm)' }}>
-        <ChevronRight size={18} />
-      </button>
-    </div>
-  );
-}
 
 function iconBtnStyle(bg: string, color: string): React.CSSProperties {
   return {
@@ -3740,42 +3699,3 @@ function AlumnoModal({
 
 // ── Utilidades ──────────────────────────────────────────────
 
-function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 2000,
-      background: 'rgba(10,15,30,0.92)', backdropFilter: 'blur(10px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-    }} onClick={onClose}>
-      <button
-        onClick={onClose}
-        style={{
-          position: 'absolute', top: '1.5rem', right: '1.5rem',
-          background: 'rgba(255,255,255,0.15)', border: 'none',
-          width: '3rem', height: '3rem', borderRadius: '1.2rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: 'white', zIndex: 10
-        }}
-      >
-        <X size={24} />
-      </button>
-
-      <div
-        style={{ position: 'relative', maxWidth: '95vw', maxHeight: '90vh' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <img
-          src={url.replace('/upload/', '/upload/w_1200,c_limit,q_auto,f_auto/')}
-          alt="Comprobante extendido"
-          style={{ width: 'auto', maxHeight: '90vh', borderRadius: '1.5rem', boxShadow: '0 32px 100px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}
-        />
-        <div style={{
-          position: 'absolute', bottom: '-2.5rem', left: '50%', transform: 'translateX(-50%)',
-          color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', pointerEvents: 'none'
-        }}>
-          <AlertTriangle size={14} /> Haz clic fuera para cerrar
-        </div>
-      </div>
-    </div>
-  );
-}
