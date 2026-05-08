@@ -27,8 +27,8 @@ export function Header() {
           </div>
         </div>
         {/* En desktop el Logo ya está en el sidebar, podemos mostrar el título de la sección u otro elemento */}
-        <div className="desktop-only" style={{ display: 'none' }}>
-          <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary-container)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="desktop-only" style={{ display: 'block' }}>
+          <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary-container)', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8 }}>
             Sistema de Gestión Escolar
           </p>
         </div>

@@ -18,332 +18,30 @@ import { Pagination } from './components/ui/Pagination';
 import { StatusPill as Pill } from './components/ui/StatusPill';
 import { ImageViewer } from './components/ui/ImageViewer';
 
+import type { Metricas, ClubMetrica, Profesor, Usuario, Alumno, Pago, Aula, AsistenciaDocente } from './types';
+import { estadoColor } from './utils/constants';
+import { labelStyle, inputStyle, timeInputStyle, iconBtnStyle, metricaCardStyle, metricaLabelStyle, metricaValueStyle } from './styles/adminStyles';
+
+// Modales
+import { ClubModal } from './components/modals/ClubModal';
+import { UsuarioModal } from './components/modals/UsuarioModal';
+import { AlumnoModal } from './components/modals/AlumnoModal';
+import { AlumnosInscritosModal } from './components/modals/AlumnosInscritosModal';
+import { ProfesoresModal } from './components/modals/ProfesoresModal';
+import { RankingDisciplinasModal } from './components/modals/RankingDisciplinasModal';
+import { PagosClubModal } from './components/modals/PagosClubModal';
+import { AulaModal } from './components/modals/AulaModal';
+import { SesionesModal } from './components/modals/SesionesModal';
+import { RetencionModal } from './components/modals/RetencionModal';
+import { ConfirmModal } from './components/modals/ConfirmModal';
+import { PaymentActionModal } from './components/modals/PaymentActionModal';
+
+// API
 const API = API_BASE_URL;
 
-// ── Tipos ──────────────────────────────────────────────────────
-interface Metricas {
-  totalAlumnos: number;
-  totalClubes: number;
-  totalProfesores: number;
-  asistenciaGlobal: number;
-  rankingAsistencias: { alumno: string; club: string; cuenta: number }[];
-  rankingAusencias: { alumno: string; club: string; cuenta: number }[];
-  rankingJustificaciones: { alumno: string; club: string; cuenta: number }[];
-  clubes: ClubMetrica[];
-  alertas: { alumno: string; club: string; faltas: number }[];
-}
-interface ClubMetrica {
-  id: number; nombre: string; descripcion: string | null;
-  profesorId: number; profesor: string; inscritos: number; asistencia: number;
-  horario: any | null;
-  precio: number;
-}
-interface Profesor {
-  id: number;
-  nombre: string;
-  apellido: string;
-  email: string;
-  dni?: string;
-  celular?: string;
-  clubes?: { id: number; nombre: string; horario: any }[];
-}
-interface Usuario { id: number; nombre: string; apellido: string; email: string; rol: 'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'; dni: string; celular?: string; password?: string; estado?: string }
-interface Alumno {
-  id: number; nombre: string; apellido: string; grado: string;
-  padreId?: number | null;
-  padre?: { nombre: string; apellido: string } | null;
-  inscripciones: { clubId: number; club: { nombre: string } }[];
-  _count: { asistencias: number };
-}
-interface Pago {
-  id: number; mes: string; monto: number | null; estado: 'PENDIENTE' | 'PAGADO' | 'RECHAZADO';
-  urlComprobante: string | null; observacion: string | null;
-  alumnoId: number;
-  alumno: { nombre: string; apellido: string; grado: string };
-  club: { nombre: string };
-  creadoEn: string;
-}
 
-interface Aula {
-  id: number;
-  nombre: string;
-  latitud: number;
-  longitud: number;
-  radioPermitido: number;
-  codigoContingencia: string;
-}
 
-interface AsistenciaDocente {
-  id: number;
-  fecha: string;
-  asistenciaDocente: 'PUNTUAL' | 'TARDE' | 'AUSENTE';
-  horaMarcajeDocente: string;
-  latitudDocente: number;
-  longitudDocente: number;
-  aula: { nombre: string };
-  club: { nombre: string, profesor: { nombre: string, apellido: string } };
-}
 
-// ── Colores de estado ──────────────────────────────────────────
-const estadoColor = {
-  PENDIENTE: { bg: 'var(--color-warning-container, #FFF3CD)', fg: '#856404' },
-  PAGADO: { bg: 'var(--color-success-container, #D1FAE5)', fg: '#065F46' },
-  RECHAZADO: { bg: 'var(--color-error-container)', fg: 'var(--color-error)' },
-};
-
-// ── Modal de Club ──────────────────────────────────────────────
-function ClubModal({
-  club, profesores, aulas, onSave, onClose,
-}: {
-  club: Partial<ClubMetrica> | null;
-  profesores: Profesor[];
-  aulas: Aula[];
-  onSave: (data: { nombre: string; descripcion: string; precio: number; profesorId: number; horario: any }) => void;
-  onClose: () => void;
-}) {
-  const [nombre, setNombre] = useState(club?.nombre ?? '');
-  const [desc, setDesc] = useState(club?.descripcion ?? '');
-  const [precio, setPrecio] = useState<number>(club?.precio ?? 50);
-  const [profId, setProfId] = useState<number>(club?.profesorId ?? (profesores[0]?.id ?? 0));
-
-  // Horario inicial: Lunes a Domingo desactivado por defecto
-  const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-
-  const initialHorario = (() => {
-    if (!club?.horario) return {};
-    if (typeof club.horario === 'string') {
-      try { return JSON.parse(club.horario); } catch { return {}; }
-    }
-    return club.horario;
-  })();
-
-  const [horario, setHorario] = useState<any>(initialHorario);
-
-  const toggleDia = (dia: string) => {
-    setHorario((prev: any) => {
-      let current = prev;
-      if (typeof prev === 'string') {
-        try { current = JSON.parse(prev); } catch { current = {}; }
-      }
-      const newHorario = { ...current };
-      if (newHorario[dia]) {
-        delete newHorario[dia];
-      } else {
-        newHorario[dia] = {
-          start: '16:00',
-          end: '17:30',
-          aulaId: aulas[0]?.id || null
-        };
-      }
-      return newHorario;
-    });
-  };
-
-  const updateAula = (dia: string, aulaId: string) => {
-    setHorario((prev: any) => {
-      let current = prev;
-      if (typeof prev === 'string') {
-        try { current = JSON.parse(prev); } catch { current = {}; }
-      }
-      return {
-        ...current,
-        [dia]: { ...current[dia], aulaId: Number(aulaId) }
-      };
-    });
-  };
-
-  const updateTime = (dia: string, key: 'start' | 'end', val: string) => {
-    setHorario((prev: any) => {
-      let current = prev;
-      if (typeof prev === 'string') {
-        try { current = JSON.parse(prev); } catch { current = {}; }
-      }
-      return {
-        ...current,
-        [dia]: { ...current[dia], [key]: val }
-      };
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nombre.trim() || !profId) return;
-    onSave({ nombre, descripcion: desc, precio, profesorId: profId, horario });
-  };
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1.5rem'
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
-        width: '100%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
-      }} onClick={e => e.stopPropagation()}>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              {club?.id ? 'Editar' : 'Nuevo'} <span style={{ color: 'var(--color-secondary)' }}>Club / Disciplina</span>
-            </h3>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-              {club?.id ? 'Actualiza la información y programación' : 'Crea una nueva disciplina deportiva o académica'}
-            </p>
-          </div>
-          <button onClick={onClose} style={{
-            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
-            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <X size={20} color="var(--color-primary)" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={labelStyle}>Nombre de la Disciplina</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)}
-                placeholder="Ej: Ajedrez" required
-                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Resumen / Descripción</label>
-              <input value={desc} onChange={e => setDesc(e.target.value)}
-                placeholder="Breve descripción..."
-                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Precio Mensual (S/)</label>
-              <input type="number" value={precio} onChange={e => setPrecio(Number(e.target.value))}
-                placeholder="Ej: 50" required min="0"
-                style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem' }} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Profesor Responsable</label>
-              <div style={{ position: 'relative' }}>
-                <select value={profId} onChange={e => setProfId(Number(e.target.value))} required
-                  style={{ ...inputStyle, height: '3.5rem', borderRadius: '1rem', appearance: 'none', paddingRight: '3rem' }}>
-                  {profesores.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
-                  ))}
-                </select>
-                <ChevronDown size={20} color="var(--color-primary)" style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label style={labelStyle}>Programación de Horarios</label>
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem',
-              padding: '0.25rem'
-            }}>
-              {DIAS.map(dia => {
-                const isActive = !!horario[dia];
-                return (
-                  <div key={dia} style={{
-                    padding: '0.75rem', borderRadius: '1.25rem', border: '1.5px solid',
-                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-surface-container-high)',
-                    background: isActive ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-lowest)',
-                    transition: 'all 0.2s', cursor: 'pointer'
-                  }} onClick={() => toggleDia(dia)}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                      <span style={{ fontWeight: 800, fontSize: '0.75rem', color: isActive ? 'var(--color-primary)' : 'var(--color-outline)' }}>{dia}</span>
-                      <div style={{
-                        width: '0.6rem', height: '0.6rem', borderRadius: '50%',
-                        background: isActive ? 'var(--color-primary)' : 'var(--color-surface-container-high)'
-                      }}></div>
-                    </div>
-                    {isActive && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-primary)', opacity: 0.7 }}>INICIO / FIN</span>
-                          <div style={{ display: 'flex', gap: '0.2rem' }}>
-                            <input type="time" value={horario[dia].start}
-                              onChange={e => updateTime(dia, 'start', e.target.value)}
-                              style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center', width: '100%' }} />
-                            <input type="time" value={horario[dia].end}
-                              onChange={e => updateTime(dia, 'end', e.target.value)}
-                              style={{ border: 'none', background: 'white', color: 'var(--color-primary)', fontSize: '0.7rem', fontWeight: 900, padding: '0.2rem', borderRadius: '0.4rem', textAlign: 'center', width: '100%' }} />
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-primary)', opacity: 0.7 }}>AULA ASIGNADA</span>
-                          <select
-                            value={horario[dia].aulaId || ''}
-                            onChange={e => updateAula(dia, e.target.value)}
-                            style={{
-                              border: 'none', background: 'white', color: 'var(--color-primary)',
-                              fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem',
-                              borderRadius: '0.4rem', width: '100%',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <option value="">Seleccionar...</option>
-                            {aulas.map((a: any) => (
-                              <option key={a.id} value={a.id}>{a.nombre}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-            <button type="button" onClick={onClose} style={{
-              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
-              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
-              fontWeight: 800, cursor: 'pointer'
-            }}>
-              Cancelar
-            </button>
-            <button type="submit" style={{
-              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
-              background: 'var(--color-primary)', color: 'white',
-              fontWeight: 900, fontSize: '1rem', cursor: 'pointer',
-              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-            }}>
-              <Save size={20} /> {club?.id ? 'Guardar Cambios' : 'Crear Disciplina'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-const timeInputStyle: React.CSSProperties = {
-  background: 'white', border: '1px solid var(--color-primary-container)',
-  borderRadius: '0.4rem', padding: '0.15rem 0.35rem', fontSize: '0.75rem',
-  fontWeight: 800, color: 'var(--color-primary)', outline: 'none'
-};
-
-// ── Estilos inline reutilizables ──────────────────────────────
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: '0.72rem', fontWeight: 700,
-  textTransform: 'uppercase', letterSpacing: '0.08em',
-  color: 'var(--color-on-surface-variant)', marginBottom: '0.35rem',
-};
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '0.75rem 1rem', borderRadius: '0.85rem',
-  border: '1.5px solid var(--color-surface-container-high)',
-  background: 'var(--color-surface-container-lowest)',
-  fontSize: '0.9rem', color: 'var(--color-primary)', outline: 'none',
-  boxSizing: 'border-box',
-};
 
 // ══════════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -509,13 +207,13 @@ export default function AdminDashboard() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [alumnos, setAlumnos] = useState<Alumno[]>([]);
   const [personasTab, setPersonasTab] = useState<'administradores' | 'profesores' | 'padres' | 'alumnos'>('administradores');
-  const [modalUsuario, setModalUsuario] = useState<Partial<Usuario> | false>(false);
-  const [modalAlumno, setModalAlumno] = useState<Partial<Alumno> | false>(false);
+  const [modalUsuario, setModalUsuario] = useState<Partial<Usuario> | null>(null);
+  const [modalAlumno, setModalAlumno] = useState<Partial<Alumno> | null>(null);
   const [savingPersona, setSavingPersona] = useState(false);
 
   // Club modal state
-  const [modalClub, setModalClub] = useState<Partial<ClubMetrica> | null | false>(false);
-  const [modalPagosClub, setModalPagosClub] = useState<ClubMetrica | null | false>(false);
+  const [modalClub, setModalClub] = useState<Partial<ClubMetrica> | null>(null);
+  const [modalPagosClub, setModalPagosClub] = useState<ClubMetrica | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; title: string; type: 'CLUB' } | null>(null);
 
@@ -659,7 +357,7 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchMetricas(); fetchProfesores(); }, []);
   useEffect(() => {
-    if (tab === 'pagos' || modalPagosClub !== false) fetchPagos();
+    if (tab === 'pagos' || modalPagosClub !== null) fetchPagos();
   }, [tab, pagoFiltro, pagoAlumnoFiltro, pagoClubFiltro, modalPagosClub]);
   useEffect(() => { if (tab === 'personas') { fetchAlumnos(); fetchProfesores(); } }, [tab]);
   useEffect(() => { if (tab === 'aulas') fetchAulas(); }, [tab]);
@@ -671,7 +369,7 @@ export default function AdminDashboard() {
     const path = isEdit ? `/admin/clubes/${modalClub.id}` : `/admin/clubes`;
     const method = isEdit ? 'PUT' : 'POST';
     await fetchWithAuth(path, { method, body: JSON.stringify(data) });
-    setModalClub(false);
+    setModalClub(null);
     fetchMetricas();
   };
 
@@ -735,7 +433,7 @@ export default function AdminDashboard() {
           show: true, title: 'Error', message: err.message ?? 'Error al guardar', type: 'DANGER', isAlert: true, onConfirm: () => { }
         });
       } else {
-        setModalUsuario(false);
+        setModalUsuario(null);
         fetchProfesores();
       }
     } catch {
@@ -820,7 +518,7 @@ export default function AdminDashboard() {
           show: true, title: 'Error', message: err.message ?? 'Error al guardar', type: 'DANGER', isAlert: true, onConfirm: () => { }
         });
       } else {
-        setModalAlumno(false);
+        setModalAlumno(null);
         fetchAlumnos();
         fetchMetricas();
         fetchProfesores();
@@ -2186,1516 +1884,173 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ── SECCIÓN DE MODALES (Fuera de animación para fijar posición) ── */}
-      {modalClub !== false && (
+      {/* ── SECCIÓN DE MODALES MODULARIZADOS ── */}
+      {modalClub && (
         <ClubModal
-          club={modalClub as Partial<ClubMetrica>}
+          club={modalClub}
           profesores={profesores}
           aulas={aulas}
           onSave={handleSaveClub}
-          onClose={() => setModalClub(false)}
+          onClose={() => setModalClub(null)}
         />
       )}
 
-      {/* ── MODAL USUARIO ────────────────────────────────── */}
-      {modalUsuario !== false && (
+      {modalUsuario && (
         <UsuarioModal
-          usuario={modalUsuario as Partial<Usuario>}
+          usuario={modalUsuario}
           saving={savingPersona}
           onSave={handleSaveUsuario}
           onResetPassword={handleResetPassword}
-          onClose={() => setModalUsuario(false)}
+          onClose={() => setModalUsuario(null)}
         />
       )}
 
-      {/* ── MODAL ALUMNOS INSCRITOS ──────────────────────── */}
-      {isAlumnosInscritosModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
-        }} onClick={() => setIsAlumnosInscritosModalOpen(false)}>
-          <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px',
-            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                  Alumnos <span style={{ color: 'var(--color-secondary)' }}>Inscritos</span>
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Listado Global y Asignación</p>
-              </div>
-              <button
-                onClick={() => setIsAlumnosInscritosModalOpen(false)}
-                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
-
-              <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                <input
-                  value={searchTermAlumnosModal}
-                  onChange={e => { setSearchTermAlumnosModal(e.target.value); setCurrentPageAlumnosModal(1); }}
-                  placeholder="Buscar alumno por nombre o apellido..."
-                  style={{ ...inputStyle, paddingLeft: '3.2rem', borderRadius: '1.25rem', height: '3.5rem', background: 'var(--color-surface-container-lowest)', fontSize: '1rem' }}
-                />
-                <Search size={22} color="var(--color-outline)" style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)' }} />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {(() => {
-                  const filtered = alumnos.filter(a => `${a.nombre} ${a.apellido}`.toLowerCase().includes(searchTermAlumnosModal.toLowerCase()));
-                  const paginated = filtered.slice((currentPageAlumnosModal - 1) * 4, currentPageAlumnosModal * 4);
-                  const totalPages = Math.ceil(filtered.length / 4);
-
-
-                  if (filtered.length === 0) return (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-outline)' }}>
-                      <Users size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
-                      <p style={{ marginTop: '1rem', fontWeight: 600 }}>No se encontraron alumnos</p>
-                    </div>
-                  );
-
-                  return (
-                    <>
-                      {paginated.map(alumno => (
-                        <div key={alumno.id} style={{
-                          padding: '1.1rem', borderRadius: '1.25rem', background: 'var(--color-surface-container-lowest)',
-                          border: '1px solid var(--color-surface-container-low)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          transition: 'transform 0.2s ease'
-                        }}>
-                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            <div style={{
-                              width: '3.2rem', height: '3.2rem', borderRadius: '1rem',
-                              background: 'var(--grad-secondary)', color: 'var(--color-on-secondary)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem'
-                            }}>
-                              {(alumno.nombre[0] + (alumno.apellido[0] ?? '')).toUpperCase()}
-                            </div>
-
-                            <div>
-                              <p style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                                {alumno.nombre} {alumno.apellido}
-                              </p>
-                              <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-                                {alumno.grado} • {alumno.padre ? `Padre: ${alumno.padre.nombre}` : 'Sin tutor'}
-                              </p>
-                            </div>
-
-                          </div>
-                          <div style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
-                            {alumno.inscripciones.length > 0 ? alumno.inscripciones.map((ins, idx) => (
-                              <span key={idx} style={{
-                                fontSize: '0.6rem', fontWeight: 900, background: 'var(--color-primary-container)',
-                                color: 'white', padding: '0.25rem 0.6rem', borderRadius: '99px', textTransform: 'uppercase'
-                              }}>
-                                {ins.club.nombre}
-                              </span>
-                            )) : (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-error)', fontStyle: 'italic' }}>
-                                Sin clubes
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      <Pagination
-                        current={currentPageAlumnosModal}
-                        total={totalPages}
-                        onChange={setCurrentPageAlumnosModal}
-                      />
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
+      {modalAlumno && (
+        <AlumnoModal
+          alumno={modalAlumno}
+          clubes={metricas?.clubes ?? []}
+          usuarios={usuarios}
+          saving={savingPersona}
+          onSave={handleSaveAlumno}
+          onClose={() => setModalAlumno(null)}
+        />
       )}
 
-      {/* MODAL: PROFESORES */}
-      {isProfesoresModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
-        }} onClick={() => setIsProfesoresModalOpen(false)}>
-          <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '550px',
-            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                  Staff <span style={{ color: 'var(--color-secondary)' }}>Docente</span>
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Gestión de Docentes</p>
-              </div>
-              <button
-                onClick={() => setIsProfesoresModalOpen(false)}
-                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
+      <AlumnosInscritosModal
+        isOpen={isAlumnosInscritosModalOpen}
+        onClose={() => setIsAlumnosInscritosModalOpen(false)}
+        alumnos={alumnos}
+        searchTerm={searchTermAlumnosModal}
+        onSearchChange={(term) => {
+          setSearchTermAlumnosModal(term);
+          setCurrentPageAlumnosModal(1);
+        }}
+        currentPage={currentPageAlumnosModal}
+        onPageChange={setCurrentPageAlumnosModal}
+      />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {profesores.length > 0 ? (
-                  <>
-                    {profesores
-                      .slice((currentPageProfesores - 1) * 4, currentPageProfesores * 4)
-                      .map((prof, i) => (
-                        <div key={prof.id} style={{
-                          padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
-                          border: '1px solid var(--color-surface-container-low)',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                            <div style={{
-                              width: '3rem', height: '3rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-primary)'
-                            }}>
-                              {prof.nombre.charAt(0)}{prof.apellido.charAt(0)}
-                            </div>
-                            <div>
-                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{prof.nombre} {prof.apellido}</p>
-                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-                                DNI: {prof.dni || '---'} • Cel: {prof.celular || '---'}
-                              </p>
-                            </div>
-                          </div>
+      <ProfesoresModal
+        isOpen={isProfesoresModalOpen}
+        onClose={() => setIsProfesoresModalOpen(false)}
+        profesores={profesores}
+        currentPage={currentPageProfesores}
+        onPageChange={setCurrentPageProfesores}
+        formatHorarioShort={formatHorarioShort}
+      />
 
-                          <div style={{
-                            background: 'var(--color-surface-container-lowest)', padding: '0.8rem 1rem',
-                            borderRadius: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem',
-                            border: '1px solid var(--color-surface-container-low)'
-                          }}>
-                            {prof.clubes && prof.clubes.length > 0 ? prof.clubes.map((c: any) => (
-                              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-secondary)' }}></div>
-                                  <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-primary)' }}>{c.nombre}</span>
-                                </div>
-                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', background: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-surface-container-high)' }}>
-                                  {formatHorarioShort(c.horario)}
-                                </span>
-                              </div>
-                            )) : (
-                              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontStyle: 'italic', textAlign: 'center' }}>Sin clubes asignados</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    <Pagination
-                      current={currentPageProfesores}
-                      total={Math.ceil(profesores.length / 4)}
-                      onChange={setCurrentPageProfesores}
-                    />
+      <RankingDisciplinasModal
+        isOpen={isRankingModalOpen}
+        onClose={() => setIsRankingModalOpen(false)}
+        clubesRanking={clubesRanking}
+        currentPage={currentPageRanking}
+        onPageChange={setCurrentPageRanking}
+        onNavigateToHistory={(id) => {
+          setIsRankingModalOpen(false);
+          navigate(`/clubes/${id}/historial`);
+        }}
+      />
 
-                  </>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                    <Users size={48} color="var(--color-surface-container-high)" style={{ marginBottom: '1rem' }} />
-                    <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>Cargando staff docente...</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: RANKING DISCIPLINAS */}
-      {isRankingModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 2000,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '1.5rem'
-        }} onClick={() => setIsRankingModalOpen(false)}>
-          <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '550px',
-            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Ranking de Disciplinas</h3>
-                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700, textTransform: 'uppercase' }}>Por Nivel de Asistencia</p>
-              </div>
-              <button
-                onClick={() => setIsRankingModalOpen(false)}
-                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {clubesRanking
-                .slice((currentPageRanking - 1) * ITEMS_PER_PAGE, currentPageRanking * ITEMS_PER_PAGE)
-                .map((club, i) => {
-                  const rank = (currentPageRanking - 1) * ITEMS_PER_PAGE + i + 1;
-                  return (
-                    <div key={club.id} style={{
-                      padding: '1.25rem', borderRadius: '1.1rem', background: 'white',
-                      display: 'flex', alignItems: 'center', gap: '1rem',
-                      border: '1px solid var(--color-surface-container-low)',
-                      transition: 'all 0.2s ease'
-                    }} className="ranking-item">
-                      <div style={{
-                        width: '2.8rem', height: '2.8rem', borderRadius: '0.9rem',
-                        background: rank <= 3 ? 'var(--grad-gold)' : 'var(--color-surface-dim)',
-                        color: rank <= 3 ? 'white' : 'var(--color-primary)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900,
-                        fontSize: '1.1rem'
-                      }}>
-                        {rank}
-                      </div>
-                      <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => {
-                        setIsRankingModalOpen(false);
-                        navigate(`/clubes/${club.id}/historial`);
-                      }}>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                          {club.nombre}
-                        </p>
-                        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.1rem', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>{club.profesor}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 800, opacity: 0.6 }}>• {club.inscritos} alumnos</span>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ display: 'block', fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-primary)', lineHeight: 1 }}>
-                          {club.asistencia}%
-                        </span>
-                        <span style={{ fontSize: '0.55rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Asistencia</span>
-                      </div>
-                    </div>
-                  );
-                })}
-
-              <div style={{ marginTop: '0.5rem' }}>
-                <Pagination current={currentPageRanking} total={Math.ceil(clubesRanking.length / ITEMS_PER_PAGE)} onChange={setCurrentPageRanking} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: HISTORIAL DE SESIONES */}
       {modalSesiones && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 2000,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '1.5rem'
-        }} onClick={() => setModalSesiones(null)}>
-          <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '600px',
-            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                  Historial <span style={{ color: 'var(--color-secondary)' }}>de Clases</span>
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 700 }}>{modalSesiones.nombre}</p>
-              </div>
-              <button
-                onClick={() => setModalSesiones(null)}
-                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div style={{ padding: '1.5rem', overflowY: 'auto', maxHeight: '75vh' }}>
-              <p style={{ margin: '0 0 1.5rem', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                Sesiones y asistencias del club: {modalSesiones.nombre}
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: 'var(--color-primary-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'white', textTransform: 'uppercase', opacity: 0.8 }}>Total Sesiones</p>
-                    <p style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'white' }}>{sesionesClub.length}</p>
-                  </div>
-                  <History size={24} color="white" style={{ opacity: 0.4 }} />
-                </div>
-                <div style={{ background: 'var(--color-surface-container-high)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Última Clase</p>
-                    <p style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                      {sesionesClub.length > 0 ? new Date(sesionesClub[0].fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : '---'}
-                    </p>
-                  </div>
-                  <Calendar size={20} color="var(--color-primary)" style={{ opacity: 0.3 }} />
-                </div>
-              </div>
-
-              {loadingSesiones ? (
-                <div style={{ padding: '3rem', textAlign: 'center' }}>
-                  <div className="animate-spin" style={{ width: '2.5rem', height: '2.5rem', border: '3px solid var(--color-surface-dim)', borderTopColor: 'var(--color-secondary)', borderRadius: '50%', margin: '0 auto' }}></div>
-                </div>
-              ) : sesionesClub.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-outline)' }}>
-                  No hay sesiones registradas aún.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {sesionesClub
-                    .slice((currentPageSesiones - 1) * 4, currentPageSesiones * 4)
-                    .map((sesion) => {
-                      const pres = sesion.asistencias.filter((a: any) => a.estado === 'PRESENTE').length;
-                      const aus = sesion.asistencias.filter((a: any) => a.estado === 'AUSENTE').length;
-                      const isExpanded = expandedSesionId === sesion.id;
-
-                      return (
-                        <div key={sesion.id} style={{
-                          padding: '1.1rem', borderRadius: '1.5rem', background: 'white',
-                          border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
-                          boxShadow: isExpanded ? 'var(--shadow-md)' : '0 2px 4px rgba(0,0,0,0.02)',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <p style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
-                                {new Date(sesion.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' })}
-                              </p>
-                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>
-                                {sesion.tema || 'Sin tema específico'}
-                              </p>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'flex-end', marginBottom: '0.25rem' }}>
-                                <span title="Presentes" style={{ background: 'var(--color-success-container)', color: 'var(--color-success)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{pres}</span>
-                                <span title="Ausentes" style={{ background: 'var(--color-error-container)', color: 'var(--color-error)', padding: '0.15rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.65rem', fontWeight: 900 }}>{aus}</span>
-                              </div>
-                              <button
-                                onClick={() => setExpandedSesionId(isExpanded ? null : sesion.id)}
-                                style={{ border: 'none', background: 'none', color: isExpanded ? 'var(--color-primary)' : 'var(--color-secondary)', fontWeight: 900, fontSize: '0.65rem', cursor: 'pointer', padding: 0 }}
-                              >
-                                {isExpanded ? 'OCULTAR ↑' : 'DETALLES ↓'}
-                              </button>
-                            </div>
-                          </div>
-
-                          {isExpanded && (
-                            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-surface-container-low)' }}>
-                              {sesion.asistencias.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                  {sesion.asistencias.map((a: any) => (
-                                    <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
-                                      <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{a.alumno.nombre} {a.alumno.apellido}</span>
-                                      <span style={{
-                                        padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.6rem', fontWeight: 900,
-                                        background: a.estado === 'PRESENTE' ? 'var(--color-success-container)' : a.estado === 'AUSENTE' ? 'var(--color-error-container)' : 'var(--color-warning-container)',
-                                        color: a.estado === 'PRESENTE' ? 'var(--color-success)' : a.estado === 'AUSENTE' ? 'var(--color-error)' : 'var(--color-warning)'
-                                      }}>
-                                        {a.estado}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', textAlign: 'center' }}>No hay registros en esta sesión.</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                  <Pagination current={currentPageSesiones} total={Math.ceil(sesionesClub.length / ITEMS_PER_PAGE)} onChange={setCurrentPageSesiones} />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── ALUMNO MODAL ─────────────────────────────────── */}
-      {modalAlumno !== false && (
-        <AlumnoModal
-          alumno={modalAlumno as Partial<Alumno>}
-          saving={savingPersona}
-          clubes={metricas?.clubes ?? []}
-          usuarios={usuarios}
-          onSave={handleSaveAlumno}
-          onClose={() => setModalAlumno(false)}
+        <SesionesModal
+          modalSesiones={modalSesiones}
+          sesionesClub={sesionesClub}
+          loadingSesiones={loadingSesiones}
+          currentPageSesiones={currentPageSesiones}
+          expandedSesionId={expandedSesionId}
+          ITEMS_PER_PAGE={4}
+          setCurrentPageSesiones={setCurrentPageSesiones}
+          setExpandedSesionId={setExpandedSesionId}
+          onClose={() => setModalSesiones(null)}
         />
       )}
 
-      {/* ── MODAL RETENCIÓN ─────────────────────────────── */}
-      {isRetencionModalOpen && metricas && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsRetencionModalOpen(false)}>
-          <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '650px',
-            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                  Análisis de <span style={{ color: 'var(--color-secondary)' }}>Retención</span>
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-outline)', fontWeight: 600 }}>Asistencia y Tendencias</p>
-              </div>
-              <button
-                onClick={() => setIsRetencionModalOpen(false)}
-                style={{ background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
 
-              {/* Centered Pill Switcher for Rankings */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2.5rem' }}>
-                <div style={{
-                  display: 'flex', background: 'var(--color-surface-container-low)',
-                  padding: '0.3rem', borderRadius: '1.5rem', gap: '0.2rem',
-                  border: '1px solid var(--color-surface-container-high)',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
-                }}>
-                  {[
-                    { id: 'asistencias', label: 'Asistencias', color: 'var(--color-success)', icon: <Award size={16} /> },
-                    { id: 'ausencias', label: 'Ausencias', color: 'var(--color-error)', icon: <AlertTriangle size={16} /> },
-                    { id: 'justificaciones', label: 'Justificaciones', color: '#EAB308', icon: <History size={16} /> }
-                  ].map(st => (
-                    <button
-                      key={st.id}
-                      onClick={() => { setRankingSubTab(st.id as any); setCurrentPageRetencion(1); }}
-                      title={st.label}
-                      style={{
-                        padding: '1rem', borderRadius: '1.2rem', border: 'none', cursor: 'pointer',
-                        background: rankingSubTab === st.id ? st.color : 'transparent',
-                        color: rankingSubTab === st.id ? 'white' : 'var(--color-outline)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                        boxShadow: rankingSubTab === st.id ? `0 4px 12px ${st.color}44` : 'none',
-                        width: '3.5rem', height: '3.5rem'
-                      }}
-                    >
-                      {st.icon}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {(() => {
-                  const dataKey = rankingSubTab === 'asistencias' ? 'rankingAsistencias' :
-                    rankingSubTab === 'ausencias' ? 'rankingAusencias' : 'rankingJustificaciones';
-                  const list = metricas[dataKey] || [];
-                  const paginated = list.slice((currentPageRetencion - 1) * 4, currentPageRetencion * 4);
-                  const totalPages = Math.ceil(list.length / 4);
-
-                  const currentThemeColor = rankingSubTab === 'asistencias' ? 'var(--color-success)' :
-                    rankingSubTab === 'ausencias' ? 'var(--color-error)' : '#EAB308';
-
-                  if (list.length === 0) return (
-                    <div style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--color-surface-container-lowest)', borderRadius: '1.5rem', border: '1.5px dashed var(--color-surface-container-high)' }}>
-                      <p style={{ margin: 0, color: 'var(--color-outline)', fontWeight: 600 }}>No hay datos suficientes para generar este ranking.</p>
-                    </div>
-                  );
-
-                  return (
-                    <>
-                      {paginated.map((item, i) => (
-                        <div key={i} className="ranking-item" style={{
-                          padding: '1.25rem', borderRadius: '1.5rem', background: 'white',
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          border: '1px solid var(--color-surface-container-low)',
-                          transition: 'all 0.3s',
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
-                        }}>
-                          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                            <div style={{
-                              width: '2.8rem', height: '2.8rem', borderRadius: '1rem', background: 'var(--color-surface-dim)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem',
-                              color: currentThemeColor, border: `2px solid ${currentThemeColor}11`
-                            }}>{(currentPageRetencion - 1) * 4 + i + 1}</div>
-
-                            <div>
-                              <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>{item.alumno}</p>
-                              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>{item.club}</p>
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'right', background: 'var(--color-surface-dim)', padding: '0.6rem 1.2rem', borderRadius: '1.2rem', border: '1px solid var(--color-surface-container-high)' }}>
-                            <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: currentThemeColor, letterSpacing: '-0.03em' }}>{item.cuenta}</p>
-                            <p style={{ margin: 0, fontSize: '0.6rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Registros</p>
-                          </div>
-                        </div>
-                      ))}
-                      <style>{`
-                      .ranking-item:hover {
-                        transform: translateX(5px);
-                        border-color: ${currentThemeColor}33;
-                        background: var(--color-surface-container-lowest);
-                      }
-                    `}</style>
-                      <Pagination current={currentPageRetencion} total={totalPages} onChange={setCurrentPageRetencion} />
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <RetencionModal
+        isOpen={isRetencionModalOpen}
+        onClose={() => setIsRetencionModalOpen(false)}
+        metricas={metricas}
+        rankingSubTab={rankingSubTab}
+        setRankingSubTab={setRankingSubTab}
+        currentPage={currentPageRetencion}
+        onPageChange={setCurrentPageRetencion}
+      />
 
 
-      {/* ── ALUMNO MODAL ─────────────────────────────────── */}
-      {modalAlumno !== false && (
-        <AlumnoModal
-          alumno={modalAlumno as Partial<Alumno>}
-          saving={savingPersona}
-          clubes={metricas?.clubes ?? []}
-          usuarios={usuarios}
-          onSave={handleSaveAlumno}
-          onClose={() => setModalAlumno(false)}
-        />
-      )}
 
-      {/* ── AULA MODAL ───────────────────────────────────── */}
-      {isAulaModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setIsAulaModalOpen(false)}>
-          <div style={{ background: 'white', borderRadius: '1.5rem', width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-primary)' }}>{editingAula ? 'Editar' : 'Nueva'} Aula</h3>
-              <button onClick={() => setIsAulaModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-outline)' }}><X size={24} /></button>
-            </div>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const data = {
-                nombre: formData.get('nombre') as string,
-                latitud: parseFloat(formData.get('latitud') as string),
-                longitud: parseFloat(formData.get('longitud') as string),
-                radioPermitido: parseInt(formData.get('radioPermitido') as string),
-                codigoContingencia: formData.get('codigoContingencia') as string,
-              };
-              const path = editingAula ? `/admin/aulas/${editingAula.id}` : `/admin/aulas`;
-              const method = editingAula ? 'PUT' : 'POST';
-              await fetchWithAuth(path, { method, body: JSON.stringify(data) });
-              setIsAulaModalOpen(false);
-              fetchAulas();
-            }} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle}>Nombre del Aula / Punto de Marcaje</label>
-                <input name="nombre" defaultValue={editingAula?.nombre} required style={inputStyle} placeholder="Ej: Aula 203, Campo de Fútbol" />
-              </div>
+      <AulaModal
+        isOpen={isAulaModalOpen}
+        editingAula={editingAula}
+        onClose={() => setIsAulaModalOpen(false)}
+        onFetchAulas={fetchAulas}
+        muestras={muestras}
+        setMuestras={setMuestras}
+        calibrando={calibrando}
+        setCalibrando={setCalibrando}
+        calibracionPaso={calibracionPaso}
+        setCalibracionPaso={setCalibracionPaso}
+        calibracionProgreso={calibracionProgreso}
+        setCalibracionProgreso={setCalibracionProgreso}
+        calibracionCompletada={calibracionCompletada}
+        setCalibracionCompletada={setCalibracionCompletada}
+      />
 
-              <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1rem', borderRadius: '1rem', border: '1px dashed var(--color-primary-container)' }}>
-                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>Calibración GPS — 5 Puntos del Aula</p>
-                <p style={{ margin: '0 0 1rem', fontSize: '0.65rem', color: 'var(--color-outline)', fontWeight: 600 }}>Captura las 4 esquinas y el centro del aula para máxima precisión.</p>
+      <PagosClubModal
+        isOpen={!!modalPagosClub}
+        clubId={modalPagosClub?.id ?? 0}
+        clubNombre={modalPagosClub?.nombre ?? ''}
+        pagos={pagos}
+        onAction={(pago, type) =>
+          setPaymentActionModal({ show: true, type, pago, observacion: '' })
+        }
+        onShowImage={setViewerImage}
+        onClose={() => setModalPagosClub(null)}
+      />
 
-                {/* Coordenadas finales (promedio / centroide) */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Latitud (centroide)</label>
-                    <input name="latitud" value={
-                      calibracionCompletada && muestras.length === 5
-                        ? (muestras.reduce((a, b) => a + b.lat, 0) / muestras.length).toFixed(7)
-                        : (muestras.length > 0 && !calibrando
-                          ? (muestras.reduce((a, b) => a + b.lat, 0) / muestras.length).toFixed(7)
-                          : (editingAula?.latitud?.toString() || ''))
-                    } readOnly style={{ ...inputStyle, fontSize: '0.8rem', background: calibracionCompletada ? '#e8f5e9' : undefined }} />
-                  </div>
-                  <div>
-                    <label style={{ ...labelStyle, fontSize: '0.6rem' }}>Longitud (centroide)</label>
-                    <input name="longitud" value={
-                      calibracionCompletada && muestras.length === 5
-                        ? (muestras.reduce((a, b) => a + b.lng, 0) / muestras.length).toFixed(7)
-                        : (muestras.length > 0 && !calibrando
-                          ? (muestras.reduce((a, b) => a + b.lng, 0) / muestras.length).toFixed(7)
-                          : (editingAula?.longitud?.toString() || ''))
-                    } readOnly style={{ ...inputStyle, fontSize: '0.8rem', background: calibracionCompletada ? '#e8f5e9' : undefined }} />
-                  </div>
-                </div>
+      <ConfirmModal
+        show={!!confirmDelete}
+        title="¿Estás seguro?"
+        message={confirmDelete ? `Eliminarás la disciplina "${confirmDelete.title}" de forma permanente. Esta acción no se puede deshacer.` : ''}
+        type="DANGER"
+        icon={<Trash2 size={32} color="var(--color-error)" />}
+        onConfirm={() => {
+          if (confirmDelete) handleDeleteClub(confirmDelete.id);
+        }}
+        onClose={() => setConfirmDelete(null)}
+      />
 
-                {/* Mostrar puntos capturados */}
-                {muestras.length > 0 && (
-                  <div style={{ marginBottom: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {muestras.map((m, i) => (
-                      <div key={i} style={{
-                        padding: '0.25rem 0.5rem', borderRadius: '0.5rem',
-                        background: 'var(--color-primary-fixed)', fontSize: '0.6rem',
-                        fontWeight: 700, color: 'var(--color-primary)',
-                        display: 'flex', alignItems: 'center', gap: '0.25rem'
-                      }}>
-                        <span>{PUNTOS_CALIBRACION[i]?.icon}</span>
-                        <span>±{m.accuracy.toFixed(0)}m</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Barra de progreso */}
-                <div style={{ height: '6px', background: 'var(--color-surface-container-high)', borderRadius: '3px', marginBottom: '0.75rem', overflow: 'hidden' }}>
-                  <div style={{ width: `${calibracionProgreso}%`, height: '100%', background: calibracionCompletada ? '#4caf50' : 'var(--color-secondary)', transition: 'width 0.4s ease' }}></div>
-                </div>
-
-                {/* Estado de calibración */}
-                {calibrando && (
-                  <div style={{
-                    background: 'var(--color-primary-fixed)', padding: '0.75rem', borderRadius: '0.75rem',
-                    marginBottom: '0.75rem', textAlign: 'center'
-                  }}>
-                    <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-primary)' }}>
-                      {PUNTOS_CALIBRACION[calibracionPaso]?.icon} Paso {calibracionPaso + 1}/5
-                    </p>
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                      Ve a: <strong>{PUNTOS_CALIBRACION[calibracionPaso]?.label}</strong>
-                    </p>
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.65rem', color: 'var(--color-outline)' }}>
-                      Presiona "Capturar" cuando estés en posición
-                    </p>
-                  </div>
-                )}
-
-                {calibracionCompletada && (
-                  <div style={{
-                    background: '#e8f5e9', padding: '0.75rem', borderRadius: '0.75rem',
-                    marginBottom: '0.75rem', textAlign: 'center', border: '1px solid #a5d6a7'
-                  }}>
-                    <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#2e7d32' }}>
-                      ✅ Calibración completa — 5/5 puntos capturados
-                    </p>
-                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.65rem', color: '#558b2f' }}>
-                      Precisión prom: ±{(muestras.reduce((a, b) => a + b.accuracy, 0) / muestras.length).toFixed(1)}m
-                    </p>
-                  </div>
-                )}
-
-                {!calibrando && !calibracionCompletada && (
-                  <button type="button" onClick={iniciarCalibracion} style={{
-                    width: '100%', height: '3rem', borderRadius: '0.75rem', border: 'none',
-                    background: 'var(--color-secondary)', color: 'white', fontWeight: 800,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-                  }}>
-                    <Navigation size={18} />
-                    {muestras.length > 0 ? 'Recalibrar (reinicia los 5 puntos)' : 'Iniciar Calibración de 5 Puntos'}
-                  </button>
-                )}
-
-                {calibrando && (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button type="button" onClick={capturarPuntoCalibrado} style={{
-                      flex: 2, height: '3rem', borderRadius: '0.75rem', border: 'none',
-                      background: 'var(--color-primary)', color: 'white', fontWeight: 900,
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                      fontSize: '0.95rem'
-                    }}>
-                      <Navigation size={18} />
-                      Capturar {PUNTOS_CALIBRACION[calibracionPaso]?.icon}
-                    </button>
-                    <button type="button" onClick={() => { setCalibrando(false); setMuestras([]); setCalibracionProgreso(0); }} style={{
-                      flex: 1, height: '3rem', borderRadius: '0.75rem', border: 'none',
-                      background: 'var(--color-surface-dim)', color: 'var(--color-outline)', fontWeight: 700,
-                      cursor: 'pointer', fontSize: '0.8rem'
-                    }}>
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={labelStyle}>Radio (Metros)</label>
-                  <input name="radioPermitido" type="number" defaultValue={editingAula?.radioPermitido || 10} required min="3" max="50" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Cód. Contingencia</label>
-                  <input name="codigoContingencia" defaultValue={editingAula?.codigoContingencia || Math.random().toString(36).substring(2, 8).toUpperCase()} required style={inputStyle} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setIsAulaModalOpen(false)} style={{ flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none', background: 'var(--color-surface-dim)', color: 'var(--color-primary)', fontWeight: 800, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" style={{ flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none', background: 'var(--color-primary)', color: 'white', fontWeight: 900, cursor: 'pointer' }}>Guardar Aula</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL PAGOS CLUB ─────────────────────────────── */}
-      {modalPagosClub && (
-        <PagosClubModal
-          clubId={modalPagosClub.id}
-          clubNombre={modalPagosClub.nombre}
-          pagos={pagos}
-          onAction={(pago, type) => setPaymentActionModal({ show: true, type, pago, observacion: '' })}
-          onShowImage={setViewerImage}
-          onClose={() => setModalPagosClub(false)}
-        />
-      )}
-
-      {/* ── DELETE CONFIRM MODAL ────────────────────────────── */}
-      {confirmDelete && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 10000,
-          background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '1.5rem', animation: 'fadeIn 0.2s ease'
-        }} onClick={() => setConfirmDelete(null)}>
-          <div style={{
-            background: 'var(--color-surface)', borderRadius: '2.5rem', padding: '2.5rem',
-            width: '100%', maxWidth: '400px', textAlign: 'center',
-            boxShadow: '0 32px 64px -12px rgba(0,0,0,0.5)',
-            border: '1px solid var(--color-surface-container-high)',
-            position: 'relative', overflow: 'hidden'
-          }} onClick={e => e.stopPropagation()} className="animate-pop">
-
-            <div style={{
-              width: '5rem', height: '5rem', borderRadius: '2rem',
-              background: 'var(--color-error-container)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 2rem', boxShadow: '0 12px 24px rgba(211,47,47,0.2)'
-            }}>
-              <Trash2 size={32} color="var(--color-error)" />
-            </div>
-
-            <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              ¿Estás seguro?
-            </h3>
-            <p style={{ margin: '1rem 0 2rem', fontSize: '0.95rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
-              Eliminarás la disciplina <span style={{ color: 'var(--color-error)', fontWeight: 800 }}>"{confirmDelete.title}"</span> de forma permanente. Esta acción no se puede deshacer.
-            </p>
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={() => setConfirmDelete(null)}
-                style={{
-                  flex: 1, padding: '1rem', borderRadius: '1.25rem', border: 'none',
-                  background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
-                  fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDeleteClub(confirmDelete.id)}
-                disabled={deletingId !== null}
-                style={{
-                  flex: 1.5, padding: '1rem', borderRadius: '1.25rem', border: 'none',
-                  background: 'var(--color-error)', color: 'white',
-                  fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s',
-                  boxShadow: '0 8px 16px rgba(211,47,47,0.3)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-                }}
-              >
-                {deletingId ? <RefreshCw size={18} className="spin" /> : <Trash2 size={18} />}
-                Sí, eliminar
-              </button>
-            </div>
-
-            {/* Decorative background circle */}
-            <div style={{
-              position: 'absolute', top: '-10%', right: '-10%', width: '150px', height: '150px',
-              borderRadius: '50%', background: 'var(--color-error-container)', opacity: 0.05, zIndex: -1
-            }} />
-          </div>
-        </div>
-      )}
-
-      {/* ── VISOR DE IMÁGENES ────────────────────────────── */}
       {viewerImage && (
-        <ImageViewer
-          url={viewerImage}
-          onClose={() => setViewerImage(null)}
-        />
+        <ImageViewer url={viewerImage} onClose={() => setViewerImage(null)} />
       )}
 
-      {paymentActionModal.show && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '1.5rem'
-        }} onClick={() => setPaymentActionModal(prev => ({ ...prev, show: false }))}>
-          <div style={{
-            background: 'white', borderRadius: '1.25rem', width: '100%', maxWidth: '420px',
-            overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                {paymentActionModal.type === 'VALIDAR' ? 'Validar Pago' : 'Rechazar Pago'}
-              </h2>
-              <button
-                onClick={() => setPaymentActionModal(prev => ({ ...prev, show: false }))}
-                style={{ background: 'none', border: 'none', color: 'var(--color-outline)', cursor: 'pointer' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
+      <PaymentActionModal
+        show={paymentActionModal.show}
+        type={paymentActionModal.type}
+        pago={paymentActionModal.pago}
+        observacion={paymentActionModal.observacion}
+        onObservacionChange={(val) =>
+          setPaymentActionModal((prev) => ({ ...prev, observacion: val }))
+        }
+        onClose={() =>
+          setPaymentActionModal((prev) => ({ ...prev, show: false }))
+        }
+        onConfirm={(id, estado, obs) => {
+          handleValidarPago(id, estado as 'PAGADO' | 'RECHAZADO', obs);
+          setPaymentActionModal((prev) => ({ ...prev, show: false }));
+        }}
+      />
 
-            <div style={{ padding: '1.5rem' }}>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
-                ¿Deseas {paymentActionModal.type === 'VALIDAR' ? 'validar' : 'rechazar'} el pago de
-                <span style={{ color: 'var(--color-primary)', fontWeight: 800 }}> {paymentActionModal.pago?.alumno.nombre}</span>?
-              </p>
-
-              {paymentActionModal.type === 'RECHAZAR' && (
-                <div style={{ marginTop: '1.25rem' }}>
-                  <label style={{ ...labelStyle, fontSize: '0.7rem' }}>MOTIVO DEL RECHAZO</label>
-                  <textarea
-                    value={paymentActionModal.observacion}
-                    onChange={e => setPaymentActionModal(prev => ({ ...prev, observacion: e.target.value }))}
-                    placeholder="Ej: El comprobante no es legible..."
-                    style={{ ...inputStyle, height: '80px', padding: '0.75rem', borderRadius: '0.75rem', resize: 'none', fontSize: '0.85rem' }}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div style={{ padding: '1rem 1.5rem 1.5rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setPaymentActionModal(prev => ({ ...prev, show: false }))}
-                style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-high)', background: 'white', color: 'var(--color-primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  handleValidarPago(
-                    paymentActionModal.pago.id,
-                    paymentActionModal.type === 'VALIDAR' ? 'PAGADO' : 'RECHAZADO',
-                    paymentActionModal.observacion
-                  );
-                  setPaymentActionModal(prev => ({ ...prev, show: false }));
-                }}
-                style={{
-                  padding: '0.6rem 1.25rem', borderRadius: '0.75rem', border: 'none',
-                  background: paymentActionModal.type === 'VALIDAR' ? 'var(--color-success)' : 'var(--color-error)',
-                  color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer'
-                }}
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 🔮 MODAL DE CONFIRMACIÓN GENÉRICO */}
-      {confirmModal.show && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 100000,
-          background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '1.5rem'
-        }} onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}>
-          <div style={{
-            background: 'white', borderRadius: '2.5rem', width: '100%', maxWidth: '450px',
-            padding: '2.5rem', textAlign: 'center', boxShadow: '0 40px 100px rgba(0,0,0,0.5)',
-            position: 'relative', overflow: 'hidden'
-          }} onClick={e => e.stopPropagation()} className="animate-pop">
-
-            <div style={{
-              width: '5.5rem', height: '5.5rem', borderRadius: '2.2rem',
-              background: confirmModal.type === 'DANGER' ? 'var(--color-error-container)' :
-                confirmModal.type === 'SUCCESS' ? 'var(--color-success-container)' :
-                  'var(--color-warning-container)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 1.5rem'
-            }}>
-              {confirmModal.icon || (confirmModal.type === 'DANGER' ? <AlertCircle size={36} color="var(--color-error)" /> : <AlertCircle size={36} color="var(--color-warning)" />)}
-            </div>
-
-            <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              {confirmModal.title}
-            </h3>
-            <p style={{ margin: '1rem 0 2rem', fontSize: '1rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.5 }}>
-              {confirmModal.message}
-            </p>
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              {!confirmModal.isAlert && (
-                <button
-                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                  style={{
-                    flex: 1, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
-                    background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
-                    fontWeight: 800, cursor: 'pointer'
-                  }}
-                >
-                  Cancelar
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  if (confirmModal.onConfirm) confirmModal.onConfirm();
-                  setConfirmModal(prev => ({ ...prev, show: false }));
-                }}
-                style={{
-                  flex: 1.5, padding: '1.1rem', borderRadius: '1.25rem', border: 'none',
-                  background: confirmModal.type === 'DANGER' ? 'var(--color-error)' :
-                    confirmModal.type === 'SUCCESS' ? 'var(--color-success)' :
-                      'var(--color-warning)',
-                  color: 'white', fontWeight: 900, fontSize: '1rem', cursor: 'pointer',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
-                }}
-              >
-                {confirmModal.isAlert ? 'Entendido' : 'Confirmar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        icon={confirmModal.icon}
+        isAlert={confirmModal.isAlert}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, show: false }))}
+      />
 
     </>
   );
 }
-
-// ── Sub-componentes Adicionales ────────────────────────────────
-function PagosClubModal({ clubId, clubNombre, pagos, onAction, onShowImage, onClose }: {
-  clubId: number;
-  clubNombre: string;
-  pagos: Pago[];
-  onAction: (pago: Pago, type: 'VALIDAR' | 'RECHAZAR') => void;
-  onShowImage: (url: string) => void;
-  onClose: () => void;
-}) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedPagoId, setExpandedPagoId] = useState<number | null>(null);
-  const clubPagos = pagos.filter(p => p.club.nombre === clubNombre)
-    .filter(p => (`${p.alumno.nombre} ${p.alumno.apellido}`).toLowerCase().includes(searchTerm.toLowerCase()));
-
-  const pagados = clubPagos.filter(p => p.estado === 'PAGADO');
-  const pendientes = clubPagos.filter(p => p.estado === 'PENDIENTE');
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }} onClick={onClose}>
-      <div style={{
-        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2rem',
-        width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
-      }} onClick={e => e.stopPropagation()}>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              Pagos: <span style={{ color: 'var(--color-secondary)' }}>{clubNombre}</span>
-            </h3>
-            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-              Control financiero detallado de la disciplina
-            </p>
-          </div>
-          <button onClick={onClose} style={{ background: 'var(--color-surface-dim)', border: 'none', borderRadius: '1rem', width: '2.5rem', height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <X size={20} color="var(--color-primary)" />
-          </button>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: 'var(--color-success-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-success)', textTransform: 'uppercase' }}>Realizados</p>
-              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-success)' }}>{pagados.length}</p>
-            </div>
-            <Check size={24} color="var(--color-success)" style={{ opacity: 0.3 }} />
-          </div>
-          <div style={{ background: 'var(--color-error-container)', padding: '1rem', borderRadius: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-error)', textTransform: 'uppercase' }}>Pendientes</p>
-              <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-error)' }}>{pendientes.length}</p>
-            </div>
-            <Clock size={24} color="var(--color-error)" style={{ opacity: 0.3 }} />
-          </div>
-        </div>
-
-        <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-          <input
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nombre de alumno..."
-            style={{ ...inputStyle, paddingLeft: '2.8rem', borderRadius: '1.1rem', background: 'var(--color-surface-container-lowest)' }}
-          />
-          <Search size={18} color="var(--color-outline)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          {clubPagos.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-outline)', fontStyle: 'italic' }}>
-              No se encontraron pagos vinculados a este filtro.
-            </div>
-          ) : clubPagos.map(p => {
-            const colors = estadoColor[p.estado];
-            const isExpanded = expandedPagoId === p.id;
-            return (
-              <div
-                key={p.id}
-                style={{
-                  padding: '1.25rem',
-                  borderRadius: '1.25rem',
-                  background: isExpanded ? 'white' : 'var(--color-surface-container-lowest)',
-                  border: isExpanded ? '1.5px solid var(--color-primary)' : '1px solid var(--color-surface-container-low)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.5rem',
-                  cursor: 'pointer',
-                  boxShadow: isExpanded ? 'var(--shadow-md)' : 'none',
-                  transition: 'all 0.3s ease'
-                }}
-                onClick={() => setExpandedPagoId(isExpanded ? null : p.id)}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center' }}>
-                    <div style={{
-                      width: '2.5rem', height: '2.5rem', borderRadius: '0.85rem',
-                      background: isExpanded ? 'var(--color-primary-container)' : colors.bg,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.3s ease'
-                    }}>
-                      <CreditCard size={18} color={isExpanded ? 'white' : colors.fg} />
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{p.alumno.nombre} {p.alumno.apellido}</p>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{p.mes} • S/ {(p.monto ?? 0).toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {p.estado === 'PENDIENTE' ? (
-                      <div style={{ display: 'flex', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
-                        <button onClick={() => onAction(p, 'VALIDAR')} style={iconBtnStyle('var(--color-success-container)', 'var(--color-success)')}>
-                          <Check size={16} strokeWidth={3} />
-                        </button>
-                        <button onClick={() => onAction(p, 'RECHAZAR')} style={iconBtnStyle('var(--color-error-container)', 'var(--color-error)')}>
-                          <X size={16} strokeWidth={3} />
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: '0.65rem', fontWeight: 900, color: colors.fg, textTransform: 'uppercase', background: colors.bg, padding: '0.25rem 0.6rem', borderRadius: '99px' }}>
-                        {p.estado}
-                      </span>
-                    )}
-                    <ChevronDown size={14} color="var(--color-outline)" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }} />
-                  </div>
-                </div>
-
-                {/* SECCIÓN EXPANDIBLE EN MODAL */}
-                {isExpanded && (
-                  <div
-                    className="animate-enter"
-                    style={{
-                      marginTop: '0.75rem',
-                      paddingTop: '0.75rem',
-                      borderTop: '1px dashed var(--color-surface-container-high)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.75rem'
-                    }}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <div style={{
-                      background: 'var(--color-surface-container-low)',
-                      borderRadius: '1rem',
-                      overflow: 'hidden',
-                      border: '1px solid var(--color-surface-container-high)',
-                      minHeight: '150px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      {p.urlComprobante ? (
-                        <img
-                          src={p.urlComprobante.replace('/upload/', '/upload/w_600,c_limit,q_auto,f_auto/')}
-                          alt="Comprobante"
-                          style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: '300px', cursor: 'zoom-in' }}
-                          onClick={() => onShowImage(p.urlComprobante!)}
-                          onError={(e) => {
-                            (e.target as any).src = 'https://placehold.co/400x300?text=Error+al+cargar+imagen';
-                          }}
-                        />
-                      ) : (
-                        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-outline)' }}>
-                          <FileText size={32} opacity={0.2} style={{ marginBottom: '0.25rem' }} />
-                          <p style={{ fontSize: '0.7rem', fontWeight: 600 }}>Sin comprobante</p>
-                        </div>
-                      )}
-                    </div>
-                    {p.observacion && (
-                      <div style={{ background: 'var(--color-surface-container-low)', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid var(--color-surface-container-high)' }}>
-                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-on-surface-variant)', fontStyle: 'italic', fontWeight: 600 }}>
-                          Motivo: “{p.observacion}”
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-// ── Sub-componentes ────────────────────────────────────────────
-
-
-function iconBtnStyle(bg: string, color: string): React.CSSProperties {
-  return {
-    background: bg, color, border: 'none', borderRadius: '0.6rem',
-    padding: '0.45rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  };
-}
-
-const metricaCardStyle: React.CSSProperties = {
-  background: 'var(--color-surface-container-lowest)',
-  borderRadius: '1.5rem', padding: '1.25rem',
-  boxShadow: '0 8px 24px rgba(14,26,57,0.06)',
-  border: '1px solid var(--color-surface-container-high)',
-  display: 'flex', flexDirection: 'column', justifyContent: 'center',
-  transition: 'transform 0.2s ease',
-};
-const metricaLabelStyle: React.CSSProperties = {
-  margin: 0, fontSize: '0.65rem', fontWeight: 800,
-  textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--color-on-surface-variant)',
-};
-const metricaValueStyle: React.CSSProperties = {
-  margin: '0.2rem 0 0', fontSize: '2.5rem', fontWeight: 900,
-  color: 'var(--color-primary)', lineHeight: 1, letterSpacing: '-0.05em',
-};
-
-// ── Modal Usuario ──────────────────────────────────────────────
-function UsuarioModal({
-  usuario, saving, onSave, onResetPassword, onClose,
-}: {
-  usuario: Partial<Usuario>;
-  saving: boolean;
-  onSave: (data: any) => void;
-  onResetPassword: (id: number) => void;
-  onClose: () => void;
-}) {
-  const [nombre, setNombre] = useState(usuario.nombre ?? '');
-  const [apellido, setApellido] = useState(usuario.apellido ?? '');
-  const [rol, setRol] = useState<'ADMINISTRADOR' | 'PROFESOR' | 'PADRE'>(usuario.rol ?? 'PROFESOR');
-  const [dni, setDni] = useState(usuario.dni ?? '');
-  const [celular, setCelular] = useState(usuario.celular ?? '');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({ nombre, apellido, rol, dni, celular });
-  };
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1.5rem'
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
-        width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
-      }} onClick={e => e.stopPropagation()}>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              {usuario.id ? 'Perfeccionar' : 'Crear'} <span style={{ color: 'var(--color-secondary)' }}>Perfil</span>
-            </h3>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-              Administra los accesos y credenciales del usuario
-            </p>
-          </div>
-          <button onClick={onClose} style={{
-            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
-            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <X size={20} color="var(--color-primary)" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label style={labelStyle}>Nombre</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Roberto" required
-                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
-            </div>
-            <div>
-              <label style={labelStyle}>Apellido</label>
-              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Ej: Carlos" required
-                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
-            </div>
-          </div>
-
-          <div>
-            <label style={labelStyle}>Rol del Sistema</label>
-            <div style={{ position: 'relative' }}>
-              <select value={rol} onChange={e => setRol(e.target.value as any)}
-                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem', appearance: 'none', paddingRight: '2.5rem' }}>
-                <option value="PROFESOR">🎓 Profesor</option>
-                <option value="PADRE">👨‍👩‍👦 Padre / Tutor</option>
-                <option value="ADMINISTRADOR">👑 Administrador</option>
-              </select>
-              <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label style={labelStyle}>DNI (Acceso)</label>
-              <input value={dni} onChange={e => setDni(e.target.value)} placeholder="DNI del usuario" style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} required />
-            </div>
-            <div>
-              <label style={labelStyle}>Celular</label>
-              <input value={celular} onChange={e => setCelular(e.target.value)} placeholder="Ej: 987654321" style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
-            </div>
-          </div>
-
-          {!usuario.id ? (
-            <div style={{
-              background: 'rgba(var(--color-primary-rgb), 0.05)',
-              padding: '1rem', borderRadius: '1rem', border: '1px dashed var(--color-primary)',
-              textAlign: 'center'
-            }}>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: 700 }}>
-                🔑 Contraseña temporal asignada: <span style={{ fontWeight: 900 }}>123456</span>
-              </p>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-outline)' }}>
-                Se le pedirá cambiarla al primer inicio de sesión.
-              </p>
-            </div>
-          ) : (
-            <div style={{ marginTop: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => onResetPassword(usuario.id!)}
-                style={{
-                  width: '100%', height: '3rem', borderRadius: '0.85rem', border: '1.5px solid var(--color-error)',
-                  background: 'transparent', color: 'var(--color-error)', fontWeight: 800, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <RefreshCw size={18} /> Resetear Contraseña a 123456
-              </button>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button type="button" onClick={onClose} style={{
-              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
-              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
-              fontWeight: 800, cursor: 'pointer'
-            }}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={saving} style={{
-              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
-              background: 'var(--color-primary)', color: 'white',
-              fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1,
-              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-            }}>
-              {saving ? <RefreshCw size={20} className="spin" /> : <Save size={20} />}
-              {saving ? 'Guardando...' : 'Guardar Perfil'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Modal Alumno ───────────────────────────────────────────────
-function AlumnoModal({
-  alumno, saving, clubes, usuarios, onSave, onClose,
-}: {
-  alumno: Partial<Alumno>;
-  saving: boolean;
-  clubes: any[];
-  usuarios?: Usuario[];
-  onSave: (data: any) => void;
-  onClose: () => void;
-}) {
-  const padres = (usuarios ?? []).filter(u => u.rol === 'PADRE');
-  const currentClubIds = (alumno as any).inscripciones?.map((i: any) => i.clubId) ?? [];
-  const [nombre, setNombre] = useState((alumno as any).nombre ?? '');
-  const [apellido, setApellido] = useState((alumno as any).apellido ?? '');
-  const [grado, setGrado] = useState((alumno as any).grado ?? '');
-  const [padreId, setPadreId] = useState<number | string>((alumno as any).padreId ?? '');
-  const [selectedClubIds, setSelectedClubIds] = useState<number[]>(currentClubIds);
-
-  // Estado para creación rápida de padre
-  const [creandoPadre, setCreandoPadre] = useState(false);
-  const [pNombre, setPNombre] = useState('');
-  const [pApellido, setPApellido] = useState('');
-  const [pDni, setPDni] = useState('');
-
-  const toggleClub = (id: number) => {
-    setSelectedClubIds(prev =>
-      prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const payload: any = {
-      nombre,
-      apellido,
-      grado,
-      clubIds: selectedClubIds,
-      padreId: padreId === '' ? undefined : Number(padreId)
-    };
-
-    if (creandoPadre && pNombre && pApellido) {
-      payload.nuevoPadre = { nombre: pNombre, apellido: pApellido, dni: pDni };
-    }
-
-    onSave(payload);
-  };
-
-  const GRADOS = [
-    '1ro Primaria', '2do Primaria', '3ro Primaria', '4to Primaria', '5to Primaria', '6to Primaria',
-    '1ro Secundaria', '2do Secundaria', '3ro Secundaria', '4to Secundaria', '5to Secundaria',
-  ];
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1.5rem'
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--color-surface)', borderRadius: '2rem', padding: '2.5rem',
-        width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto',
-        boxShadow: '0 32px 80px rgba(0,0,0,0.45)', border: '1px solid rgba(255,255,255,0.1)'
-      }} onClick={e => e.stopPropagation()}>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              {(alumno as any).id ? 'Modificar' : 'Inscribir'} <span style={{ color: 'var(--color-secondary)' }}>Alumno</span>
-            </h3>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-              Gestión académica y asignación de tutor
-            </p>
-          </div>
-          <button onClick={onClose} style={{
-            background: 'var(--color-surface-dim)', border: 'none', width: '2.5rem', height: '2.5rem',
-            borderRadius: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <X size={20} color="var(--color-primary)" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label style={labelStyle}>Nombre</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: María" required
-                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
-            </div>
-            <div>
-              <label style={labelStyle}>Apellido</label>
-              <input value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Ej: García" required
-                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem' }} />
-            </div>
-          </div>
-
-          <div>
-            <label style={labelStyle}>Grado Escolar</label>
-            <div style={{ position: 'relative' }}>
-              <select value={grado} onChange={e => setGrado(e.target.value)} required
-                style={{ ...inputStyle, borderRadius: '0.85rem', height: '3.2rem', appearance: 'none', paddingRight: '2.5rem' }}>
-                <option value="">— Selecciona un grado —</option>
-                {GRADOS.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-              <ChevronDown size={18} color="var(--color-primary)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.25rem', borderRadius: '1.25rem', border: '1px solid var(--color-surface-container-high)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>Padre / Tutor Responsable</label>
-              <button type="button" onClick={() => setCreandoPadre(!creandoPadre)}
-                style={{ background: 'none', border: 'none', color: 'var(--color-secondary)', fontSize: '0.65rem', fontWeight: 900, cursor: 'pointer', textTransform: 'uppercase' }}>
-                {creandoPadre ? '✕ Cancelar' : '+ Nuevo Padre'}
-              </button>
-            </div>
-
-            {creandoPadre ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <input value={pNombre} onChange={e => setPNombre(e.target.value)} placeholder="Nombres" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
-                  <input value={pApellido} onChange={e => setPApellido(e.target.value)} placeholder="Apellidos" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
-                </div>
-                <input value={pDni} onChange={e => setPDni(e.target.value)} placeholder="DNI del Padre" style={{ ...inputStyle, padding: '0.5rem 0.8rem', fontSize: '0.8rem', height: '2.8rem' }} />
-              </div>
-            ) : (
-              <div style={{ position: 'relative' }}>
-                <select value={padreId} onChange={e => setPadreId(e.target.value)}
-                  style={{ ...inputStyle, borderRadius: '0.75rem', height: '2.8rem', fontSize: '0.85rem', appearance: 'none' }}>
-                  <option value="">— Sin asignar —</option>
-                  {padres.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} {p.apellido}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} color="var(--color-primary)" style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label style={labelStyle}>Disciplinas Inscritas</label>
-            <div style={{
-              display: 'flex', flexDirection: 'column', gap: '0.5rem',
-              maxHeight: '140px', overflowY: 'auto', padding: '1rem',
-              background: 'var(--color-surface-container-lowest)', borderRadius: '1.25rem',
-              border: '1px solid var(--color-surface-container-high)'
-            }}>
-              {clubes.map(c => {
-                const isSelected = selectedClubIds.includes(c.id);
-                return (
-                  <label key={c.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    cursor: 'pointer', padding: '0.6rem 0.75rem', borderRadius: '0.85rem',
-                    background: isSelected ? 'var(--color-primary-fixed)' : 'transparent',
-                    transition: 'all 0.2s', fontSize: '0.85rem', fontWeight: 700,
-                    color: isSelected ? 'var(--color-primary)' : 'var(--color-outline)'
-                  }}>
-                    <input type="checkbox" checked={isSelected} onChange={() => toggleClub(c.id)}
-                      style={{ width: '1.1rem', height: '1.1rem', accentColor: 'var(--color-primary)' }} />
-                    {c.nombre}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button type="button" onClick={onClose} style={{
-              flex: 1, height: '3.5rem', borderRadius: '1rem', border: 'none',
-              background: 'var(--color-surface-dim)', color: 'var(--color-primary)',
-              fontWeight: 800, cursor: 'pointer'
-            }}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={saving} style={{
-              flex: 2, height: '3.5rem', borderRadius: '1rem', border: 'none',
-              background: 'var(--color-primary)', color: 'white',
-              fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1,
-              boxShadow: '0 8px 24px rgba(var(--color-primary-rgb), 0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
-            }}>
-              {saving ? <RefreshCw size={20} className="spin" /> : <GraduationCap size={20} />}
-              {saving ? 'Guardando...' : 'Guardar Alumno'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-
-// ── Utilidades ──────────────────────────────────────────────
 
