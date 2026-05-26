@@ -4,6 +4,7 @@ import { Search, Check, X, ArrowLeft, Loader2, StickyNote, Calendar, ShieldAlert
 import { useUser } from './UserContext';
 import './index.css';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -16,7 +17,7 @@ export default function DetalleSesion() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetch(`${API}/sesiones/${sesionId}`)
+    fetchWithAuth(`/sesiones/${sesionId}`)
       .then(res => res.json())
       .then(data => {
         setSesion(data);

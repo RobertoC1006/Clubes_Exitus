@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 export interface UsuarioSesion {
   id: number;
@@ -38,6 +38,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('exitus_user');
+    localStorage.removeItem('access_token');
     setUsuario(null);
   };
 

@@ -7,6 +7,7 @@
 
   /* 🔵 Azul Institucional (Primary) */
   --color-primary: #1D2848;
+  --color-primary-rgb: 29, 40, 72;
   --color-primary-container: #283a63;
   --color-primary-fixed: #d4daf0;
   --color-primary-fixed-dim: #8e9bc4;
@@ -233,7 +234,7 @@ button {
 
 /* El Layout Root ahora envuelve todo en escritorio para centrar sidebar + contenido */
 @media (min-width: 768px) {
-  .layout-root {
+  .layout-root.has-sidebar {
     display: grid;
     grid-template-columns: var(--sidebar-width) 1fr;
     max-width: var(--max-content-width);
@@ -244,6 +245,12 @@ button {
     background: var(--color-surface);
     box-shadow: 0 0 100px rgba(0,0,0,0.03);
     overflow: hidden;
+  }
+
+  .layout-root:not(.has-sidebar) {
+    display: block;
+    width: 100%;
+    min-height: 100vh;
   }
 
   .content-area {

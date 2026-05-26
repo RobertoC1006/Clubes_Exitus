@@ -1,8 +1,10 @@
-import { Controller, Post, Get, Put, Param, Body, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Param, Body, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { SesionesService } from './sesiones.service';
 import { EstadoAsistencia } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('sesiones')
+@UseGuards(JwtAuthGuard)
 export class SesionesController {
   constructor(private readonly sesionesService: SesionesService) {}
 
@@ -44,5 +46,12 @@ export class SesionesController {
     @Body('tema') tema?: string
   ) {
      return this.sesionesService.updateAsistencias(sessionId, asistencias, tema);
+  }
+
+  @Post('validar-docente')
+  validarDocente(
+    @Body() body: { clubId: number, aulaId: number, latitud: number, longitud: number, accuracy?: number, codigoContingencia?: string }
+  ) {
+    return this.sesionesService.validarAsistenciaDocente(body);
   }
 }

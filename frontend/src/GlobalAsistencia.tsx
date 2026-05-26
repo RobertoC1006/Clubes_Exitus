@@ -3,6 +3,7 @@ import { Search, Loader2, Award, TrendingUp, TrendingDown, Users, BookOpen, Star
 import { useUser } from './UserContext';
 import './index.css';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -15,7 +16,7 @@ export default function GlobalAsistencia() {
   useEffect(() => {
     if (!usuario?.id) return;
     setLoading(true);
-    fetch(`${API}/clubes/performance-alumnos/${usuario.id}`)
+    fetchWithAuth(`/clubes/performance-alumnos/${usuario.id}`)
       .then(res => res.json())
       .then(data => {
         setAlumnos(Array.isArray(data) ? data : []);

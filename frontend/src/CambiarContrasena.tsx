@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -35,9 +36,8 @@ export default function CambiarContrasena() {
     setError('');
 
     try {
-      const res = await fetch(`${API}/auth/change-password`, {
+      const res = await fetchWithAuth('/auth/change-password', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: usuario.id, newPassword }),
       });
 

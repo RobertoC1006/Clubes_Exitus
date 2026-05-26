@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from './UserContext';
+import { useRole } from './hooks/useRole';
 import { Users, LayoutDashboard, Calendar, Bell, CheckCircle2, XCircle, Trophy, CreditCard, Clock, History, RefreshCw, ChevronRight, Zap, Target, Star } from 'lucide-react';
 import './index.css';
 
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
@@ -51,32 +53,32 @@ function getSemanaActual() {
 }
 
 interface Hijo {
-    id: number;
-    nombre: string;
-    apellido: string;
-    grado: string;
+  id: number;
+  nombre: string;
+  apellido: string;
+  grado: string;
 }
 
 interface Resumen {
-    alumno: Hijo;
-    clubes: any[];
-    pago: any;
-    logros: any[];
-    calendario: any[];
-    avisos: any[];
-    performance: {
-        totalAsistencias: number;
-        puntuacion: number;
-        nivel: string;
-        racha?: number;
-    };
+  alumno: Hijo;
+  clubes: any[];
+  pago: any;
+  logros: any[];
+  calendario: any[];
+  avisos: any[];
+  performance: {
+    totalAsistencias: number;
+    puntuacion: number;
+    nivel: string;
+    racha?: number;
+  };
 }
 
 export default function PortalFamiliar() {
   const navigate = useNavigate();
   const semana = getSemanaActual();
-  
-  const { usuario } = useUser();
+
+  const { usuario } = useRole();
   const [hijos, setHijos] = useState<Hijo[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [resumen, setResumen] = useState<Resumen | null>(null);
@@ -95,14 +97,19 @@ export default function PortalFamiliar() {
   const [showClubModal, setShowClubModal] = useState(false);
   const [activeClubTab, setActiveClubTab] = useState<'pasadas' | 'proximas'>('pasadas');
 
+  // Notificaciones
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+
   // 1. Cargar Lista de Hijos
   useEffect(() => {
     if (!usuario) {
-        // Si no hay usuario en el contexto, esperamos o redirigimos
-        return;
+      // Si no hay usuario en el contexto, esperamos o redirigimos
+      return;
     }
 
-    fetch(`${API}/padre/hijos/${usuario.id}`)
+    fetchWithAuth(`/padre/hijos/${usuario.id}`)
       .then(res => {
         if (!res.ok) throw new Error('El servidor no responde (Hijos)');
         return res.json();
@@ -110,10 +117,10 @@ export default function PortalFamiliar() {
       .then(data => {
         setHijos(data);
         if (data.length > 0) {
-            setSelectedId(data[0].id);
-            setLoading(false);
+          setSelectedId(data[0].id);
+          setLoading(false);
         } else {
-            setLoading(false);
+          setLoading(false);
         }
       })
       .catch((err) => {
@@ -128,7 +135,7 @@ export default function PortalFamiliar() {
     if (!selectedId) return;
     setFetchingResumen(true);
     setError(null);
-    fetch(`${API}/padre/resumen-hijo/${selectedId}`)
+    fetchWithAuth(`/padre/resumen-hijo/${selectedId}`)
       .then(res => {
         if (!res.ok) throw new Error('Servidor devolvió un error (Resumen)');
         return res.json();
@@ -139,12 +146,25 @@ export default function PortalFamiliar() {
         setFetchingResumen(false);
       })
       .catch((err) => {
-          console.error(err);
-          setError('No pudimos obtener el resumen del alumno. Verifica que el servidor esté activo.');
-          setLoading(false);
-          setFetchingResumen(false);
+        console.error(err);
+        setError('No pudimos obtener el resumen del alumno. Verifica que el servidor esté activo.');
+        setLoading(false);
+        setFetchingResumen(false);
       });
   }, [selectedId]);
+
+  // 3. Cargar Notificaciones del Padre
+  useEffect(() => {
+    if (!usuario) return;
+    fetchWithAuth(`/notificaciones?usuarioId=${usuario.id}`)
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data.data) ? data.data : [];
+        setNotifications(list);
+        setUnreadNotifs(list.filter((n: any) => !n.leida).length);
+      })
+      .catch(err => console.error('Error fetching notifications:', err));
+  }, [usuario, showNotifications]);
 
   if (error) {
     return (
@@ -153,7 +173,7 @@ export default function PortalFamiliar() {
         <h2 style={{ color: 'var(--color-primary)', fontWeight: 900 }}>Error de Conexión</h2>
         <p style={{ color: 'var(--color-on-surface-variant)', marginTop: '0.5rem' }}>{error}</p>
         <button onClick={() => window.location.reload()} className="btn btn-primary" style={{ marginTop: '2rem' }}>
-            <RefreshCw size={16} /> Reintentar
+          <RefreshCw size={16} /> Reintentar
         </button>
       </div>
     );
@@ -174,8 +194,8 @@ export default function PortalFamiliar() {
         <Users size={60} color="var(--color-outline-variant)" style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
         <h2 style={{ color: 'var(--color-primary)', fontWeight: 900 }}>¡Bienvenido, {usuario?.nombre}!</h2>
         <p style={{ color: 'var(--color-on-surface-variant)', lineHeight: 1.6, maxWidth: '280px', margin: '0.5rem auto 0' }}>
-            Todavía no tienes hijos vinculados a tu cuenta. <br/> 
-            Por favor, contacta a la administración.
+          Todavía no tienes hijos vinculados a tu cuenta. <br />
+          Por favor, contacta a la administración.
         </p>
         <button onClick={() => navigate('/')} className="btn btn-primary" style={{ marginTop: '2rem' }}>Ir al Inicio</button>
       </div>
@@ -191,42 +211,42 @@ export default function PortalFamiliar() {
       {/* KID SELECTOR (Premium Chips) */}
       <section style={{ marginBottom: '2rem', marginTop: '1rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.85rem' }}>
-            {hijos.map(h => {
-                const isSelected = selectedId === h.id;
-                const initials = (h.nombre?.[0] || '') + (h.apellido?.[0] || '');
-                return (
-                    <button 
-                        key={h.id} 
-                        onClick={() => setSelectedId(h.id)}
-                        className={`profile-chip ${isSelected ? 'active' : ''}`}
-                    >
-                        <div style={{ 
-                            width: '2.2rem', height: '2.2rem', borderRadius: '50%', 
-                            background: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--color-surface-dim)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.85rem', fontWeight: 900
-                        }}>
-                            {initials}
-                        </div>
-                        <span style={{ fontWeight: 800, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                            {h.nombre}
-                        </span>
-                    </button>
-                );
-            })}
+          {hijos.map(h => {
+            const isSelected = selectedId === h.id;
+            const initials = (h.nombre?.[0] || '') + (h.apellido?.[0] || '');
+            return (
+              <button
+                key={h.id}
+                onClick={() => setSelectedId(h.id)}
+                className={`profile-chip ${isSelected ? 'active' : ''}`}
+              >
+                <div style={{
+                  width: '2.2rem', height: '2.2rem', borderRadius: '50%',
+                  background: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--color-surface-dim)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.85rem', fontWeight: 900
+                }}>
+                  {initials}
+                </div>
+                <span style={{ fontWeight: 800, fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                  {h.nombre}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
       {!resumen && fetchingResumen && (
         <div style={{ padding: '3rem', textAlign: 'center' }}>
-            <RefreshCw size={32} color="var(--color-primary)" className="spin" style={{ animation: 'spin 1.2s linear infinite', margin: '0 auto 1rem' }} />
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>Obteniendo detalles...</p>
+          <RefreshCw size={32} color="var(--color-primary)" className="spin" style={{ animation: 'spin 1.2s linear infinite', margin: '0 auto 1rem' }} />
+          <p style={{ fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>Obteniendo detalles...</p>
         </div>
       )}
 
       {!resumen && !fetchingResumen && selectedId && (
         <div style={{ padding: '3rem', textAlign: 'center', background: 'var(--color-surface-container-low)', borderRadius: '1.5rem' }}>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-error)', fontWeight: 600 }}>No se pudo cargar el resumen del alumno.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-error)', fontWeight: 600 }}>No se pudo cargar el resumen del alumno.</p>
         </div>
       )}
 
@@ -247,16 +267,16 @@ export default function PortalFamiliar() {
                 </div>
 
                 <div style={{ display: 'flex', padding: '0 1.5rem 1rem', gap: '0.5rem' }}>
-                   <button 
+                  <button
                     onClick={() => { setActiveCalendarTab('pasadas'); setCurrentPageCalendar(1); }}
                     style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeCalendarTab === 'pasadas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeCalendarTab === 'pasadas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
-                      Pasadas
-                   </button>
-                   <button 
+                    Pasadas
+                  </button>
+                  <button
                     onClick={() => { setActiveCalendarTab('proximas'); setCurrentPageCalendar(1); }}
                     style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeCalendarTab === 'proximas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeCalendarTab === 'proximas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
-                      Programadas
-                   </button>
+                    Programadas
+                  </button>
                 </div>
 
                 <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1.5rem' }}>
@@ -269,10 +289,10 @@ export default function PortalFamiliar() {
                     if (listaActual.length === 0) {
                       return (
                         <div style={{ padding: '3rem 1rem', textAlign: 'center' }}>
-                            <Calendar size={40} color="var(--color-outline-variant)" style={{ marginBottom: '1rem', opacity: 0.4 }} />
-                            <p style={{ color: 'var(--color-outline)', fontWeight: 500, fontSize: '0.9rem' }}>
-                              {activeCalendarTab === 'proximas' ? 'No hay más clases programadas.' : 'Aún no se han registrado asistencias.'}
-                            </p>
+                          <Calendar size={40} color="var(--color-outline-variant)" style={{ marginBottom: '1rem', opacity: 0.4 }} />
+                          <p style={{ color: 'var(--color-outline)', fontWeight: 500, fontSize: '0.9rem' }}>
+                            {activeCalendarTab === 'proximas' ? 'No hay más clases programadas.' : 'Aún no se han registrado asistencias.'}
+                          </p>
                         </div>
                       );
                     }
@@ -283,60 +303,60 @@ export default function PortalFamiliar() {
                           {listaActual
                             .slice((currentPageCalendar - 1) * CALENDAR_ITEMS_PER_PAGE, currentPageCalendar * CALENDAR_ITEMS_PER_PAGE)
                             .map((s: any) => {
-                                let bg = 'var(--color-surface-container-high)';
-                                let fg = 'var(--color-primary)';
-                                let text = s.estado;
-                                if (s.asistio) {
-                                    bg = '#DCFCE7'; fg = '#166534'; text = 'ASISTIÓ';
-                                } else if (s.estado === 'FALTO' || s.estado === 'FALTÓ' || s.estado === 'AUSENTE') {
-                                    bg = '#FEE2E2'; fg = '#991B1B'; text = 'FALTÓ';
-                                } else if (s.estado === 'JUSTIFICADO' || s.estado === 'EXCUSADO') {
-                                    bg = '#FEF9C3'; fg = '#854D0E'; text = 'JUSTIFICADO';
-                                } else if (s.estado === 'PROGRAMADO') {
-                                    bg = 'var(--color-surface-container-high)'; fg = 'var(--color-outline)'; text = 'PROGRAMADO';
-                                }
+                              let bg = 'var(--color-surface-container-high)';
+                              let fg = 'var(--color-primary)';
+                              let text = s.estado;
+                              if (s.asistio) {
+                                bg = '#DCFCE7'; fg = '#166534'; text = 'ASISTIÓ';
+                              } else if (s.estado === 'FALTO' || s.estado === 'FALTÓ' || s.estado === 'AUSENTE') {
+                                bg = '#FEE2E2'; fg = '#991B1B'; text = 'FALTÓ';
+                              } else if (s.estado === 'JUSTIFICADO' || s.estado === 'EXCUSADO') {
+                                bg = '#FEF9C3'; fg = '#854D0E'; text = 'JUSTIFICADO';
+                              } else if (s.estado === 'PROGRAMADO') {
+                                bg = 'var(--color-surface-container-high)'; fg = 'var(--color-outline)'; text = 'PROGRAMADO';
+                              }
 
-                                return (
+                              return (
                                 <div key={s.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', background: 'var(--color-surface-container-low)', borderRadius: '0.75rem' }}>
-                                   <div style={{ width: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                      <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
-                                      <p style={{ margin: '0.1rem 0 0', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
-                                        {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
-                                      </p>
-                                   </div>
-                                   <div style={{ flex: 1, borderLeft: '1px solid var(--color-surface-container-high)', paddingLeft: '1rem' }}>
-                                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{s.club}</p>
-                                      <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-outline)' }}>{s.tema || 'Sesión Regular'}</p>
-                                   </div>
-                                   <div style={{ 
-                                     padding: '0.25rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700,
-                                     background: bg, color: fg
-                                   }}>
-                                     {text}
-                                   </div>
+                                  <div style={{ width: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>{new Date(s.fecha).getDate()}</p>
+                                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-outline)' }}>
+                                      {new Date(s.fecha).toLocaleDateString('es-ES', { month: 'short' })}
+                                    </p>
+                                  </div>
+                                  <div style={{ flex: 1, borderLeft: '1px solid var(--color-surface-container-high)', paddingLeft: '1rem' }}>
+                                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{s.club}</p>
+                                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-outline)' }}>{s.tema || 'Sesión Regular'}</p>
+                                  </div>
+                                  <div style={{
+                                    padding: '0.25rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.65rem', fontWeight: 700,
+                                    background: bg, color: fg
+                                  }}>
+                                    {text}
+                                  </div>
                                 </div>
                               );
-                          })}
+                            })}
                         </div>
                         {totalPaginas > 1 && (
                           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1.5rem', alignItems: 'center' }}>
-                              <button 
-                                disabled={currentPageCalendar === 1}
-                                onClick={() => setCurrentPageCalendar(p => Math.max(1, p - 1))}
-                                style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid var(--color-surface-container-high)', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: currentPageCalendar === 1 ? 'not-allowed' : 'pointer', opacity: currentPageCalendar === 1 ? 0.5 : 1 }}
-                              >
-                                <ChevronRight size={16} style={{ transform: 'rotate(180deg)' }} />
-                              </button>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-outline)' }}>
-                                {currentPageCalendar} de {totalPaginas}
-                              </span>
-                              <button 
-                                disabled={currentPageCalendar === totalPaginas}
-                                onClick={() => setCurrentPageCalendar(p => Math.min(totalPaginas, p + 1))}
-                                style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid var(--color-surface-container-high)', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: currentPageCalendar === totalPaginas ? 'not-allowed' : 'pointer', opacity: currentPageCalendar === totalPaginas ? 0.5 : 1 }}
-                              >
-                                <ChevronRight size={16} />
-                              </button>
+                            <button
+                              disabled={currentPageCalendar === 1}
+                              onClick={() => setCurrentPageCalendar(p => Math.max(1, p - 1))}
+                              style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid var(--color-surface-container-high)', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: currentPageCalendar === 1 ? 'not-allowed' : 'pointer', opacity: currentPageCalendar === 1 ? 0.5 : 1 }}
+                            >
+                              <ChevronRight size={16} style={{ transform: 'rotate(180deg)' }} />
+                            </button>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-outline)' }}>
+                              {currentPageCalendar} de {totalPaginas}
+                            </span>
+                            <button
+                              disabled={currentPageCalendar === totalPaginas}
+                              onClick={() => setCurrentPageCalendar(p => Math.min(totalPaginas, p + 1))}
+                              style={{ width: '2rem', height: '2rem', borderRadius: '50%', border: '1px solid var(--color-surface-container-high)', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-outline)', cursor: currentPageCalendar === totalPaginas ? 'not-allowed' : 'pointer', opacity: currentPageCalendar === totalPaginas ? 0.5 : 1 }}
+                            >
+                              <ChevronRight size={16} />
+                            </button>
                           </div>
                         )}
                       </>
@@ -355,66 +375,65 @@ export default function PortalFamiliar() {
                   {resumen.alumno.nombre}
                 </h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.6rem' }}>
-                    <span style={{ background: 'var(--color-primary-container)', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800 }}>
-                        {resumen.alumno.grado}
-                    </span>
-                    <button 
-                      onClick={() => setShowCalendar(true)}
-                      style={{ background: 'white', border: '1px solid var(--color-surface-container-high)', padding: '0.3rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)', boxShadow: 'var(--shadow-sm)', cursor: 'pointer' }}>
-                        <Calendar size={12} /> VER CALENDARIO
-                    </button>
+                  <span style={{ background: 'var(--color-primary-container)', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800 }}>
+                    {resumen.alumno.grado}
+                  </span>
+                  <button
+                    onClick={() => setShowCalendar(true)}
+                    style={{ background: 'white', border: '1px solid var(--color-surface-container-high)', padding: '0.3rem 0.8rem', borderRadius: '0.6rem', fontSize: '0.7rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)', boxShadow: 'var(--shadow-sm)', cursor: 'pointer' }}>
+                    <Calendar size={12} /> VER CALENDARIO
+                  </button>
                 </div>
               </div>
             </div>
           </section>
 
 
-
           {/* ESTATUS DE DESEMPEÑO Y RACHA */}
           <section style={{ marginBottom: '2.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             {/* Tarjeta Desempeño */}
-            <div 
+            <div
               onClick={() => setShowDesempenoModal(true)}
-              className="bento-card" 
+              className="bento-card"
               style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', background: 'var(--grad-primary)', color: 'white', cursor: 'pointer', transition: 'transform 0.2s', position: 'relative', overflow: 'hidden' }}
               onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
-               <div style={{ position: 'relative', width: '6rem', height: '6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg style={{ position: 'absolute', transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
-                     <circle cx="3rem" cy="3rem" r="2.5rem" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
-                     <circle cx="3rem" cy="3rem" r="2.5rem" fill="none" stroke="white" strokeWidth="8" strokeDasharray="157" strokeDashoffset={157 - (157 * resumen.performance.puntuacion / 100)} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1.5s ease-out' }} />
-                  </svg>
-                  <span style={{ fontSize: '1.4rem', fontWeight: 900 }}>{resumen.performance.puntuacion}%</span>
-               </div>
-               <div style={{ flex: 1, zIndex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>Nivel Institucional</p>
-                  <h4 style={{ margin: '0.2rem 0 0.5rem', fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.04em' }}>{resumen.performance.nivel}</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, opacity: 0.9, lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                     Ver cumplimiento <ChevronRight size={14} />
-                  </p>
-               </div>
+              <div style={{ position: 'relative', width: '6rem', height: '6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg style={{ position: 'absolute', transform: 'rotate(-90deg)', width: '100%', height: '100%' }}>
+                  <circle cx="3rem" cy="3rem" r="2.5rem" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
+                  <circle cx="3rem" cy="3rem" r="2.5rem" fill="none" stroke="white" strokeWidth="8" strokeDasharray="157" strokeDashoffset={157 - (157 * resumen.performance.puntuacion / 100)} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1.5s ease-out' }} />
+                </svg>
+                <span style={{ fontSize: '1.4rem', fontWeight: 900 }}>{resumen.performance.puntuacion}%</span>
+              </div>
+              <div style={{ flex: 1, zIndex: 1 }}>
+                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, opacity: 0.8, textTransform: 'uppercase' }}>Nivel Institucional</p>
+                <h4 style={{ margin: '0.2rem 0 0.5rem', fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.04em' }}>{resumen.performance.nivel}</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, opacity: 0.9, lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  Ver cumplimiento <ChevronRight size={14} />
+                </p>
+              </div>
             </div>
 
             {/* Tarjeta Racha */}
-            <div 
+            <div
               onClick={() => setShowRachaModal(true)}
-              className="bento-card" 
+              className="bento-card"
               style={{ padding: '2rem', display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'white', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid var(--color-surface-container-high)' }}
               onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
-               <div style={{ width: '4.5rem', height: '4.5rem', borderRadius: '1.2rem', background: 'var(--color-secondary-container)', color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Zap size={32} fill="currentColor" />
-               </div>
-               <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Compromiso</p>
-                  <h4 style={{ margin: '0.2rem 0 0.5rem', fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--color-primary)' }}>Racha: {resumen.performance.racha || 0} Sesiones</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-secondary)' }}>
-                     Excelencia en compromiso
-                  </p>
-               </div>
-               <ChevronRight size={24} color="var(--color-outline-variant)" />
+              <div style={{ width: '4.5rem', height: '4.5rem', borderRadius: '1.2rem', background: 'var(--color-secondary-container)', color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={32} fill="currentColor" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Compromiso</p>
+                <h4 style={{ margin: '0.2rem 0 0.5rem', fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--color-primary)' }}>Racha: {resumen.performance.racha || 0} Sesiones</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-secondary)' }}>
+                  Excelencia en compromiso
+                </p>
+              </div>
+              <ChevronRight size={24} color="var(--color-outline-variant)" />
             </div>
           </section>
 
@@ -480,10 +499,10 @@ export default function PortalFamiliar() {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
               {resumen.clubes.map((club: any) => (
-                <div 
-                  key={club.id} 
+                <div
+                  key={club.id}
                   onClick={() => { setSelectedClubId(club.id); setShowClubModal(true); setActiveClubTab('pasadas'); }}
-                  className="bento-card" 
+                  className="bento-card"
                   style={{ padding: '1.5rem', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid var(--color-surface-container-high)' }}
                   onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
                   onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -494,56 +513,56 @@ export default function PortalFamiliar() {
                       <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', fontWeight: 600 }}>Prof. {club.profesor}</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <div style={{ 
-                            fontSize: '1.6rem', fontWeight: 900, 
-                            color: club.asistenciaPct >= 85 ? 'var(--color-success)' : 'var(--color-error)',
-                            lineHeight: 1
-                        }}>
-                          {club.asistenciaPct}<span style={{ fontSize: '0.8rem' }}>%</span>
-                        </div>
+                      <div style={{
+                        fontSize: '1.6rem', fontWeight: 900,
+                        color: club.asistenciaPct >= 85 ? 'var(--color-success)' : 'var(--color-error)',
+                        lineHeight: 1
+                      }}>
+                        {club.asistenciaPct}<span style={{ fontSize: '0.8rem' }}>%</span>
+                      </div>
                     </div>
                   </div>
 
                   <div style={{ background: 'var(--color-surface-container-low)', padding: '1rem', borderRadius: '1.2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                        <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimas 5 sesiones</span>
-                        <ChevronRight size={14} color="var(--color-outline-variant)" />
+                      <span style={{ fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimas 5 sesiones</span>
+                      <ChevronRight size={14} color="var(--color-outline-variant)" />
                     </div>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        {club.asistencias.map((asistio: boolean, i: number) => (
-                            <div key={i} style={{ 
-                                flex: 1, height: '1.5rem', borderRadius: '0.5rem', 
-                                background: asistio ? 'var(--color-success)' : 'var(--color-error)', 
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: asistio ? '0 2px 8px rgba(46,125,50,0.2)' : 'none',
-                            }}>
-                                {asistio ? <CheckCircle2 size={12} color="white" /> : <XCircle size={12} color="white" />}
-                            </div>
-                        ))}
-                        {[...Array(5 - (club.asistencias?.length || 0))].map((_, i) => (
-                            <div key={i + 10} style={{ flex: 1, height: '1.5rem', borderRadius: '0.5rem', background: 'var(--color-surface-dim)', opacity: 0.5 }} />
-                        ))}
+                      {club.asistencias.map((asistio: boolean, i: number) => (
+                        <div key={i} style={{
+                          flex: 1, height: '1.5rem', borderRadius: '0.5rem',
+                          background: asistio ? 'var(--color-success)' : 'var(--color-error)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: asistio ? '0 2px 8px rgba(46,125,50,0.2)' : 'none',
+                        }}>
+                          {asistio ? <CheckCircle2 size={12} color="white" /> : <XCircle size={12} color="white" />}
+                        </div>
+                      ))}
+                      {[...Array(5 - (club.asistencias?.length || 0))].map((_, i) => (
+                        <div key={i + 10} style={{ flex: 1, height: '1.5rem', borderRadius: '0.5rem', background: 'var(--color-surface-dim)', opacity: 0.5 }} />
+                      ))}
                     </div>
                   </div>
                 </div>
               ))}
               {resumen.clubes.length === 0 && (
-                  <div style={{ padding: '2.5rem', textAlign: 'center', background: 'var(--color-surface-container-low)', borderRadius: '1.5rem', border: '1px dashed var(--color-outline-variant)' }}>
-                      <p style={{ fontWeight: 600, color: 'var(--color-outline)', fontSize: '0.85rem' }}>Sin clubes inscritos todavía.</p>
-                  </div>
+                <div style={{ padding: '2.5rem', textAlign: 'center', background: 'var(--color-surface-container-low)', borderRadius: '1.5rem', border: '1px dashed var(--color-outline-variant)' }}>
+                  <p style={{ fontWeight: 600, color: 'var(--color-outline)', fontSize: '0.85rem' }}>Sin clubes inscritos todavía.</p>
+                </div>
               )}
             </div>
           </section>
 
           {/* MODAL ASISTENCIA POR CLUB */}
           {showClubModal && selectedClubId && (() => {
-             const clubInfo = resumen.clubes.find((c: any) => c.id === selectedClubId);
-             const calendarioClub = resumen.calendario.filter((s: any) => s.club === clubInfo?.nombre);
-             const pasadas = calendarioClub.filter((s: any) => s.estado !== 'PROGRAMADO').reverse();
-             const programadas = calendarioClub.filter((s: any) => s.estado === 'PROGRAMADO');
-             const listaMostrada = activeClubTab === 'pasadas' ? pasadas : programadas;
+            const clubInfo = resumen.clubes.find((c: any) => c.id === selectedClubId);
+            const calendarioClub = resumen.calendario.filter((s: any) => s.club === clubInfo?.nombre);
+            const pasadas = calendarioClub.filter((s: any) => s.estado !== 'PROGRAMADO').reverse();
+            const programadas = calendarioClub.filter((s: any) => s.estado === 'PROGRAMADO');
+            const listaMostrada = activeClubTab === 'pasadas' ? pasadas : programadas;
 
-             return (
+            return (
               <div onClick={() => setShowClubModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
                 <div onClick={(e) => e.stopPropagation()} className="animate-enter" style={{ background: 'white', width: '100%', maxWidth: '500px', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)', display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
                   <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -557,16 +576,16 @@ export default function PortalFamiliar() {
                   </div>
 
                   <div style={{ display: 'flex', padding: '0 1.5rem 1rem', gap: '0.5rem' }}>
-                     <button 
+                    <button
                       onClick={() => setActiveClubTab('pasadas')}
                       style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeClubTab === 'pasadas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeClubTab === 'pasadas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
-                        Pasadas
-                     </button>
-                     <button 
+                      Pasadas
+                    </button>
+                    <button
                       onClick={() => setActiveClubTab('proximas')}
                       style={{ flex: 1, padding: '0.75rem', borderRadius: '99px', border: 'none', background: activeClubTab === 'proximas' ? 'var(--color-primary)' : 'var(--color-surface-container-low)', color: activeClubTab === 'proximas' ? 'white' : 'var(--color-outline)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s' }}>
-                        Programadas
-                     </button>
+                      Programadas
+                    </button>
                   </div>
 
                   <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1.5rem' }}>
@@ -577,10 +596,10 @@ export default function PortalFamiliar() {
                       const currentYear = now.getFullYear();
                       const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
                       const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay(); // 0=Sun, 1=Mon...
-                      
+
                       // Ajustar a Lunes como primer día (0=Lun, 6=Dom)
                       const adjustedFirstDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-                      
+
                       const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
                       const days = [];
                       for (let i = 0; i < adjustedFirstDay; i++) days.push(null);
@@ -602,14 +621,14 @@ export default function PortalFamiliar() {
                             ))}
                             {days.map((day, idx) => {
                               if (day === null) return <div key={`empty-${idx}`} />;
-                              
+
                               const session = calendarioClub.find(s => {
                                 const d = new Date(s.fecha);
                                 return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                               });
 
                               const isToday = day === now.getDate();
-                              
+
                               let bgColor = 'transparent';
                               let textColor = 'var(--color-on-surface)';
                               let border = '1px solid var(--color-surface-container-high)';
@@ -619,7 +638,7 @@ export default function PortalFamiliar() {
                                 // Filtrar visibilidad según pestaña
                                 const isPast = session.asistio || ['FALTO', 'FALTÓ', 'AUSENTE', 'JUSTIFICADO', 'EXCUSADO'].includes(session.estado);
                                 const isFuture = session.estado === 'PROGRAMADO';
-                                
+
                                 const shouldShowColor = (activeClubTab === 'pasadas' && isPast) || (activeClubTab === 'proximas' && isFuture);
 
                                 if (shouldShowColor) {
@@ -637,11 +656,11 @@ export default function PortalFamiliar() {
                               }
 
                               return (
-                                <div 
-                                  key={day} 
+                                <div
+                                  key={day}
                                   title={session ? `${session.estado}: ${session.tema || 'Sesión'}` : ''}
-                                  style={{ 
-                                    aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                  style={{
+                                    aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight,
                                     background: bgColor, color: textColor, border: isToday && bgColor === 'transparent' ? '2px solid var(--color-primary)' : border,
                                     position: 'relative', cursor: session ? 'help' : 'default',
@@ -678,7 +697,7 @@ export default function PortalFamiliar() {
                   </div>
                 </div>
               </div>
-             );
+            );
           })()}
         </div>
       )}

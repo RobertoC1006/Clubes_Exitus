@@ -24,6 +24,8 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "mysql://root:root@mysql-db:3306/clubes_exitus"
+      JWT_SECRET: "una_clave_secreta_muy_larga_y_segura_123!"
+      JWT_EXPIRES_IN: "24h"
     depends_on:
       - mysql-db
     networks:
@@ -36,7 +38,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: clubes_exitus_frontend
     ports:
-      - "5174:5174"
+      - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules

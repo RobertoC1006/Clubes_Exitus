@@ -3,92 +3,24 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2, Activity, Calendar as CalendarIcon, Users,
   Loader2, Clock, Zap, Target, TrendingUp, AlertCircle, ChevronRight,
-  BookOpen, Award
+  BookOpen, Award, Bell, X, Info
 } from 'lucide-react';
 import { useUser } from './UserContext';
+import { useRole } from './hooks/useRole';
+import { normalizeDay, formatHorarioShort, formatHorarioFull } from './utils/formatters';
+import { Pagination } from './components/ui/Pagination';
 import './index.css';
 import { API_BASE_URL } from './config';
+import { fetchWithAuth } from './utils/fetchWithAuth';
 
 const API = API_BASE_URL;
 
-// ── Helpers ────────────────────────────────────────────────────
-function normalizeDay(dia: string) {
-  if (!dia) return '';
-  const d = dia.toLowerCase();
-  if (d.includes('lun')) return 'Lunes';
-  if (d.includes('mar')) return 'Martes';
-  if (d.includes('mi') || d.includes('mirc')) return 'Miércoles';
-  if (d.includes('jue')) return 'Jueves';
-  if (d.includes('vie')) return 'Viernes';
-  if (d.includes('s') || d.includes('sba')) return 'Sábado';
-  if (d.includes('d') || d.includes('dom')) return 'Domingo';
-  return dia;
-}
-
-function formatHorarioShort(horario: any): string {
-  if (!horario) return 'Por definir';
-  let h = horario;
-  if (typeof h === 'string') {
-    try { h = JSON.parse(h); } catch { return 'Error horario'; }
-  }
-  if (!h || typeof h !== 'object') return 'Por definir';
-  if (h.texto) return h.texto;
-
-  const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const dias = Object.keys(h).filter(d => DIAS_VALIDOS.includes(normalizeDay(d)));
-  
-  if (dias.length === 0) return 'Sin horario';
-
-  if (dias.length === 1) {
-    const d = dias[0];
-    const conf = h[d];
-    if (!conf || !conf.start) return 'Sin horario';
-    return `${d.slice(0, 3)} ${conf.start}-${conf.end}`;
-  }
-
-  const validSessions = dias.map(d => h[d]).filter(conf => conf && conf.start);
-  if (validSessions.length === 0) return 'Sin horario';
-
-  const times = validSessions.map(conf => `${conf.start}-${conf.end}`);
-  const allSame = times.every(t => t === times[0]);
-
-  if (allSame) {
-    const diasStr = dias.map(d => d.slice(0, 3)).join(', ');
-    return `${diasStr} ${times[0]}`;
-  }
-
-  const d = dias[0];
-  return `${d.slice(0, 3)} ${h[d].start}+`;
-}
-
-function formatHorarioFull(horario: any): string {
-  if (!horario) return 'Sin horario';
-  let h = horario;
-  if (typeof h === 'string') {
-    try { h = JSON.parse(h); } catch { return 'Horario inválido'; }
-  }
-  if (!h || typeof h !== 'object') return 'Sin horario';
-  if (h.texto) return h.texto;
-
-  const DIAS_VALIDOS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const dias = Object.keys(h).filter(d => DIAS_VALIDOS.includes(normalizeDay(d)));
-  
-  if (dias.length === 0) return 'Sin horario';
-  
-  return dias.map(d => {
-    const conf = h[d];
-    if (!conf || !conf.start) return '';
-    const s = conf.start || '';
-    const e = conf.end || '';
-    return `${d.slice(0, 3)} ${s}-${e}`;
-  }).filter(Boolean).join(' • ');
-}
 
 function getActiveClubs(clubes: any[]) {
   const now = new Date();
   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const currentDay = days[now.getDay()];
-  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+  const currentMins = now.getHours() * 60 + now.getMinutes();
 
   return clubes.filter(club => {
     if (!club.horario) return false;
@@ -98,7 +30,12 @@ function getActiveClubs(clubes: any[]) {
     const conf = club.horario[dayKey];
     if (!conf || !conf.start || !conf.end) return false;
     
-    return currentTime >= conf.start && currentTime <= conf.end;
+    const [startH, startM] = conf.start.split(':').map(Number);
+    const [endH, endM] = conf.end.split(':').map(Number);
+    const sMins = startH * 60 + startM;
+    const eMins = endH * 60 + endM;
+    
+    return currentMins >= (sMins - 5) && currentMins <= eMins;
   });
 }
 
@@ -107,29 +44,37 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tab = (searchParams.get('tab') || 'inicio') as 'inicio' | 'clubes' | 'horarios';
-  const { usuario } = useUser();
+  const { usuario, isAdmin } = useRole();
   const [clubes, setClubes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Auto update for live classes
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000); // refresh every 30s
+    return () => clearInterval(timer);
+  }, []);
 
   // Paginación (Punto: 3 clubes por página)
   const ITEMS_PER_PAGE = 3;
   const [currentPage, setCurrentPage] = useState(1);
   const [activeModal, setActiveModal] = useState<'asistencia' | 'racha' | null>(null);
 
-  // Datos dinámicos del dashboard
   const [metricas, setMetricas] = useState<any>(null);
   const [alertas, setAlertas] = useState<any[]>([]);
+  const [notificaciones, setNotificaciones] = useState<any[]>([]);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
 
   useEffect(() => {
     if (!usuario) return;
 
     // 🔹 Profesor ve SOLO sus clubes. Admin ve todos.
-    const url = usuario.rol === 'ADMINISTRADOR'
+    const url = isAdmin
       ? `${API}/clubes`
       : `${API}/clubes/mis-clubes/${usuario.id}`;
 
-    fetch(url)
+    fetchWithAuth(url.replace(API, ''))
       .then(res => res.json())
       .then(data => {
         setClubes(Array.isArray(data) ? data : []);
@@ -143,20 +88,71 @@ export default function Dashboard() {
 
     // 🔹 Cargar métricas del dashboard
     setLoadingDashboard(true);
-    fetch(`${API}/clubes/profesor-dashboard/${usuario.id}`)
+    fetchWithAuth(`/clubes/profesor-dashboard/${usuario.id}`)
       .then(res => res.json())
       .then(data => {
         setMetricas(data.metricas);
         setAlertas(data.alertas);
+        // Si hay alertas nuevas (no leídas o críticas), podríamos mostrar el modal automáticamente
+        if (data.alertas && data.alertas.length > 0) {
+            // setShowAlertsModal(true); // Opcional: auto-abrir si hay alertas de inasistencia
+        }
         setLoadingDashboard(false);
       })
       .catch(err => {
         console.error("Error fetching dashboard metrics:", err);
         setLoadingDashboard(false);
       });
+
+    // 🔹 Cargar notificaciones (Novedades de asignación, etc)
+    fetchWithAuth(`/notificaciones?usuarioId=${usuario.id}`)
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data.data) ? data.data : [];
+        setNotificaciones(list);
+        // Auto-abrir si hay notificaciones no leídas de "Nuevo Club" o "Nuevo Alumno"
+        const tieneNovedades = list.some((n: any) => !n.leida);
+        if (tieneNovedades) {
+            setShowAlertsModal(true);
+        }
+      })
+      .catch(err => console.error("Error fetching notifications:", err));
   }, [usuario]);
 
-  const activeClubs = useMemo(() => getActiveClubs(clubes), [clubes]);
+  const leerNotificacion = async (id: number) => {
+    try {
+      await fetchWithAuth(`/notificaciones/${id}/leer`, { method: 'PUT' });
+      setNotificaciones(prev => prev.map((n: any) => n.id === id ? { ...n, leida: true } : n));
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const unreadCount = notificaciones.filter((n: any) => !n.leida).length + alertas.length;
+
+  const activeClubs = useMemo(() => {
+    // Forzar hora de Perú (America/Lima) para las comparaciones
+    const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const currentDay = days[peruDate.getDay()];
+    const currentMins = peruDate.getHours() * 60 + peruDate.getMinutes();
+
+    return clubes.filter(club => {
+      if (!club.horario) return false;
+      const dayKey = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
+      if (!dayKey) return false;
+      
+      const conf = club.horario[dayKey];
+      if (!conf || !conf.start || !conf.end) return false;
+      
+      const [startH, startM] = conf.start.split(':').map(Number);
+      const [endH, endM] = conf.end.split(':').map(Number);
+      const sMins = startH * 60 + startM;
+      const eMins = endH * 60 + endM;
+      
+      return currentMins >= (sMins - 5) && currentMins <= eMins;
+    });
+  }, [clubes, currentTime]);
 
   // ── Horarios ──
   const [activeDayMobile, setActiveDayMobile] = useState('Lunes');
@@ -263,9 +259,32 @@ export default function Dashboard() {
       {/* 🔮 CONDITIONAL WELCOME (Only on Inicio) */}
       {tab === 'inicio' && (
         <div className="animate-enter" style={{ marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
           <h1 style={{ margin: 0, fontSize: '3rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.05em', lineHeight: 1.1 }}>
             Hola, <span style={{ color: 'var(--color-secondary)' }}>{(usuario as any).nombre?.split(' ')[0] || 'Profesor'}</span>
           </h1>
+          <button 
+            onClick={() => setShowAlertsModal(true)}
+            style={{ 
+              position: 'relative', background: 'white', border: '1.5px solid var(--color-surface-container-high)',
+              width: '3.5rem', height: '3.5rem', borderRadius: '1.25rem', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)', transition: 'all 0.3s'
+            }}
+          >
+            <Bell size={24} color="var(--color-primary)" />
+            {unreadCount > 0 && (
+              <span style={{ 
+                position: 'absolute', top: '-5px', right: '-5px', background: 'var(--color-error)',
+                color: 'white', fontSize: '0.7rem', fontWeight: 900, minWidth: '1.4rem', height: '1.4rem',
+                borderRadius: '99px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '3px solid var(--color-bg)', animation: 'pulse 2s infinite'
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
         </div>
       )}
 
@@ -468,17 +487,21 @@ export default function Dashboard() {
                 
                 const hoy = DIAS_CALENDARIO[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
                 
-                // 🔹 Lógica Precisa: ¿Está en horario de clase JUSTO AHORA?
+                // 🔹 Lógica Precisa: ¿Está en horario de clase (5 mins antes)?
                 const estaEnVivoAhora = (() => {
                   if (!club.horario) return false;
-                  const now = new Date();
+                  const peruDate = new Date(currentTime.toLocaleString('en-US', { timeZone: 'America/Lima' }));
                   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                  const currentDay = days[now.getDay()];
+                  const currentDay = days[peruDate.getDay()];
                   const dMatch = Object.keys(club.horario).find(d => normalizeDay(d) === currentDay);
                   if (!dMatch) return false;
                   const { start, end } = club.horario[dMatch];
-                  const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                  return currentTime >= start && currentTime <= end;
+                  const [startH, startM] = start.split(':').map(Number);
+                  const [endH, endM] = end.split(':').map(Number);
+                  const sMins = startH * 60 + startM;
+                  const eMins = endH * 60 + endM;
+                  const currentMins = peruDate.getHours() * 60 + peruDate.getMinutes();
+                  return currentMins >= (sMins - 5) && currentMins <= eMins;
                 })();
 
                 const hayClaseHoy = club.horario && Object.keys(club.horario).some(d => normalizeDay(d) === hoy);
@@ -793,6 +816,115 @@ export default function Dashboard() {
         metricas={metricas}
         clubes={clubes}
       />
+
+      <AlertsModal 
+        isOpen={showAlertsModal} 
+        onClose={() => setShowAlertsModal(false)}
+        alertas={alertas}
+        notificaciones={notificaciones}
+        onRead={leerNotificacion}
+      />
+    </div>
+  );
+}
+
+function AlertsModal({ isOpen, onClose, alertas, notificaciones, onRead }: any) {
+  if (!isOpen) return null;
+  
+  const hasContent = (alertas && alertas.length > 0) || (notificaciones && notificaciones.length > 0);
+
+  return (
+    <div style={{ 
+      position: 'fixed', inset: 0, zIndex: 11000, 
+      background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' 
+    }} onClick={onClose}>
+      <div style={{ 
+        background: 'white', borderRadius: '2rem', width: '100%', maxWidth: '500px', 
+        maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', animation: 'slideUp 0.4s ease'
+      }} onClick={e => e.stopPropagation()}>
+        
+        {/* Header */}
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-surface-container-high)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>Notificaciones</h3>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-outline)', fontWeight: 600 }}>Novedades y alertas importantes</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--color-surface-container-low)', border: 'none', width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={20} color="var(--color-primary)" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="discrete-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {!hasContent && (
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', opacity: 0.5 }}>
+              <Bell size={48} style={{ margin: '0 auto 1rem', display: 'block' }} />
+              <p style={{ fontWeight: 700 }}>No hay notificaciones nuevas</p>
+            </div>
+          )}
+
+          {/* Alertas Críticas (Asistencia) */}
+          {alertas && alertas.map((a: any) => (
+            <div key={a.id} style={{ 
+              background: 'rgba(211, 47, 47, 0.05)', padding: '1.25rem', 
+              borderRadius: '1.25rem', border: '1px solid rgba(211, 47, 47, 0.1)',
+              display: 'flex', gap: '1rem'
+            }}>
+              <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', background: '#d32f2f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AlertCircle size={20} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: '#d32f2f' }}>{a.titulo}</h4>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.4 }}>{a.desc}</p>
+              </div>
+            </div>
+          ))}
+
+          {/* Notificaciones (Asignaciones, etc) */}
+          {notificaciones && notificaciones.map((n: any) => (
+            <div 
+              key={n.id} 
+              onClick={() => !n.leida && onRead(n.id)}
+              style={{ 
+                background: n.leida ? 'var(--color-surface-container-low)' : 'rgba(var(--color-secondary-rgb), 0.1)', 
+                padding: '1.25rem', borderRadius: '1.25rem', 
+                border: '1px solid rgba(var(--color-secondary-rgb), 0.1)',
+                display: 'flex', gap: '1rem', cursor: n.leida ? 'default' : 'pointer',
+                transition: 'all 0.2s', opacity: n.leida ? 0.7 : 1
+              }}
+            >
+              <div style={{ 
+                width: '2.5rem', height: '2.5rem', borderRadius: '0.75rem', 
+                background: n.leida ? 'var(--color-outline)' : 'var(--color-secondary)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 
+              }}>
+                {n.tipo === 'INFO' ? <Info size={20} color="white" /> : <Bell size={20} color="white" />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-primary)' }}>{n.titulo}</h4>
+                  {!n.leida && <div style={{ width: '8px', height: '8px', background: 'var(--color-secondary)', borderRadius: '50%' }}></div>}
+                </div>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 600, lineHeight: 1.4 }}>{n.mensaje}</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: 'var(--color-outline)', fontWeight: 700 }}>{new Date(n.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '1.5rem', background: 'var(--color-surface-container-lowest)', display: 'flex', justifyContent: 'center' }}>
+          <button onClick={onClose} style={{ 
+            background: 'var(--color-primary)', color: 'white', border: 'none', 
+            padding: '0.85rem 2rem', borderRadius: '1rem', fontWeight: 900, cursor: 'pointer',
+            boxShadow: '0 8px 16px rgba(29, 40, 72, 0.2)'
+          }}>
+            Entendido
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -804,77 +936,88 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10000,
-      background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(16px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem',
+      background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(20px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
       animation: 'fadeIn 0.3s ease'
     }} onClick={onClose}>
       <div
+        className="metrics-modal-container discrete-scroll"
         style={{
-          background: 'var(--color-surface)', borderRadius: '2.5rem', width: '100%', maxWidth: '550px',
-          padding: '2.5rem', boxShadow: '0 40px 100px rgba(0,0,0,0.4)', position: 'relative',
-          overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)',
-          animation: 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          background: 'white', borderRadius: '2.5rem', width: '100%', 
+          boxShadow: '0 50px 100px rgba(0,0,0,0.5)', position: 'relative',
+          overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)',
+          animation: 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: '90vh'
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header Inspirado en Admin Pagos */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 5 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.7rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.04em' }}>
-              {active === 'asistencia' ? 'Análisis de Asistencia' : 'Compromiso de Excelencia'}
+            <h3 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 950, color: 'var(--color-primary)', letterSpacing: '-0.04em', lineHeight: 1.1 }}>
+              {active === 'asistencia' ? 'Rendimiento' : 'Compromiso'}<br/>
+              <span style={{ color: 'var(--color-secondary)' }}>{active === 'asistencia' ? 'Académico' : 'Institucional'}</span>
             </h3>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
-              {active === 'asistencia' ? 'Desglose detallado por disciplina ab-2025' : 'Hitos y consistencia institucional'}
+            <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: 'var(--color-outline)', fontWeight: 700 }}>
+              {active === 'asistencia' ? 'Métricas de participación por disciplina' : 'Consistencia y racha de excelencia'}
             </p>
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'var(--color-surface-container-high)', width: '2.8rem', height: '2.8rem', borderRadius: '1.1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
-            <CheckCircle2 size={20} color="var(--color-primary)" strokeWidth={3} />
+          <button onClick={onClose} style={{ 
+            border: 'none', background: 'var(--color-surface-container-high)', width: '3rem', height: '3rem', 
+            borderRadius: '1.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', 
+            justifyContent: 'center', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' 
+          }}>
+            <X size={20} color="var(--color-primary)" strokeWidth={3} />
           </button>
         </div>
 
         {/* CONTENIDO: ASISTENCIA PROMEDIO */}
         {active === 'asistencia' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Grid de Resumen */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ background: 'var(--color-primary-fixed)', padding: '1.5rem', borderRadius: '1.8rem', position: 'relative', overflow: 'hidden' }}>
-                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Promedio Global</p>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{metricas?.asistenciaPct ?? 0}%</p>
-                <TrendingUp size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.1, color: 'var(--color-primary)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', position: 'relative', zIndex: 5 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+              <div style={{ background: 'var(--grad-primary)', padding: '1.8rem 1.5rem', borderRadius: '2.2rem', color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 40px rgba(29, 40, 72, 0.2)' }}>
+                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.8 }}>Puntaje Global</p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '2.8rem', fontWeight: 950, letterSpacing: '-0.05em', lineHeight: 1 }}>{metricas?.asistenciaPct ?? 0}%</p>
+                <TrendingUp size={80} style={{ position: 'absolute', right: '-15px', bottom: '-15px', opacity: 0.1 }} />
               </div>
-              <div style={{ background: 'var(--color-secondary-container)', padding: '1.5rem', borderRadius: '1.8rem', position: 'relative', overflow: 'hidden' }}>
-                <p style={{ margin: 0, fontSize: '0.65rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Alumnos Únicos</p>
-                <p style={{ margin: '0.4rem 0 0', fontSize: '2.2rem', fontWeight: 900, color: 'var(--color-on-secondary-container)', letterSpacing: '-0.03em' }}>{clubes.reduce((acc, c) => acc + (c._count?.inscripciones || 0), 0)}</p>
-                <Users size={60} style={{ position: 'absolute', right: '-10px', bottom: '-10px', opacity: 0.1, color: 'var(--color-on-secondary-container)' }} />
+              <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.8rem 1.5rem', borderRadius: '2.2rem', border: '1.5px solid var(--color-surface-container-high)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                  <Users size={16} color="var(--color-secondary)" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase' }}>Atletas a cargo</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '2rem', fontWeight: 950, color: 'var(--color-primary)', letterSpacing: '-0.03em' }}>{clubes.reduce((acc, c) => acc + (c._count?.inscripciones || 0), 0)}</p>
               </div>
             </div>
 
-            {/* Listado de Disciplinas */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Desglose por Club</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }} className="discrete-scroll">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Desglose por Club</h4>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                gap: '1rem', 
+                maxHeight: '400px', 
+                overflowY: 'auto', 
+                paddingRight: '0.5rem' 
+              }} className="discrete-scroll">
                 {clubes.map(club => {
-                  const pct = club.asistenciaPct || 0; // Usar dato real o 0% si no existe
-                  const status = pct >= 90 ? { label: 'Óptimo', color: '#4ade80', bg: '#dcfce7' } :
-                    pct >= 70 ? { label: 'Estable', color: '#fbbf24', bg: '#fef3c7' } :
-                      { label: 'Pendiente', color: 'var(--color-outline)', bg: 'var(--color-surface-container-high)' };
-
+                  const pct = club.asistenciaPct || 0;
+                  const isLow = pct < 70;
                   return (
-                    <div key={club.id} style={{ padding: '1.2rem', borderRadius: '1.5rem', background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-surface-container-high)', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                          <div style={{ width: '2.2rem', height: '2.2rem', borderRadius: '0.75rem', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                            <BookOpen size={16} color="var(--color-primary)" />
-                          </div>
-                          <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-primary)' }}>{club.nombre}</span>
-                        </div>
-                        <span style={{ padding: '0.25rem 0.6rem', borderRadius: '99px', background: status.bg, color: status.color, fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase' }}>{status.label}</span>
+                    <div key={club.id} style={{ padding: '1.25rem', borderRadius: '1.8rem', background: 'var(--color-surface-container-lowest)', border: '1px solid var(--color-surface-container-high)', transition: 'all 0.2s' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <span style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--color-primary)' }}>{club.nombre}</span>
+                        <span style={{ 
+                          padding: '0.35rem 0.8rem', borderRadius: '99px', 
+                          background: isLow ? '#fee2e2' : 'var(--color-primary-fixed)', 
+                          color: isLow ? '#ef4444' : 'var(--color-primary)', 
+                          fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase' 
+                        }}>
+                          {pct}%
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ flex: 1, height: '8px', background: 'var(--color-surface-container-high)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--grad-primary)', borderRadius: '4px', transition: 'width 1s ease-out' }}></div>
-                        </div>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-primary)', minWidth: '40px', textAlign: 'right' }}>{pct}%</span>
+                      <div style={{ height: '8px', background: 'var(--color-surface-container-high)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: isLow ? '#ef4444' : 'var(--grad-primary)', borderRadius: '10px', transition: 'width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}></div>
                       </div>
                     </div>
                   );
@@ -886,100 +1029,114 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
 
         {/* CONTENIDO: RACHA DE EXCELENCIA */}
         {active === 'racha' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.8rem' }}>
-            {/* Visualización Central - Amarillo Institucional */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Visualización Central Premium */}
             <div style={{
-              textAlign: 'center', padding: '2.5rem 2rem',
-              background: 'linear-gradient(135deg, #facc15, #fbbf24, #9a6d4dff)', // Amarillo-Oro Dominante
+              textAlign: 'center', padding: '3rem 2rem',
+              background: 'linear-gradient(135deg, #facc15, #eab308, #fbbf24)', 
               borderRadius: '2.5rem', color: 'var(--color-primary)', position: 'relative', overflow: 'hidden',
-              boxShadow: '0 25px 50px -12px rgba(250, 204, 21, 0.4)'
+              boxShadow: '0 30px 60px -12px rgba(234, 179, 8, 0.3)',
+              display: 'flex', flexDirection: 'column', justifyContent: 'center'
             }}>
-              <Zap size={150} style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', opacity: 0.06, color: 'var(--color-primary)' }} />
+              <Zap size={200} style={{ position: 'absolute', right: '-40px', top: '-40px', opacity: 0.1, color: 'white' }} />
               <div style={{ position: 'relative', zIndex: 2 }}>
                 <div style={{
-                  width: '4.5rem', height: '4.5rem',
-                  background: 'rgba(29, 40, 72, 0.1)',
+                  width: '4rem', height: '4rem', background: 'rgba(255, 255, 255, 0.2)',
                   borderRadius: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 1.5rem', backdropFilter: 'blur(8px)',
-                  border: '1px solid rgba(29, 40, 72, 0.1)'
+                  margin: '0 auto 1.25rem', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)'
                 }}>
-                  <Zap size={32} color="var(--color-primary)" fill="var(--color-primary)" />
+                  <Zap size={28} fill="var(--color-primary)" />
                 </div>
-                <p style={{ margin: 0, fontSize: '3.4rem', fontWeight: 950, letterSpacing: '-0.05em', lineHeight: 1 }}>{metricas?.racha ?? 0}</p>
-                <p style={{ margin: '0.2rem 0 1rem', fontSize: '1.2rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sesiones Invictas</p>
-                <div style={{ padding: '0.5rem 1rem', borderRadius: '99px', background: 'rgba(29, 40, 72, 0.08)', display: 'inline-block', fontSize: '0.85rem', fontWeight: 800 }}>
-                  ¡Compromiso del más alto nivel!
-                </div>
+                <p style={{ margin: 0, fontSize: '4.5rem', fontWeight: 950, letterSpacing: '-0.06em', lineHeight: 0.9 }}>{metricas?.racha ?? 0}</p>
+                <p style={{ margin: '0.6rem 0 0', fontSize: '0.9rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', opacity: 0.85 }}>Sesiones Invictas</p>
               </div>
             </div>
 
-            {/* Mapa de Calor - Estilo GitHub Verde */}
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.8rem' }}>Mapa de Actividad (30 días)</p>
-              <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(15, 1fr)', gap: '6px',
-                padding: '1.2rem', background: 'var(--color-surface-container-lowest)',
-                borderRadius: '1.5rem', border: '1px solid var(--color-surface-container-high)'
-              }}>
-                {Array.from({ length: 30 }).map((_, i) => {
-                  // Lógica Real Temporal: Solo se ilumina si hay data en el índice (simulando días pasados)
-                  // Por ahora, como no hay historia en el objeto metricas, se verá gris.
-                  const historial = metricas?.historialUltimos30Dias || []; 
-                  const diaData = historial[i];
-                  
-                  let bgColor = 'var(--color-surface-container-high)'; // Por defecto gris (sin clase)
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-                  if (diaData) {
-                    const pct = diaData.asistenciaPct || 0;
-                    bgColor = pct >= 90 ? '#098c46ff' :
-                             pct >= 50 ? '#10b981' : '#d1fae5';
+            {/* Mapa de Calor Mensual Mejorado */}
+            <div style={{ background: 'var(--color-surface-container-lowest)', padding: '1.5rem', borderRadius: '2rem', border: '1px solid var(--color-surface-container-high)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Actividad de {new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date())}
+                </p>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-outline)' }}>Mes Actual</span>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+                {(metricas?.historialMesActual || []).map((diaData: any, i: number) => {
+                  const pct = diaData?.asistenciaPct ?? -1;
+                  
+                  let bgColor = 'var(--color-surface-container-high)'; 
+                  let opacity = 0.3;
+
+                  if (pct > 90) {
+                    bgColor = '#059669'; // Emerald 600
+                    opacity = 1;
+                  } else if (pct >= 50) {
+                    bgColor = '#34d399'; // Emerald 400
+                    opacity = 1;
+                  } else if (pct >= 0) {
+                    bgColor = '#a7f3d0'; // Emerald 200
+                    opacity = 1;
                   }
 
                   return (
-                    <div key={i} title={diaData ? `Día ${diaData.fecha}: ${diaData.asistenciaPct}%` : 'Sin actividad'} style={{
-                      aspectRatio: '1/1', borderRadius: '4px',
-                      background: bgColor,
-                      transition: 'all 0.3s ease'
-                    }}></div>
+                    <div key={i} title={diaData && pct !== -1 ? `${diaData.fecha}: ${pct}%` : `Día ${i+1}: Sin clase`} style={{
+                      aspectRatio: '1/1', borderRadius: '8px',
+                      background: bgColor, opacity,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: pct !== -1 ? 'help' : 'default',
+                      border: pct !== -1 ? '1px solid rgba(0,0,0,0.05)' : 'none'
+                    }}>
+                      <span style={{ fontSize: '0.5rem', fontWeight: 900, color: pct !== -1 ? 'rgba(0,0,0,0.3)' : 'var(--color-outline)', display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                        {i + 1}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.6rem', fontWeight: 800, color: 'var(--color-outline)' }}>Asistencia:</span>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#a7f3d0' }}></div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-outline)' }}>&lt;50%</span>
+                </div>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#34d399' }}></div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-outline)' }}>&gt;50%</span>
+                </div>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#059669' }}></div>
+                  <span style={{ fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-outline)' }}>&gt;90%</span>
+                </div>
+              </div>
             </div>
 
-            {/* Roadmap de Logros */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <p style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-outline)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Próximos Hitos</p>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                {[
-                  { icon: <Award size={20} />, label: 'Bronce', req: 5, active: (metricas?.racha || 0) >= 5 },
-                  { icon: <Zap size={20} />, label: 'Plata', req: 15, active: (metricas?.racha || 0) >= 15 },
-                  { icon: <Target size={20} />, label: 'Oro', req: 30, active: (metricas?.racha || 0) >= 30 }
-                ].map((hito, i) => (
-                  <div key={i} style={{
-                    flex: 1, padding: '1rem', borderRadius: '1.5rem', textAlign: 'center',
-                    background: hito.active ? 'var(--color-primary-fixed)' : 'var(--color-surface-container-low)',
-                    border: '1.5px solid', borderColor: hito.active ? 'var(--color-primary)' : 'transparent',
-                    opacity: hito.active ? 1 : 0.6
-                  }}>
-                    <div style={{ color: hito.active ? 'var(--color-primary)' : 'var(--color-outline)', marginBottom: '0.4rem' }}>{hito.icon}</div>
-                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 900, color: 'var(--color-primary)' }}>{hito.label}</p>
-                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-outline)' }}>{hito.req} Sesiones</p>
-                  </div>
-                ))}
+            {/* Motivational Quote instead of Hitos */}
+            <div style={{ padding: '1.5rem', borderRadius: '2rem', background: 'rgba(var(--color-secondary-rgb), 0.08)', border: '1.5px dashed rgba(var(--color-secondary-rgb), 0.3)', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)', fontStyle: 'italic', lineHeight: 1.5 }}>
+                "La excelencia no es un acto, sino un hábito. Tu consistencia hoy define el éxito de tus atletas mañana."
+              </p>
+              <div style={{ marginTop: '0.8rem', fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-secondary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Equipo Exitus • Gestión 2025
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         <button
           onClick={onClose}
           style={{
-            marginTop: '2.5rem', width: '100%', padding: '1.25rem', borderRadius: '1.5rem',
-            background: 'var(--color-primary)', color: 'white', fontWeight: 900, fontSize: '1.05rem',
-            border: 'none', cursor: 'pointer', boxShadow: '0 12px 24px rgba(29, 40, 72, 0.25)',
-            transition: 'all 0.2s'
+            width: '100%', padding: '1.25rem', borderRadius: '1.5rem',
+            background: 'var(--color-primary)', color: 'white', fontWeight: 950, fontSize: '1.1rem',
+            border: 'none', cursor: 'pointer', boxShadow: '0 15px 35px rgba(29, 40, 72, 0.3)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            position: 'relative', zIndex: 5, letterSpacing: '-0.02em'
           }}
-          onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+          onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
           onMouseOut={e => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           ¡Seguir Adelante!
@@ -990,47 +1147,30 @@ function MetricsModals({ active, onClose, metricas, clubes }: { active: 'asisten
         .discrete-scroll::-webkit-scrollbar { width: 4px; }
         .discrete-scroll::-webkit-scrollbar-track { background: transparent; }
         .discrete-scroll::-webkit-scrollbar-thumb { background: var(--color-surface-container-high); borderRadius: 10px; }
+        .metrics-modal-container {
+          max-width: 540px;
+          padding: 1.25rem;
+          gap: 1.5rem;
+        }
+        @media (min-width: 900px) {
+          .metrics-modal-container {
+            max-width: 900px !important;
+            padding: 2.5rem !important;
+            gap: 2.5rem !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .metrics-modal-container {
+            border-radius: 1.5rem !important;
+            padding: 1rem !important;
+            gap: 1.25rem !important;
+          }
+          .metrics-modal-container h3 {
+            font-size: 1.4rem !important;
+          }
+        }
       `}</style>
     </div>
   );
 }
 
-function Pagination({ current, total, onChange }: { current: number; total: number; onChange: (p: number) => void }) {
-  if (total <= 1) return null;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginTop: '1.5rem', padding: '1rem 0' }}>
-      <button
-        disabled={current === 1}
-        onClick={() => onChange(current - 1)}
-        style={{
-          background: current === 1 ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)',
-          color: 'var(--color-primary)', border: 'none', borderRadius: '0.6rem',
-          padding: '0.45rem', opacity: current === 1 ? 0.3 : 1, width: '2.2rem', height: '2.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-        <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
-      </button>
-      <div style={{
-        background: 'var(--color-surface-container-low)',
-        padding: '0.44rem 1rem',
-        borderRadius: '99px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.4rem'
-      }}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--color-primary)' }}>{current}</span>
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-outline)', opacity: 0.5 }}>/</span>
-        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-outline)' }}>{total}</span>
-      </div>
-      <button
-        disabled={current === total}
-        onClick={() => onChange(current + 1)}
-        style={{
-          background: current === total ? 'var(--color-surface-container-lowest)' : 'var(--color-surface-container-high)',
-          color: 'var(--color-primary)', border: 'none', borderRadius: '0.6rem',
-          padding: '0.45rem', opacity: current === total ? 0.3 : 1, width: '2.2rem', height: '2.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-        <ChevronRight size={18} />
-      </button>
-    </div>
-  );
-}

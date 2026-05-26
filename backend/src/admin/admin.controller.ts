@@ -1,11 +1,13 @@
 import {
   Controller, Get, Post, Put, Patch, Delete,
-  Param, Body, ParseIntPipe, Query, Res,
+  Param, Body, ParseIntPipe, Query, Res, UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { AdminService } from './admin.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('admin')
+@UseGuards(JwtAuthGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -45,6 +47,30 @@ export class AdminController {
     @Body() body: { profesorId: number },
   ) {
     return this.adminService.asignarProfesor(clubId, body.profesorId);
+  }
+
+  // ── AULAS ────────────────────────────────────────
+  @Get('aulas')
+  getAulas() {
+    return this.adminService.getAulas();
+  }
+
+  @Post('aulas')
+  createAula(@Body() body: { nombre: string; latitud: number; longitud: number; radioPermitido?: number; codigoContingencia?: string }) {
+    return this.adminService.createAula(body);
+  }
+
+  @Put('aulas/:id')
+  updateAula(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { nombre?: string; latitud?: number; longitud?: number; radioPermitido?: number; codigoContingencia?: string },
+  ) {
+    return this.adminService.updateAula(id, body);
+  }
+
+  @Delete('aulas/:id')
+  deleteAula(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.deleteAula(id);
   }
 
   // ── USUARIOS ─────────────────────────────────────
@@ -142,5 +168,18 @@ export class AdminController {
   @Get('clubes/:id/sesiones')
   getClubSesiones(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.getClubSesiones(id);
+  }
+
+  @Get('asistencia-docente')
+  getAsistenciaDocente(
+    @Query('profesorId') profesorId?: string,
+    @Query('inicio') inicio?: string,
+    @Query('fin') fin?: string,
+  ) {
+    return this.adminService.getAsistenciaDocente({
+      profesorId: profesorId ? parseInt(profesorId) : undefined,
+      inicio,
+      fin,
+    });
   }
 }

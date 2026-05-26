@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { UserProvider, useUser } from './UserContext';
 import Dashboard from './Dashboard';
@@ -15,7 +16,7 @@ import CambiarContrasena from './CambiarContrasena';
 import './index.css';
 
 // ==========================================
-// Guard de Autenticación
+// Guard de Autenticacion
 // ==========================================
 function RequireAuth({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { usuario } = useUser();
@@ -29,7 +30,7 @@ function RequireAuth({ children, roles }: { children: React.ReactNode; roles?: s
 }
 
 // ==========================================
-// Redirect inteligente al Home según rol
+// Redirect inteligente al Home segun rol
 // ==========================================
 function HomeRedirect() {
   const { usuario } = useUser();
@@ -47,13 +48,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Login: solo si no está logueado */}
+      {/* Login: solo si no esta logueado */}
       <Route
         path="/login"
         element={usuario ? <Navigate to="/" replace /> : <Login />}
       />
 
-      {/* Cambiar contraseña: ruta bloqueante, sin Layout ni RequireAuth estándar */}
+      {/* Cambiar contrasena: ruta bloqueante, sin Layout ni RequireAuth estandar */}
       <Route
         path="/cambiar-contrasena"
         element={
@@ -65,14 +66,14 @@ function AppRoutes() {
         }
       />
 
-      {/* Raíz → redirige según rol */}
+      {/* Raiz -> redirige segun rol */}
       <Route path="/" element={
         <RequireAuth>
           <Layout><HomeRedirect /></Layout>
         </RequireAuth>
       } />
 
-      {/* 👨‍🏫 PROFESOR */}
+      {/* PROFESOR */}
       <Route path="/clubes/:clubId/asistencia" element={
         <RequireAuth roles={['PROFESOR']}>
           <Layout><PaseLista /></Layout>
@@ -97,28 +98,28 @@ function AppRoutes() {
         </RequireAuth>
       } />
 
-      {/* 👑 ADMINISTRADOR */}
+      {/* ADMINISTRADOR */}
       <Route path="/admin" element={
         <RequireAuth roles={['ADMINISTRADOR']}>
           <Layout><AdminDashboard /></Layout>
         </RequireAuth>
       } />
 
-      {/* 👨‍👩‍👦 PADRE */}
+      {/* PADRE */}
       <Route path="/portal" element={
         <RequireAuth roles={['PADRE', 'ADMINISTRADOR']}>
           <Layout><PortalFamiliar /></Layout>
         </RequireAuth>
       } />
 
-      {/* 💳 PAGOS */}
+      {/* PAGOS */}
       <Route path="/pagos" element={
         <RequireAuth roles={['PADRE', 'ADMINISTRADOR']}>
           <Layout><Pagos /></Layout>
         </RequireAuth>
       } />
 
-      {/* 👤 PERFIL */}
+      {/* PERFIL */}
       <Route path="/perfil" element={
         <RequireAuth>
           <Layout><Perfil /></Layout>
@@ -131,9 +132,6 @@ function AppRoutes() {
   );
 }
 
-// ==========================================
-// RAÍZ DE LA APP
-// ==========================================
 export default function App() {
   return (
     <BrowserRouter>
